@@ -1,0 +1,243 @@
+version: "4.1"
+name: Template
+type: ARM
+deviceName: null
+packDir: .pack/Keil/STM32F4xx_DFP.1.0.8
+srcDirs: []
+virtualFolder:
+  name: <virtual_root>
+  files: []
+  folders:
+    - name: USER
+      files:
+        - path: main.c
+        - path: stm32f4xx_it.c
+        - path: system_stm32f4xx.c
+      folders: []
+    - name: CORE
+      files:
+        - path: ../CORE/startup_stm32f40_41xxx.s
+      folders: []
+    - name: FWLIB
+      files:
+        - path: ../FWLIB/src/misc.c
+        - path: ../FWLIB/src/stm32f4xx_adc.c
+        - path: ../FWLIB/src/stm32f4xx_can.c
+        - path: ../FWLIB/src/stm32f4xx_crc.c
+        - path: ../FWLIB/src/stm32f4xx_cryp.c
+        - path: ../FWLIB/src/stm32f4xx_cryp_aes.c
+        - path: ../FWLIB/src/stm32f4xx_cryp_des.c
+        - path: ../FWLIB/src/stm32f4xx_cryp_tdes.c
+        - path: ../FWLIB/src/stm32f4xx_dac.c
+        - path: ../FWLIB/src/stm32f4xx_dbgmcu.c
+        - path: ../FWLIB/src/stm32f4xx_dcmi.c
+        - path: ../FWLIB/src/stm32f4xx_dma2d.c
+        - path: ../FWLIB/src/stm32f4xx_dma.c
+        - path: ../FWLIB/src/stm32f4xx_exti.c
+        - path: ../FWLIB/src/stm32f4xx_flash.c
+        - path: ../FWLIB/src/stm32f4xx_flash_ramfunc.c
+        - path: ../FWLIB/src/stm32f4xx_fsmc.c
+        - path: ../FWLIB/src/stm32f4xx_gpio.c
+        - path: ../FWLIB/src/stm32f4xx_hash.c
+        - path: ../FWLIB/src/stm32f4xx_hash_md5.c
+        - path: ../FWLIB/src/stm32f4xx_hash_sha1.c
+        - path: ../FWLIB/src/stm32f4xx_i2c.c
+        - path: ../FWLIB/src/stm32f4xx_iwdg.c
+        - path: ../FWLIB/src/stm32f4xx_ltdc.c
+        - path: ../FWLIB/src/stm32f4xx_pwr.c
+        - path: ../FWLIB/src/stm32f4xx_rcc.c
+        - path: ../FWLIB/src/stm32f4xx_rng.c
+        - path: ../FWLIB/src/stm32f4xx_rtc.c
+        - path: ../FWLIB/src/stm32f4xx_sai.c
+        - path: ../FWLIB/src/stm32f4xx_sdio.c
+        - path: ../FWLIB/src/stm32f4xx_spi.c
+        - path: ../FWLIB/src/stm32f4xx_syscfg.c
+        - path: ../FWLIB/src/stm32f4xx_tim.c
+        - path: ../FWLIB/src/stm32f4xx_usart.c
+        - path: ../FWLIB/src/stm32f4xx_wwdg.c
+      folders: []
+    - name: SYSTEM
+      files:
+        - path: ../SYSTEM/delay/delay.c
+        - path: ../SYSTEM/sys/sys.c
+        - path: ../SYSTEM/usart/usart.c
+      folders: []
+    - name: README
+      files:
+        - path: ../readme.txt
+      folders: []
+    - name: HARDWARE
+      files:
+        - path: ../HARDWARE/DMA/DMA.c
+        - path: ../HARDWARE/DMA/DMA.h
+        - path: ../HARDWARE/LEIDA_PWM/leida_pwm.c
+        - path: ../HARDWARE/LEIDA_PWM/leida_pwm.h
+        - path: ../HARDWARE/BLUE/BLUE.c
+        - path: ../HARDWARE/BLUE/BLUE.h
+        - path: ../HARDWARE/LEIDA_DATA/LEIDA_DATA.c
+        - path: ../HARDWARE/LEIDA_DATA/LEIDA_DATA.h
+        - path: ../HARDWARE/DSP/arm_cortexM4lf_math.lib
+        - path: ../HARDWARE/DSP/arm_math.h
+        - path: ../HARDWARE/CENTRE_LINE/CENTRE_LINE.c
+        - path: ../HARDWARE/LEIDA_TIMER/timer.c
+        - path: ../HARDWARE/moto/moto.c
+        - path: ../HARDWARE/Servo/Servo.c
+        - path: ../HARDWARE/TIM/PWM/PWM.c
+      folders: []
+dependenceList: []
+outDir: build
+miscInfo:
+  uid: deb5c096d94654469ead3924a34ec986
+targets:
+  Template:
+    cppPreprocessAttrs:
+      defineList:
+        - STM32F40_41xxx
+        - USE_STDPERIPH_DRIVER
+        - ARM_MATH_MATRIX_CHECK
+        - ARM_MATH_ROUNDING
+        - __CC_ARM
+        - ARM_MATH_CM4
+      incList:
+        - ../CORE
+        - ../SYSTEM/delay
+        - ../SYSTEM/sys
+        - ../SYSTEM/usart
+        - .
+        - ../FWLIB/inc
+        - ../HARDWARE/DMA
+        - ../HARDWARE/LEIDA_PWM
+        - ../HARDWARE/BLUE
+        - ../HARDWARE/LEIDA_DATA
+        - ../HARDWARE/DSP
+        - ../HARDWARE/CENTRE_LINE
+        - ../HARDWARE/LEIDA_TIMER
+        - ../HARDWARE/moto
+        - ../HARDWARE/Servo
+        - ../HARDWARE/TIM/PWM
+        - .cmsis/include
+        - RTE/_Template
+      libList: []
+    excludeList: []
+    settings:
+      debugger: cortex-debug
+    toolchain: AC5
+    toolchainConfigMap:
+      AC5:
+        archExtensions: ""
+        cpuType: Cortex-M4
+        floatingPointHardware: single
+        options:
+          version: 4
+          afterBuildTasks: []
+          asm-compiler:
+            defines: []
+          beforeBuildTasks: []
+          c/cpp-compiler:
+            CXX_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            C_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            c99-mode: true
+            one-elf-section-per-function: true
+            optimization: level-0
+            warnings: unspecified
+          global:
+            output-debug-info: enable
+            use-microLIB: true
+          linker:
+            $outputTaskExcludes:
+              - .bin
+            output-format: elf
+            ro-base: "0x08000000"
+            rw-base: "0x20000000"
+            xo-base: ""
+        scatterFilePath: ""
+        storageLayout:
+          RAM:
+            - id: 1
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 3
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 1
+              isChecked: true
+              mem:
+                size: "0x20000"
+                startAddr: "0x20000000"
+              noInit: false
+              tag: IRAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x10000"
+                startAddr: "0x10000000"
+              noInit: false
+              tag: IRAM
+          ROM:
+            - id: 1
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 3
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 1
+              isChecked: true
+              isStartup: true
+              mem:
+                size: "0x80000"
+                startAddr: "0x8000000"
+              tag: IROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: IROM
+        useCustomScatterFile: false
+    uploadConfigMap:
+      JLink:
+        baseAddr: ""
+        bin: ""
+        cpuInfo:
+          cpuName: "null"
+          vendor: "null"
+        otherCmds: ""
+        proType: 1
+        speed: 8000
+      OpenOCD:
+        baseAddr: "0x08000000"
+        bin: ""
+        interface: stlink
+        target: stm32f4x
+    uploader: OpenOCD

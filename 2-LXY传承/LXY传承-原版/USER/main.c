@@ -1,0 +1,472 @@
+/**
+ * @file    main.c
+ * @brief   雷达小车主程序 — 初始化、主控制循环、多模式转向决策
+ *
+ * ======================== 系统架构 ========================
+ *
+ * 硬件平台: STM32F407VET6 @ 168MHz
+ * 传感器:   M10系列激光雷达 (USART6, 230400bps, DMA接收)
+ * 执行器:   舵机 (TIM3 CH1), 直流电机 (TIM2 CH3, 编码器 TIM4)
+ * 通信:     HC-05蓝牙 (USART3)
+ *
+ * 主循环流程:
+ *   1. 等待 DMA_RX_DONE (一帧雷达数据就绪)
+ *   2. 解析雷达数据 -> 极坐标 -> 筛选有效点
+ *   3. 计算跑道宽度
+ *   4. 提取左/右边界点
+ *   5. 扫描前方路径
+ *   6. 检测左右边界突变点 (弯道入口)
+ *   7. 根据断点位置和前方斜率选择控制模式 (pid_select)
+ *   8. 调用中线PD控制器 -> 舵机PWM
+ *   9. 速度PI控制由TIM5中断独立运行 (10ms周期)
+ *
+ * 控制模式决策逻辑:
+ *   - 无断点 -> 中线模式 (pid=0) / 垂线模式 (pid=5)
+ *   - 右断点 + 前方斜率<0.35 -> 大右转 (pid=3)
+ *   - 右断点 + 前方斜率0.35~0.7 + S弯特征 -> 中右转 (pid=8)
+ *   - 右断点 + 前方斜率>=0.7 -> 小右转 (pid=1)
+ *   - 左断点 + 前方斜率<0.35 -> 大左转 (pid=4)
+ *   - 左断点 + 前方斜率0.35~0.7 + S弯特征 -> 中左转 (pid=9)
+ *   - 左断点 + 前方斜率>=0.7 -> 小左转 (pid=2)
+ *
+ * 调试开关:
+ *   HW_TEST_MOTOR_SERVO = 1: 舵机/电机往复测试模式
+ *                         0: 正常循线模式
+ */
+
+#include "stm32f4xx.h"
+#include "usart.h"
+#include "delay.h"
+#include "DMA.h"
+#include "leida_pwm.h"
+#include "LEIDA_DATA.h"
+#include "bsp_bluetooth.h"
+#include "centre_line.h"
+#include "timer.h"
+#include "moto.h"
+#include "Servo.h"
+#include "PWM.h"
+
+/* ======================== 硬件测试宏 ========================
+ * 设为1: 每次收到雷达DMA一帧数据后，舵机在[1360,1800]之间往复扫描，
+ *        同时电机占空比在[10,100]之间往复变化并打印当前值，用于确认硬件是否正常。
+ * 设为0: 关闭该测试，走正常循线逻辑。
+ */
+#define HW_TEST_MOTOR_SERVO 1
+
+/* 全局变量 */
+uint16_t RIGHT_duandian;           /* 右边界断点y坐标 */
+uint16_t LEFT_duandian;            /* 左边界断点y坐标 */
+float paodao_distance       = 700; /* 跑道宽度 (mm) */
+float paodao_distance_r     = 700; /* 当前帧跑道宽度 (mm) */
+float paodao_distance_r_r   = 0;
+float paodao_distance_r_r_r = 0;
+uint16_t state_left_cnt     = 0;   /* 左转持续计数 (大角度强制) */
+uint16_t state_right_cnt    = 0;   /* 右转持续计数 (大角度强制) */
+uint16_t state_left_cnt_2   = 0;   /* 左转二级计数 (连续大左转后强制) */
+uint16_t state_right_cnt_2  = 0;   /* 右转二级计数 (连续大右转后强制) */
+
+extern float Speed_now;
+
+#define duandian_distance 600       /* 断点判断距离阈值 */
+uint16_t state_sta = 1;
+
+float duandian_DIStance = 600;     /* 断点有效距离阈值 (mm) */
+
+int main(void)
+{
+    /* 首先初始化调试串口USART1，保证printf可用 */
+    uart_init(115200);
+
+    u32 t                 = 0;
+    uint16_t ceshi_cnt    = 0;
+    uint16_t break_flag   = 0;     /* 数据异常标志 */
+    uint16_t danbian_flag = 0;     /* 单边标志 (用于S弯检测) */
+    float jiaodu_piancha;
+    float servo_pwm;
+    float servo_midpwm = 156.5;    /* 舵机中位PWM/10，实际=1565 (约1.5ms) */
+    float qulu_forward;
+    float qulu_jinduan;
+    uint16_t pid_select           = 0;  /* 当前PID模式 */
+    uint16_t pid_select_last      = 0;  /* 上一帧PID模式 */
+    uint16_t pid_select_last_last = 0;  /* 上上帧PID模式 */
+    uint16_t tubian               = 0;
+
+    /* ===== 系统初始化 ===== */
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);  /* 2位抢占，2位子优先级 */
+    delay_init(84);                                  /* 延时函数初始化 */
+    PWM_Init_leida();                                 /* 雷达电机PWM初始化 */
+    Bluetooth_Init();                                 /* 蓝牙初始化 (USART3) */
+    PWM_SetCompare_leida(97);                         /* 雷达电机初始占空比 */
+    uart6_init(230400);                               /* 雷达串口USART6初始化 */
+    DMA_Initializes();                                /* DMA初始化 (雷达接收) */
+
+    Servo_Init(84, 20000, servo_midpwm);              /* 舵机初始化 (50Hz) */
+
+    /* 舵机PID初始化: kp, kp_2, kp_3, kd, kd_2, kd_3
+     * 参数含义: kp/kd=直道, kp_2/kd_2=大转弯, kp_3/kd_3=小转弯 */
+    Midline_PD_Init(&Servo_pd, 0.0575, 0.14, 0.0597, 0.12, 0.02, 0.105);
+
+    /* 速度PID初始化: kp, ki, kd */
+    Speed_PID_Init(&Speed_pid, 8.5, 0.505, 0);
+
+    /* 电机初始化: 预分频42, 周期100, 初始占空比90% */
+    moto_pwm = (uint16_t)(90 * 1);
+    Moto_Init(42, 100, moto_pwm);
+
+    Encoder_Init();                                   /* 编码器初始化 (TIM4) */
+
+    /* 速度定时器初始化: 84MHz/8400=10kHz, 周期100=10ms */
+    TIM5_Int_Init(100 - 1, 8400 - 1);
+
+    /* ===== 运行参数配置 ===== */
+    Speed_mubiao = 17;                   /* 目标速度 */
+
+    /* 最终舵机PID参数 (覆盖初始值) */
+    Midline_PD_Init(&Servo_pd, 0.035, 0.040, 0.0395, 0.075, 0.022, 0.020);
+
+    /* 左右边界扫描范围 (度) — 影响HANDLE6和HANDLE7 */
+    BLUE_ANGLE_LEFT_RIGHT = 90;
+
+    /* 右侧投影距离补偿系数 (小转弯模式) */
+    BLUE_DIS_RIGHT = 27;
+
+    /* 左侧投影距离补偿系数 (小转弯模式) */
+    BLUE_DIS_LEFT = 50;
+
+    /* 小转弯模式下目标Y坐标: 越小越直 */
+    BLUE_Y_RIGHT = 1200;
+    BLUE_Y_LEFT  = 1350;
+
+    /* 直道模式选择: 0=用中线末点, 1=用固定BLUE_Y_STRA */
+    BLUE_Y_STRA_SEL = 0;
+
+    /* 断点判断距离阈值 */
+    duandian_DIStance = 550;
+
+    printf("Start\r\n");
+
+    /* ======================== 主循环 ======================== */
+    while (1) {
+
+        /* 等待DMA接收完一帧雷达数据 */
+        if (DMA_RX_DONE) {
+            DMA_RX_DONE = 0;  /* 清除标志 */
+
+            printf("DMA_RX_DONE\r\n");
+
+#if HW_TEST_MOTOR_SERVO
+            /* ===== 硬件测试模式: 舵机+电机往复扫描 ===== */
+            static uint16_t servo_pwm_test = 1560;  /* 初始舵机中位 */
+            static int8_t servo_dir        = 1;     /* 1=增大, -1=减小 */
+            static uint16_t moto_pwm_test  = 20;    /* 电机初始占空比 */
+            static int8_t moto_dir         = 1;
+            static uint32_t dma_event_cnt  = 0;
+            dma_event_cnt++;
+
+            /* 每2帧DMA事件改变一次舵机角度 (步进10) */
+            if (dma_event_cnt % 2 == 0) {
+                servo_pwm_test += (uint16_t)(servo_dir * 10);
+                if (servo_pwm_test >= 1800) {        /* 上限 */
+                    servo_pwm_test = 1800;
+                    servo_dir      = -1;
+                } else if (servo_pwm_test <= 1360) { /* 下限 */
+                    servo_pwm_test = 1360;
+                    servo_dir      = 1;
+                }
+                Servo_ChangePwm(servo_pwm_test);
+                printf("Servo_Test PWM: %u\r\n", servo_pwm_test);
+            }
+
+            /* 每帧改变电机占空比 (步进5) */
+            moto_pwm_test = (uint16_t)(moto_pwm_test + moto_dir * 5);
+            if (moto_pwm_test >= 100) {              /* 上限 */
+                moto_pwm_test = 100;
+                moto_dir      = -1;
+            } else if (moto_pwm_test <= 10) {        /* 下限，防止堵转判断 */
+                moto_pwm_test = 10;
+                moto_dir      = 1;
+            }
+            Moto_Speed(moto_pwm_test);
+            printf("Moto_Test PWM%%: %u\r\n", moto_pwm_test);
+#endif
+
+#if 1  /* 正常循线逻辑（始终编译） */
+
+            /* ===== 第1步: 解析雷达数据 ===== */
+            LEIDA_DATA_HANDLE1(LEIDA_DATA, DMA_USART6_RX_BUF_r, DMA_USART6_RX_BUF_LEN);
+
+            /* ===== 第2步: 筛选有效点 (距离>=100mm) ===== */
+            valid_couter = LEIDA_DATA_HANDLE3_2(LEIDA_DATA2, LEIDA_DATA, LEIDA_DATA_COUNTER);
+
+            /* 有效点太少 -> 数据异常，跳过此帧 */
+            if (valid_couter <= 20) {
+                break_flag = 1;
+                break;
+            }
+            /* HANDLE3_2内部已掐头去尾各10个点，此处不再重复减去 */
+
+            /* ===== 第3步: 计算跑道宽度 ===== */
+            /* 雷达测距，600-900mm之间才更新 (防止异常值) */
+            paodao_distance_r = LEIDA_Distance(LEIDA_DATA2, valid_couter);
+            paodao_distance   = ((paodao_distance_r > 600) && (paodao_distance_r < 900))
+                                ? paodao_distance_r : paodao_distance;
+
+            /* ===== 第4步: 提取左右边界点 ===== */
+            LEFT_cnt  = LEIDA_DATA_HANDLE6(LEIDA_DATA_LEFT, LEIDA_DATA2, valid_couter);
+            RIGHT_cnt = LEIDA_DATA_HANDLE7(LEIDA_DATA_RIGHT, LEIDA_DATA2, valid_couter);
+
+            /* ===== 第5步: 前方路径扫描 ===== */
+            /* 前方70°-110°扫描，有障碍物则Forward_cnt=0 */
+            Forward_cnt = LEIDA_DATA_HANDLE5(LEIDA_DATA_Forward, LEIDA_DATA2, valid_couter);
+
+            /* 右侧(70°-90°)和左侧(90°-110°)分别扫描，用于S弯检测 */
+            Forward_cnt_2 = LEIDA_DATA_HANDLE5_2(LEIDA_DATA_Forward_2, LEIDA_DATA2, valid_couter, 70, 90);
+            Forward_cnt_3 = LEIDA_DATA_HANDLE5_2(LEIDA_DATA_Forward_3, LEIDA_DATA2, valid_couter, 90, 110);
+
+            /* ===== 第6步: 前方路径直线拟合 ===== */
+            if (Forward_cnt) {
+                /* 使用前10%-90%的点拟合，去除两端离群点 */
+                Midline_fit(LEIDA_DATA_Forward,
+                            (uint16_t)(Forward_cnt * 1.0f / 20 * 2),
+                            (uint16_t)(Forward_cnt * 1.0f / 20 * 18),
+                            &Midline_forward);
+
+                danbian_flag = 0;
+                /* 两侧前方都有5个以上有效点 -> S弯特征 */
+                if ((Forward_cnt_2 > 5) && (Forward_cnt_3 > 5)) {
+                    Midline_fit(LEIDA_DATA_Forward_2, 1, (uint16_t)(Forward_cnt_2 - 1), &Midline_forward_2);
+                    Midline_fit(LEIDA_DATA_Forward_3, 1, (uint16_t)(Forward_cnt_3 - 1), &Midline_forward_3);
+                    danbian_flag = 1;
+                }
+            }
+
+            /* ===== 第7步: 检测左右边界突变点 (弯道入口) ===== */
+            RIGHT_duandian = LEIDA_DATA_HANDLE9(LEIDA_DATA_RIGHT, RIGHT_cnt);
+            LEFT_duandian  = LEIDA_DATA_HANDLE8(LEIDA_DATA_LEFT, LEFT_cnt);
+
+            /* 如果左右两边同时检测到断点(都在100-550mm之间)，
+             * 保留较近的一个，丢弃较远的那个（防止T字路口误判） */
+            if ((LEFT_duandian > 100) && (LEFT_duandian < duandian_DIStance)
+                && (RIGHT_duandian > 100) && (RIGHT_duandian < duandian_DIStance)) {
+                if (LEFT_duandian > RIGHT_duandian)
+                    LEFT_duandian = 0;
+                else
+                    RIGHT_duandian = 0;
+            }
+
+            /* ===== 第8步: PID模式历史记录 ===== */
+            pid_select_last_last = pid_select_last;
+            pid_select_last      = pid_select;
+
+            /* ================================================================
+             * 第9步: 右边界断点处理 — 需要右转
+             * ================================================================ */
+            if ((RIGHT_duandian > 0) && (RIGHT_duandian < duandian_DIStance)) {
+
+                /* ----- 情况A: 前方斜率平缓 (<0.35) -----
+                 * 前方无障碍，可以大幅转弯 */
+                if ((fabs(Midline_forward.k) < 0.35) && (Forward_cnt)
+                    && (RIGHT_duandian < duandian_distance)) {
+
+                    /* 斜率强制取正（右转方向） */
+                    if (Midline_forward.k < 0) Midline_forward.k = -Midline_forward.k;
+                    printf("k: %f,b: %f\r\n", Midline_forward.k, Midline_forward.b);
+
+                    /* 模式3: 大角度右转，使用前方拟合数据 */
+                    pid_select = 3;
+                    servo_pwm  = Midline_PD(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward,
+                                            servo_midpwm,
+                                            (uint16_t)(Forward_cnt / 20.0 * 2),
+                                            (uint16_t)(Forward_cnt / 20.0 * 18),
+                                            pid_select);
+                    state_left_cnt_2 = 0;
+
+                /* ----- 情况B: 前方斜率中等 (0.35~0.7) + S弯特征 ----- */
+                } else if ((fabs(Midline_forward.k) >= 0.35) && (fabs(Midline_forward.k) < 0.7)
+                           && (Forward_cnt) && (RIGHT_duandian < duandian_distance)
+                           && ((fabs(Midline_forward_2.k) < 0.25) || (fabs(Midline_forward_3.k) < 0.25))
+                           && (danbian_flag == 1)) {
+
+                    if (Midline_forward.k < 0) Midline_forward.k = -Midline_forward.k;
+                    printf("k: %f,b: %f\r\n", Midline_forward.k, Midline_forward.b);
+
+                    /* 模式8: 中等角度右转 (S弯中段) */
+                    pid_select = 8;
+                    servo_pwm  = Midline_PD(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward,
+                                            servo_midpwm,
+                                            (uint16_t)(Forward_cnt / 20.0 * 2),
+                                            (uint16_t)(Forward_cnt / 20.0 * 18),
+                                            pid_select);
+
+                /* ----- 情况C: 前方斜率陡峭 (>=0.7) ----- */
+                } else {
+                    /* 如果前两帧都是大右转，强制再来一帧小右转 */
+                    if ((pid_select_last == 3) && (pid_select_last_last == 3)) {
+                        state_left_cnt_2 = 1;
+                    }
+                    if (state_left_cnt_2 > 0) {
+                        /* 强制小角度右转 */
+                        pid_select = 1;
+                        state_left_cnt_2 -= 1;
+                    } else {
+                        /* 没有前方数据可用 -> 沿左边界走小角度右转 */
+                        LEIDA_DATA_HANDLE2(LEIDA_DATA_LEFT_Plane, LEIDA_DATA_LEFT, LEFT_cnt);
+                        LEFT_cnt = LEIDA_DATA_HANDLE10(LEIDA_DATA_LEFT_Plane, LEFT_cnt);
+                        /* 使用左边界后75%-95%的点拟合 */
+                        Midline_fit(LEIDA_DATA_LEFT_Plane,
+                                    (uint16_t)(LEFT_cnt / 20.0 * 15),
+                                    (uint16_t)(LEFT_cnt / 20.0 * 19),
+                                    &Midline);
+                        pid_select = 1;  /* 小角度右转 */
+                        servo_pwm  = Midline_PD(LEIDA_DATA_LEFT_Plane, &Servo_pd, &Midline,
+                                                servo_midpwm,
+                                                (uint16_t)(LEFT_cnt / 20.0 * 15),
+                                                (uint16_t)(LEFT_cnt / 20.0 * 19),
+                                                pid_select);
+                    }
+                }
+            }
+
+            /* ================================================================
+             * 第10步: 左边界断点处理 — 需要左转
+             * ================================================================ */
+            else if ((LEFT_duandian > 0) && (LEFT_duandian < duandian_DIStance)) {
+
+                /* ----- 前方斜率平缓 -> 大角度左转 ----- */
+                if ((fabs(Midline_forward.k) < 0.35) && (Forward_cnt)
+                    && (LEFT_duandian < duandian_distance)) {
+
+                    printf("k: %f,b: %f\r\n", Midline_forward.k, Midline_forward.b);
+                    if (Midline_forward.k > 0) Midline_forward.k = -Midline_forward.k;
+                    /* 斜率强制取负（左转方向） */
+                    pid_select = 4;  /* 大角度左转 */
+                    servo_pwm  = Midline_PD(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward,
+                                            servo_midpwm,
+                                            (uint16_t)(Forward_cnt / 20.0 * 2),
+                                            (uint16_t)(Forward_cnt / 20.0 * 18),
+                                            pid_select);
+                    state_right_cnt_2 = 0;
+
+                /* ----- 前方斜率中等 + S弯特征 -> 中等角度左转 ----- */
+                } else if ((fabs(Midline_forward.k) >= 0.35) && (fabs(Midline_forward.k) < 0.7)
+                           && (Forward_cnt) && (LEFT_duandian < duandian_distance)
+                           && ((fabs(Midline_forward_2.k) < 0.25) || (fabs(Midline_forward_3.k) < 0.25))
+                           && (danbian_flag == 1)) {
+
+                    printf("k: %f,b: %f\r\n", Midline_forward.k, Midline_forward.b);
+                    if (Midline_forward.k > 0) Midline_forward.k = -Midline_forward.k;
+                    pid_select = 9;  /* 中等角度左转 */
+                    servo_pwm  = Midline_PD(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward,
+                                            servo_midpwm,
+                                            (uint16_t)(Forward_cnt / 20.0 * 2),
+                                            (uint16_t)(Forward_cnt / 20.0 * 18),
+                                            pid_select);
+
+                /* ----- 前方斜率陡峭 -> 小角度左转 ----- */
+                } else {
+                    if ((pid_select_last == 4) && (pid_select_last_last == 4))
+                        state_right_cnt_2 = 1;
+
+                    if (state_right_cnt_2 > 0) {
+                        /* 强制小角度左转 */
+                        pid_select = 2;
+                        state_right_cnt_2 -= 1;
+                    } else {
+                        /* 沿右边界走小角度左转 */
+                        LEIDA_DATA_HANDLE2(LEIDA_DATA_RIGHT_Plane, LEIDA_DATA_RIGHT, RIGHT_cnt);
+                        RIGHT_cnt = LEIDA_DATA_HANDLE10(LEIDA_DATA_RIGHT_Plane, RIGHT_cnt);
+                        Midline_fit(LEIDA_DATA_RIGHT_Plane,
+                                    (uint16_t)RIGHT_cnt / 20.0 * 15,
+                                    (uint16_t)RIGHT_cnt / 20.0 * 19,
+                                    &Midline);
+                        pid_select = 2;  /* 小角度左转 */
+                        servo_pwm  = Midline_PD(LEIDA_DATA_RIGHT_Plane, &Servo_pd, &Midline,
+                                                servo_midpwm,
+                                                (uint16_t)(RIGHT_cnt / 20.0 * 15),
+                                                (uint16_t)(RIGHT_cnt / 20.0 * 19),
+                                                pid_select);
+                    }
+                }
+
+            /* ================================================================
+             * 第11步: 无断点 — 直道模式
+             * ================================================================ */
+            } else {
+
+                /* 计算中线点 */
+                CENTER_cnt = LEIDA_DATA_HANDLE4(LEIDA_DATA_CENTER, LEIDA_DATA2, valid_couter);
+
+                /* 如果前两帧都是大转弯，强制在之后的直道中再补一帧同向转弯 */
+                if ((pid_select_last == 3) && (pid_select_last_last == 3)) state_left_cnt = 2;
+                if ((pid_select_last == 4) && (pid_select_last_last == 4)) state_right_cnt = 2;
+
+                pid_select = 0;
+
+                /* 执行强制大角度右转 (残留) */
+                if (state_left_cnt > 0) {
+                    Servo_ChangePwm(1360);  /* 舵机打满右 */
+                    state_left_cnt--;
+                }
+
+                /* 执行强制大角度左转 (残留) */
+                if (state_right_cnt > 0) {
+                    Servo_ChangePwm(1800);  /* 舵机打满左 */
+                    state_right_cnt--;
+                }
+
+                /* 正常直道循线 */
+                if ((state_left_cnt == 0) && (state_right_cnt == 0)) {
+
+                    /* 判断中线是否垂直（直道） */
+                    zhongxian_chuizhi = LEIDA_DATA_HANDLE11(LEIDA_DATA_CENTER,
+                                        (uint16_t)(CENTER_cnt / 20.0 * 8),
+                                        (uint16_t)(CENTER_cnt / 20.0 * 18));
+
+                    if (zhongxian_chuizhi == 0) {
+                        /* 中线不垂直 -> 普通中线拟合 */
+                        Midline_fit(LEIDA_DATA_CENTER,
+                                    (uint16_t)(CENTER_cnt / 20.0 * 8),
+                                    (uint16_t)(CENTER_cnt / 20.0 * 18),
+                                    &Midline);
+
+                        if (fabs(Midline.k) <= 0.1) {
+                            /* 斜率很小 -> 直接使用当前舵机位置 */
+                            Servo_ChangePwm((uint16_t)servo_pwm);
+                        } else if (CENTER_cnt < 8) {
+                            /* 中线点太少 -> 使用模式7 */
+                            servo_pwm = Midline_PD(LEIDA_DATA_CENTER, &Servo_pd, &Midline,
+                                                   servo_midpwm,
+                                                   (uint16_t)(CENTER_cnt / 20.0 * 8),
+                                                   (uint16_t)(CENTER_cnt / 20.0 * 18), 7);
+                            ceshi_cnt++;
+                        } else {
+                            /* 使用默认中线模式(pid_select=0) */
+                            servo_pwm = Midline_PD(LEIDA_DATA_CENTER, &Servo_pd, &Midline,
+                                                   servo_midpwm,
+                                                   (uint16_t)(CENTER_cnt / 20.0 * 8),
+                                                   (uint16_t)(CENTER_cnt / 20.0 * 18),
+                                                   pid_select);
+                        }
+                    } else {
+                        /* 中线垂直 -> 垂线直道模式(pid=5) */
+                        servo_pwm = Midline_PD(LEIDA_DATA_CENTER, &Servo_pd, &Midline,
+                                               servo_midpwm,
+                                               (uint16_t)(CENTER_cnt / 20.0 * 8),
+                                               (uint16_t)(CENTER_cnt / 20.0 * 18), 5);
+                    }
+                }
+            }
+
+        } else {
+            /* DMA数据未就绪，等待 */
+            ;
+        }
+
+        if (break_flag == 1) {
+            break_flag = 0;
+        }
+
+#endif
+    }
+}

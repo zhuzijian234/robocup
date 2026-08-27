@@ -1,0 +1,401 @@
+while(1){
+		if(DMA_RX_DONE)
+		{			
+			DMA_RX_DONE = 0;	
+			memcpy(DMA_USART2_RX_BUF_r_r,DMA_USART2_RX_BUF_r,	DMA_USART2_RX_BUF_LEN);	
+			cnt=LEIDA_DATA_HANDLE1(LEIDA_DATA,DMA_USART2_RX_BUF_r_r,DMA_USART2_RX_BUF_LEN	);	
+//			printf("\r\n\r\nstart\r\n\r\n");
+//			printf("chuixian里，Chuixian_pd.kp_l=%.2f，Chuixian_pd.kd_l=%.2f,Chuixian_pd.kp_r=%.2f,Chuixian_pd.kd_r=%.2f\n\n\n",Chuixian_pd.kp_l,Chuixian_pd.kd_l,Chuixian_pd.kp_r,Chuixian_pd.kd_r);
+//																																									//验证报文后做数据处理
+#if 1			
+			if(cnt>200)					//将数据转为极坐标
+			{
+				valid_couter = LEIDA_DATA_HANDLE3_2(LEIDA_DATA2,LEIDA_DATA,cnt);					//去除无效数据,大概转了一圈，去除距离较小的数据，数据>10cm	
+				
+			
+				
+//				Reg_Print("LEIDA_DATA2", LEIDA_DATA2, valid_couter);
+
+
+//22222222222222222222222打印跑道长度模块				
+//				printf("\n\n\n222222222222222222222打印跑道长度模块\n",valid_couter);
+				paodao_distance_r = LEIDA_Distance(LEIDA_DATA2,valid_couter);															//确定车道长度，返回前方60度范围的最小值
+				paodao_distance = ((paodao_distance_r>300)&&(paodao_distance_r<2000))?paodao_distance_r:paodao_distance;
+				
+				
+//				printf("paodao_distance:%f  paodao_distance_r:%f\r\n",paodao_distance,paodao_distance_r);
+				servo_pwm=Chuiline_PD( servo_midpwm);
+//333333333333333333333333打印左右	
+
+				//左断点数据来源	，180到90度		
+//				LEFT_cnt = LEIDA_DATA_HANDLE6(LEIDA_DATA_LEFT_Plane,LEIDA_DATA_LEFT,LEIDA_DATA2,valid_couter);									//找到左右边界
+//				
+//#if 1				
+//				Reg_Print("LEIDA_DATA_LEFT", LEIDA_DATA_LEFT, LEFT_cnt);
+//				Plane_Print("LEIDA_DATA_LEFT_Plane", LEIDA_DATA_LEFT_Plane, 0,LEFT_cnt);
+
+//#endif				
+//				
+//				//右断点数据来源	，0到90度
+//				RIGHT_cnt = LEIDA_DATA_HANDLE7(LEIDA_DATA_RIGHT_Plane,LEIDA_DATA_RIGHT,LEIDA_DATA2,valid_couter);
+//				
+//#if 0				
+//				Reg_Print("LEIDA_DATA_RIGHT", LEIDA_DATA_RIGHT, RIGHT_cnt);
+//				Plane_Print("LEIDA_DATA_RIGHT_Plane", LEIDA_DATA_RIGHT_Plane, 0,RIGHT_cnt);
+//#endif				
+//				
+////6666666666666666666666666打印断点数据模块
+//				printf("\n\n6666666666666666666666666打印断点数据模块\n\n");
+
+//				//右断点0-90度		只是判断不会更改右线数据				
+//				RIGHT_duandian = LEIDA_DATA_HANDLE9(LEIDA_DATA_RIGHT,RIGHT_cnt);													//右断点检测
+//				
+//				//左断点180-90度		只是判断不会更改右线数据
+//				LEFT_duandian = LEIDA_DATA_HANDLE8(LEIDA_DATA_LEFT,LEFT_cnt);
+//				
+////4444444444444444444444打印前方左右点数平面化
+//				printf("\n第一次拟合会在Forward_cnt里，会有Midline_forward不知道还会不会用，但在函数里会决定反转数组\n",Forward_cnt);
+//				Forward_cnt = LEIDA_DATA_HANDLE5(LEIDA_DATA_Forward,LEIDA_DATA2,valid_couter);		//会有一次寻中线，目的是反转数组？为什么，这个														//找到前方数据
+//				
+//				printf("\n找Forward_cnt:70到110度,Forward_cnt=%d\n",Forward_cnt);
+//				
+//				Forward_cnt_2 = LEIDA_DATA_HANDLE5_2(LEIDA_DATA_Forward_2,LEIDA_DATA2,valid_couter,75,90);
+//#if 0
+//				printf("\n\n找Forward_cnt_2:70到90度,20cm-2m,Forward_cnt_2=%d\n",Forward_cnt_2);
+//				Plane_Print("Forward_2", LEIDA_DATA_Forward_2, 0,Forward_cnt_2);
+//				
+//#endif				
+//				Forward_cnt_3 = LEIDA_DATA_HANDLE5_2(LEIDA_DATA_Forward_3,LEIDA_DATA2,valid_couter,90,105);
+
+//#if 0
+//				printf("\n\n找Forward_cnt_3:110到90度,20cm-2m,Forward_cnt_3=%d\n",Forward_cnt_3);
+//				Plane_Print("Forward_3", LEIDA_DATA_Forward_3, 0,Forward_cnt_3);		
+//#endif			
+////5555555555555打印前方数据斜率模块Forward_cnt
+//				printf("\n\n5555555555555打印前方数据斜率模块Forward_cnt\n\n");
+//				if(Forward_cnt) {
+//					printf("\nForward_cnt>0,LEIDA_DATA_Forward第二次拟合，70-110度，Forward_cnt=%d\n",Forward_cnt);
+//					Midline_fit(LEIDA_DATA_Forward,0,Forward_cnt,&Midline_forward);	//前方中线拟合
+//					
+//					if((Forward_cnt_2>5)&&(Forward_cnt_3>5))
+//					{
+//						
+//						printf("\nLEIDA_DATA_Forward_2拟合，70-90度,Forward_cnt_2=%d",Forward_cnt_2);
+//						Midline_fit(LEIDA_DATA_Forward_2,0,Forward_cnt_2,&Midline_forward_2);
+//						printf("\nLEIDA_DATA_Forward_3拟合，110-90度,Forward_cnt_3=%d",Forward_cnt_3);
+//						Midline_fit(LEIDA_DATA_Forward_3,0,Forward_cnt_3,&Midline_forward_3);			
+//						
+//					}
+//					
+//					
+//					printf("%三者正负应该相同qianfnag:%f\r\n",Midline_forward.k);
+//					printf("%qianfnag_右:%f\r\n",Midline_forward_2.k);
+//					printf("%qianfnag_左:%f\r\n",Midline_forward_3.k);
+//				}
+
+//////6666666666666666666666666打印断点数据模块
+////				printf("\n\n6666666666666666666666666打印断点数据模块\n\n");
+
+//////右断点0-90度		只是判断不会更改右线数据				
+////				RIGHT_duandian = LEIDA_DATA_HANDLE9(LEIDA_DATA_RIGHT,RIGHT_cnt);													//右断点检测
+////				
+//////左断点180-90度		只是判断不会更改右线数据
+////				LEFT_duandian = LEIDA_DATA_HANDLE8(LEIDA_DATA_LEFT,LEFT_cnt);															//左断点检测
+//				
+//#if 0			
+//				
+//				if((LEFT_duandian>100)&&(LEFT_duandian<600)&&(RIGHT_duandian>100)&&(RIGHT_duandian<600)){	//保留一个断点，10cm到60cm，保留左右中小的那个断点
+//					
+//					if(LEFT_duandian>RIGHT_duandian)LEFT_duandian = 0;
+//					else 
+//						RIGHT_duandian = 0;
+//				}
+//				
+//				if((LEFT_duandian>100)&&(LEFT_duandian<600)){																							//根据断点判断另一边垂直与否，来判断直线
+//					state_sta = LEIDA_DATA_HANDLE13(LEIDA_DATA_RIGHT,RIGHT_cnt,0,80);
+//					printf("有左断点,判断右线偏度，state_sta=%d\r\n",state_sta);
+//				}
+//				else if((RIGHT_duandian>100)&&(RIGHT_duandian<600)){
+//					state_sta = LEIDA_DATA_HANDLE13(LEIDA_DATA_LEFT,LEFT_cnt,100,180);//偏度，如果道路很偏就返回0，除断点外又一
+//					printf("有右断点,判断左线偏度，state_sta=%d\r\n",state_sta);
+//				}
+//				else
+//					state_sta = 1;
+//									
+//				
+//							
+//				pid_select_last_last = pid_select_last;																//PID选择
+//				pid_select_last = pid_select;
+//				
+//				printf("\r\n\r\n\r\n开始决策\r\n\r\n\r\n");
+//				printf("RIGHT_duandian:%d\r\n",RIGHT_duandian);
+//				printf("LEFT_duandian:%d\r\n",LEFT_duandian);
+//				printf("最终state_sta=%d\r\n",state_sta);	
+//				printf("pid_select=%d  pid_select_last=%d  pid_select_last_last=%d\r\n",pid_select,pid_select_last,pid_select_last_last);
+//				printf("paodao_distance:%f  paodao_distance_r:%f\r\n",paodao_distance,paodao_distance_r);
+
+//#if 0				
+//				if((RIGHT_duandian>0)&&(RIGHT_duandian<600)&&(state_sta == 0)){																						
+//					printf("%d 右边界突变\r\n",RIGHT_duandian);
+
+//					
+//					if((fabs(Midline_forward.k)<0.35)&&(Forward_cnt)&&(RIGHT_duandian<550)){
+//						printf("使用前方数据，右大弯\r\n");	
+//						printf("向右转按理说k>0,k: %f,b: %f\r\n",Midline_forward.k,Midline_forward.b);
+//						if(Midline_forward.k<0)Midline_forward.k = -Midline_forward.k;
+//							printf("k: %f,b: %f\r\n",Midline_forward.k,Midline_forward.b);
+//						pid_select = 3;
+//						servo_pwm = Midline_PD(LEIDA_DATA_Forward,&Servo_pd,&Midline_forward,servo_midpwm,(uint16_t)(Forward_cnt/20.0*2),(uint16_t)(Forward_cnt/20.0*18),pid_select);																																				
+//																								
+//						state_left_cnt_2 = 0;
+//																
+//					}
+//					else if( (fabs(Midline_forward.k)>=0.35)&&(fabs(Midline_forward.k)<0.7) &&(Forward_cnt)&&(RIGHT_duandian<550) && ((fabs(Midline_forward_2.k)<0.25)||(fabs(Midline_forward_3.k)<0.25)) && (danbian_flag==1) ){														
+//						printf("使用前方数据,右中弯\r\n");											
+//						if(Midline_forward.k<0)
+//							Midline_forward.k = -Midline_forward.k;
+//						printf("k: %f,b: %f\r\n",Midline_forward.k,Midline_forward.b);
+//						pid_select = 8;
+//						servo_pwm = Midline_PD(LEIDA_DATA_Forward,&Servo_pd,&Midline_forward,servo_midpwm,(uint16_t)(Forward_cnt/20.0*2),(uint16_t)(Forward_cnt/20.0*18),pid_select);																																								
+//					}
+//					else{
+//						if((pid_select_last==3)&&(pid_select_last_last==3))state_left_cnt_2 = 2;		
+//						if(state_left_cnt_2>0){
+//							
+//							Servo_ChangePwm(125);
+//							printf("已检测两次连续右大弯，打死，pid_select = 1，state_left_cnt_2  -= 1\r\n");	
+
+//							pid_select = 1;	
+//							state_left_cnt_2  -= 1;
+//						}
+//						else{
+//							printf("有右断点但斜率不足，\r\n");
+//							LEIDA_DATA_HANDLE2(LEIDA_DATA_LEFT_Plane,LEIDA_DATA_LEFT,LEFT_cnt);				//左边界转为平面坐标
+//							LEFT_cnt = LEIDA_DATA_HANDLE10(LEIDA_DATA_LEFT_Plane,	LEFT_cnt);						//左边界去噪
+//							Midline_fit(LEIDA_DATA_LEFT_Plane,(uint16_t)(LEFT_cnt/20.0*15),(uint16_t)(LEFT_cnt/20.0*19),&Midline);//使用靠近中心线的拟合数据
+//							printf("k: %f,b: %f\r\n",Midline.k,Midline.b);
+//							pid_select = 1;																											//右弯
+//							servo_pwm = Midline_PD(LEIDA_DATA_LEFT_Plane,&Servo_pd,&Midline,servo_midpwm,(uint16_t)(LEFT_cnt/20.0*15),(uint16_t)(LEFT_cnt/20.0*19),pid_select);					
+//						}
+//					}		
+//				}									
+//				else if((LEFT_duandian>0)&&(LEFT_duandian<600)&&(state_sta == 0))
+//				{
+//					printf("%d 左边界突变\r\n",LEFT_duandian);
+
+//					if((fabs(Midline_forward.k)<0.35)&&(Forward_cnt)&&(LEFT_duandian<550)){
+//						printf("使用前方数据,左大弯\r\n");
+//						printf("k: %f,b: %f\r\n",Midline_forward.k,Midline_forward.b);
+//						
+//						if(Midline_forward.k>0)Midline_forward.k = -Midline_forward.k;
+//										
+//						pid_select = 4;
+//						servo_pwm = Midline_PD(LEIDA_DATA_Forward,&Servo_pd,&Midline_forward,servo_midpwm,(uint16_t)(Forward_cnt/20.0*2),(uint16_t)(Forward_cnt/20.0*18),pid_select);
+//		
+//						state_right_cnt_2 = 0;
+//					}
+//					else if( (fabs(Midline_forward.k)>=0.35)&&(fabs(Midline_forward.k)<0.7) &&(Forward_cnt)&&(LEFT_duandian<550) && ((fabs(Midline_forward_2.k)<0.25)||(fabs(Midline_forward_3.k)<0.25)) && (danbian_flag==1)  )
+//					{														
+//							printf("使用前方数据,左中弯\r\n");
+//							printf("k: %f,b: %f\r\n",Midline_forward.k,Midline_forward.b);
+//							if(Midline_forward.k>0)Midline_forward.k = -Midline_forward.k;
+//							pid_select = 9;
+//							servo_pwm = Midline_PD(LEIDA_DATA_Forward,&Servo_pd,&Midline_forward,servo_midpwm,(uint16_t)(Forward_cnt/20.0*2),(uint16_t)(Forward_cnt/20.0*18),pid_select);												
+//					}
+//							
+//					else{
+//						if((pid_select_last==4)&&(pid_select_last_last==4))state_right_cnt_2 = 2;		
+//						if(state_right_cnt_2>0){
+//							Servo_ChangePwm(162);
+//							printf("已检测两次连续左大弯，打死，pid_select = 2，state_left_cnt_2  -= 1\r\n");
+
+//							pid_select = 2;	
+//							state_right_cnt_2  -= 1;
+//						}
+//						else{
+//							LEIDA_DATA_HANDLE2(LEIDA_DATA_RIGHT_Plane,LEIDA_DATA_RIGHT,RIGHT_cnt);				//右边界转为平面坐标
+//							RIGHT_cnt = LEIDA_DATA_HANDLE10(LEIDA_DATA_RIGHT_Plane,	RIGHT_cnt);						//右边界去噪	
+//							Midline_fit(LEIDA_DATA_RIGHT_Plane,(uint16_t)RIGHT_cnt/20.0*15,(uint16_t)RIGHT_cnt/20.0*19,&Midline);
+//							printf("k: %f,b: %f\r\n",Midline.k,Midline.b);			
+//							pid_select = 2;															//左弯
+//							servo_pwm = Midline_PD(LEIDA_DATA_RIGHT_Plane,&Servo_pd,&Midline,servo_midpwm,(uint16_t)(RIGHT_cnt/20.0*15),(uint16_t)(RIGHT_cnt/20.0*19),pid_select);
+//						}				
+//					}								
+//				}	
+//				else{
+//					CENTER_cnt =	LEIDA_DATA_HANDLE4(LEIDA_DATA_CENTER,LEIDA_DATA2,valid_couter);					//找到中线
+//					
+//					if((pid_select_last==3)&&(pid_select_last_last==3))state_left_cnt = 2;
+//					if((pid_select_last==4)&&(pid_select_last_last==4))state_right_cnt = 2;
+//					
+//					pid_select = 0;
+//					
+//					printf("state_left_cnt=%d state_right_cnt=%d\r\n",state_left_cnt,state_right_cnt);		
+//					if(state_left_cnt>0){
+//						printf("%d 右边界突变:使用近端中线数据\r\n",RIGHT_duandian);
+//						Servo_ChangePwm(125);
+//						printf("打死");
+////						Midline_fit(LEIDA_DATA_CENTER,(uint16_t)(CENTER_cnt/20.0*2),(uint16_t)(CENTER_cnt/20.0*7),&Midline);																	//中距离中线拟
+////						printf("k: %f,b: %f\r\n",Midline.k,Midline.b);
+
+////						servo_pwm = Midline_PD(LEIDA_DATA_CENTER,&Servo_pd,&Midline,servo_midpwm,(uint16_t)(CENTER_cnt/20.0*2),(uint16_t)(CENTER_cnt/20.0*7),pid_select);
+//						state_left_cnt--;																
+//					 }
+//							
+//					if(state_right_cnt>0){
+//						printf("%d 左边界突变:使用近端中线数据\r\n",LEFT_duandian);
+//						Servo_ChangePwm(162);
+//						printf("打死");
+////						Midline_fit(LEIDA_DATA_CENTER,(uint16_t)(CENTER_cnt/20.0*2),(uint16_t)(CENTER_cnt/20.0*7),&Midline);																	//中距离中线拟
+////						printf("k: %f,b: %f\r\n",Midline.k,Midline.b);
+
+////						servo_pwm = Midline_PD(LEIDA_DATA_CENTER,&Servo_pd,&Midline,servo_midpwm,(uint16_t)(CENTER_cnt/20.0*2),(uint16_t)(CENTER_cnt/20.0*7),pid_select);
+//						state_right_cnt--;
+//					 }
+//										
+//					if((state_left_cnt==0)&&(state_right_cnt==0)){
+//						zhongxian_chuizhi = LEIDA_DATA_HANDLE11(LEIDA_DATA_CENTER,(uint16_t)(CENTER_cnt/20.0*8),(uint16_t)(CENTER_cnt/20.0*18));//判断中线是否垂直
+//					
+//						printf("使用远端中线数据\r\n");
+//						if(zhongxian_chuizhi == 0)
+//						{
+//							printf("中线不垂直\r\n\r\n");
+//							Midline_fit(LEIDA_DATA_CENTER,(uint16_t)(CENTER_cnt/20.0*8),(uint16_t)(CENTER_cnt/20.0*18),&Midline);		//中距离中线拟
+//							printf("k: %f,b: %f\r\n",Midline.k,Midline.b);
+//							if(fabs(Midline.k)<=0.1){
+//								printf("fabs(Midline.k)<=0.1\r\n");
+//								servo_pwm = Midline_PD(LEIDA_DATA_CENTER,&Servo_pd,&Midline,servo_midpwm,(uint16_t)(CENTER_cnt/20.0*8),(uint16_t)(CENTER_cnt/20.0*18),6);
+//							
+//							}else if(CENTER_cnt<8){
+//								servo_pwm = Midline_PD(LEIDA_DATA_CENTER,&Servo_pd,&Midline,servo_midpwm,(uint16_t)(CENTER_cnt/20.0*8),(uint16_t)(CENTER_cnt/20.0*18),7);	
+//								ceshi_cnt++;
+//								printf("\r\nCENTER_cnt<8  ceshi_cnt=%d\r\n\r\n\r\n",ceshi_cnt);
+//							}
+//							else
+//							{
+//								servo_pwm = Midline_PD(LEIDA_DATA_CENTER,&Servo_pd,&Midline,servo_midpwm,(uint16_t)(CENTER_cnt/20.0*8),(uint16_t)(CENTER_cnt/20.0*18),pid_select);											
+//								
+//							}
+//																						
+//						}else{
+//							printf("中线垂直\r\n");
+//							servo_pwm = Midline_PD(LEIDA_DATA_CENTER,&Servo_pd,&Midline,servo_midpwm,(uint16_t)(CENTER_cnt/20.0*8),(uint16_t)(CENTER_cnt/20.0*18),5);																																	
+//						}				
+//					}
+//					
+//				}
+//#endif
+//#endif						
+			}//if（cnt）
+			
+#endif
+		}//if(DMA_RX_DONE)
+	}//while
+	
+	
+	
+	
+	
+	
+	
+	
+	//左边界
+uint16_t LEIDA_DATA_HANDLE6(_LEIDA_DATA_plane data_left_plane[],_LEIDA_DATA data_center[],_LEIDA_DATA arr[],u16 size){							//找到左边界  180-90
+	int i = 0;
+	int center_cnt=0;
+	float angle_left;	
+
+	printf("BLUE_ANGLE_LEFT_RIGHT=%.1f\n",BLUE_ANGLE_LEFT_RIGHT);
+	for(angle_left = LEIDA_ANGLE_LEFT; angle_left>= LEIDA_ANGLE_LEFT-BLUE_ANGLE_LEFT_RIGHT ; angle_left-=LEIDA_ANGLE_resolution ){
+		for(i=0;i<size;i++){
+			if((fabs(arr[i].angle-angle_left)<=LEIDA_ANGLE_piancha)&&(arr[i].distance<=2500)){
+				data_left_plane[center_cnt]._x = arr[i].distance*arm_cos_f32(arr[i].angle*PI/180);
+				data_left_plane[center_cnt]._y = arr[i].distance*arm_sin_f32(arr[i].angle*PI/180);
+				data_center[center_cnt].angle = arr[i].angle;
+				data_center[center_cnt].distance = arr[i].distance;
+				printf("左边界data_left[i].angle：%.2f， data_left[j].distance：%.2f\n",data_center[center_cnt].angle,data_center[center_cnt].distance);
+				
+				center_cnt++;
+				break;		
+			}					
+		}
+	}
+	return center_cnt;
+}
+//右边界
+uint16_t LEIDA_DATA_HANDLE7(_LEIDA_DATA_plane data_right_plane[],_LEIDA_DATA data_center[],_LEIDA_DATA arr[],u16 size){											//找到右边界0-90
+	int i = 0;
+	int center_cnt=0;
+	float angle_right;	
+
+	//0到90度
+	for(angle_right = 0; angle_right<= LEIDA_ANGLE_RIGHT+BLUE_ANGLE_LEFT_RIGHT ; angle_right+=LEIDA_ANGLE_resolution ){
+		for(i=size-1;i>=0;i--){
+			if((fabs(arr[i].angle-angle_right)<=LEIDA_ANGLE_piancha))
+			{
+				data_right_plane[center_cnt]._x = arr[i].distance*arm_cos_f32(arr[i].angle*PI/180);
+				data_right_plane[center_cnt]._y = arr[i].distance*arm_sin_f32(arr[i].angle*PI/180);
+				data_center[center_cnt].angle = arr[i].angle;
+				data_center[center_cnt].distance = arr[i].distance;
+				printf("右边界data_left[%d].angle：%.2f， data_left[%d].distance：%.2f\n",i,data_center[center_cnt].angle,i,data_center[center_cnt].distance);
+				
+				center_cnt++;
+				break;
+			}				
+		}		
+	}
+	return center_cnt;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+自己
+//				
+
+				
+//				paodao_distance_r = LEIDA_Distance(LEIDA_DATA2,valid_couter);															//确定车道长度，返回前方60度范围的最小值
+//				paodao_distance = ((paodao_distance_r>300)&&(paodao_distance_r<2000))?paodao_distance_r:paodao_distance;
+//				
+//				printf("\npaodao_angle=%.2f\n",paodao_angle);
+//				printf("paodao_distance:%f  paodao_distance_r:%f\r\n",paodao_distance,paodao_distance_r);
+//				
+//				printf("\nvalid_couter=%d\n",valid_couter);
+//				Reg_Print("LEIDA_DATA2", LEIDA_DATA2, valid_couter);
+//				
+//				printf("\nLEFT_cnt=%d\n",LEFT_cnt);
+//				Reg_Print("LEIDA_DATA_LEFT", LEIDA_DATA_LEFT, LEFT_cnt);
+//				Plane_Print("LEIDA_DATA_LEFT_Plane", LEIDA_DATA_LEFT_Plane, 0,LEFT_cnt);
+//				
+//				printf("\nRIGHT_cnt=%d\n",RIGHT_cnt);
+//				Reg_Print("LEIDA_DATA_RIGHT", LEIDA_DATA_RIGHT, RIGHT_cnt);
+//				Plane_Print("LEIDA_DATA_RIGHT_Plane", LEIDA_DATA_RIGHT_Plane, 0,RIGHT_cnt);
+////				printf("paodao_distance:%f  paodao_distance_r:%f\r\n",paodao_distance,paodao_distance_r);
+////				servo_pwm=Chuiline_PD( servo_midpwm);
+//				
+
+
+
