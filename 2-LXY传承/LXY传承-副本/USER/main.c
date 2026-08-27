@@ -214,9 +214,13 @@ int main(void)
             valid_couter = LEIDA_DATA_HANDLE3_2(LEIDA_DATA2, LEIDA_DATA, LEIDA_DATA_COUNTER);
 
             /* 有效点太少 -> 数据异常，跳过此帧 */
+            /* 注意: 不能写break — 这里最内层循环就是while(1)主循环,
+             * break会直接跳出主循环, 整个控制程序当场死掉(只剩TIM5速度中断还在跑)。
+             * 正确做法是continue: 跳过本帧剩余处理, 等下一帧雷达数据 */
             if (valid_couter <= 20) {
                 break_flag = 1;
-                break;
+                printf("Data invalid, skip frame: %d\r\n", valid_couter);  /* 调试打印, 稳定后可删 */
+                continue;
             }
             /* HANDLE3_2内部已掐头去尾各10个点，此处不再重复减去 */
 
