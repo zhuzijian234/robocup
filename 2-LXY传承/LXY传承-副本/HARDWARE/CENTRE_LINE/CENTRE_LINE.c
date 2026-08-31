@@ -99,7 +99,7 @@ void Midline_fit(_LEIDA_DATA_plane *centerline, int startline, int endline, Midl
  *
  * K = 4 * S_ABC / (AB * BC * AC)
  * 其中 S_ABC 为三角形ABC的有向面积。
- * 返回有符号曲率: 正=逆时针, 负=顺时针。
+ * 返回有符号曲率: 正=逆时针, 负=顺时针。顺逆时针指u->v的旋转方向
  */
 float curvity_cal1(float x1, float y1, float x2, float y2, float x3, float y3)
 {
