@@ -17,9 +17,9 @@
 
 /* ===== 舵机行程参数 (测试①③共用) =====
  * LXY车默认值。换谢露车只改这三行: MIN=1170, MAX=1720, MID=1445 */
-#define TEST_SERVO_MIN  1360   /* 右打满 */
-#define TEST_SERVO_MAX  1800   /* 左打满 */
-#define TEST_SERVO_MID  1565   /* 中位 */
+#define TEST_SERVO_MIN  1170   /* 右打满 */
+#define TEST_SERVO_MAX  1720   /* 左打满 */
+#define TEST_SERVO_MID  1445   /* 中位 */
 
 void Test_Servo_Sweep(void);      /* 测试① 舵机往复扫描 */
 void Test_Motor_Run(void);        /* 测试② 电机正反转+测速 */
