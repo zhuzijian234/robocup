@@ -680,7 +680,7 @@ uint16_t LEIDA_DATA_HANDLE5_2(_LEIDA_DATA_plane data[], _LEIDA_DATA arr[], u16 s
     float y_max_r_r = -4000;
     float y_min     = 4000;
     float y_min_r   = 4000;
-    float y_min_r_r = -4000;
+    float y_min_r_r = 4000;   /* 修复: 原为-4000, 同类初值错误(此处jiange未使用, 仅保持一致) */
     float jiange    = 0;
 
     for (; start_angle <= end_angle; start_angle += 1) {
@@ -870,7 +870,7 @@ float LEIDA_DATA_HANDLE11(_LEIDA_DATA_plane arr[], u16 size_start, u16 size_end)
     float x_max_r_r = -4000;
     float x_min     = 4000;
     float x_min_r   = 4000;
-    float x_min_r_r = -4000;
+    float x_min_r_r = 4000;   /* 修复: 原为-4000, 导致"第3级最小值"永远取不到, jiange恒>10, 垂线判定永远失败 */
     float jiange    = 0;
 
     /* 在指定区域内找x极值 */
