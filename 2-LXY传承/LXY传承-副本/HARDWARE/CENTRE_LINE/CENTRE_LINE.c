@@ -241,14 +241,14 @@ float err[5]          = {0};  /* 误差历史缓冲区（FIR滤波用，当前�
  * @param  CENTER_cnt_end:   拟合区域结束索引
  * @param  flag:             控制模式选择 (0-9, 见文件头)
  *
- * @return 舵机PWM值 (1360-1800范围)
+ * @return 舵机PWM值 (SERVO_PWM_MIN~SERVO_PWM_MAX范围)
  *
  * 处理流程:
  *   1. 根据flag模式计算偏差
  *   2. 偏差限幅 [-500, 500]
  *   3. PD控制: pwm = 中位 + kp*err + kd*(err - err_last)
  *   4. 缩放到实际PWM范围 (*10)
- *   5. 限幅到 [1360, 1800]
+ *   5. 限幅到 [SERVO_PWM_MIN, SERVO_PWM_MAX]
  *   6. 输出到舵机
  */
 uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midline_type *midline,
@@ -335,9 +335,9 @@ uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midli
     printf("speed_now:%f,speed_mubiao:%f\r\r\n", Speed_now, Speed_mubiao);
     printf("PWM_Before:%f\r\n", servo_pwm);
 
-    /* 舵机PWM限幅 [1360, 1800] */
-    if (servo_pwm > 1800) servo_pwm = 1800;
-    if (servo_pwm < 1360) servo_pwm = 1360;
+    /* 舵机PWM限幅 (行程参数见centre_line.h的SERVO_PWM_MIN/MAX) */
+    if (servo_pwm > SERVO_PWM_MAX) servo_pwm = SERVO_PWM_MAX;
+    if (servo_pwm < SERVO_PWM_MIN) servo_pwm = SERVO_PWM_MIN;
 
     /* 应用到舵机 */
     Servo_ChangePwm((uint16_t)servo_pwm);

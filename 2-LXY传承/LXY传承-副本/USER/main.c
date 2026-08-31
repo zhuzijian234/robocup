@@ -100,7 +100,7 @@ int main(void)
     uint16_t danbian_flag = 0;     /* 单边标志 (用于S弯检测) */
     float jiaodu_piancha;
     float servo_pwm;
-    float servo_midpwm = 156.5;    /* 舵机中位PWM/10，实际=1565 (约1.5ms) */
+    float servo_midpwm = SERVO_PWM_MID / 10.0f;    /* 舵机中位PWM/10 (行程参数见centre_line.h) */
     float qulu_forward;
     float qulu_jinduan;
     uint16_t pid_select           = 0;  /* 当前PID模式 */
@@ -418,13 +418,13 @@ int main(void)
 
                 /* 执行强制大角度右转 (残留) */
                 if (state_left_cnt > 0) {
-                    Servo_ChangePwm(1360);  /* 舵机打满右 */
+                    Servo_ChangePwm(SERVO_PWM_MIN);  /* 舵机打满右 */
                     state_left_cnt--;
                 }
 
                 /* 执行强制大角度左转 (残留) */
                 if (state_right_cnt > 0) {
-                    Servo_ChangePwm(1800);  /* 舵机打满左 */
+                    Servo_ChangePwm(SERVO_PWM_MAX);  /* 舵机打满左 */
                     state_right_cnt--;
                 }
 

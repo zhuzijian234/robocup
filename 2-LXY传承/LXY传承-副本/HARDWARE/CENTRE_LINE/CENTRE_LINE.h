@@ -78,6 +78,14 @@ extern float BLUE_Y_RIGHT;
 extern float BLUE_Y_STRA;
 extern float BLUE_Y_STRA_SEL;
 
+/* ===== 舵机行程参数 (循线模式: PD输出限幅 + 中位 + 强制打满) =====
+ * LXY车默认:  MIN=1360, MAX=1800, MID=1565
+ * 换谢露车只改这三行: MIN=1170, MAX=1720, MID=1445
+ * 单位: 真实PWM值 (main.c里MID除以10转成servo_midpwm的/10格式) */
+#define SERVO_PWM_MIN 1360   /* 右打满 */
+#define SERVO_PWM_MAX 1800   /* 左打满 */
+#define SERVO_PWM_MID 1565   /* 中位 */
+
 uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midline_type *midline,
                     uint16_t servo_midpwm, uint16_t CENTER_cnt_start, uint16_t CENTER_cnt_end, uint16_t flag);
 uint16_t Speed_PID(float speed_now, float speed_mubiao, pid_type *speed_pid, uint16_t moto_pwm_now);
