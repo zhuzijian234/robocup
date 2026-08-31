@@ -651,6 +651,16 @@
               <FilePath>..\HARDWARE\hc-05\bsp_bluetooth.h</FilePath>
             </File>
             <File>
+              <FileName>ble_tune.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\hc-05\ble_tune.c</FilePath>
+            </File>
+            <File>
+              <FileName>ble_tune.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\HARDWARE\hc-05\ble_tune.h</FilePath>
+            </File>
+            <File>
               <FileName>LEIDA_DATA.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\LEIDA_DATA\LEIDA_DATA.c</FilePath>

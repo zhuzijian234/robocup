@@ -58,6 +58,8 @@ unsigned char Get_Bluetooth_ConnectFlag(void);
 void Bluetooth_Mode(void);
 void Receive_Bluetooth_Data(void);
 void BLE_send_String(unsigned char *str);
+void BLE_Send_Bit(unsigned char ch);   /* 单字节发送(轮询TXE) — ble_tune.c发二进制遥测用;
+                                          BLE_send_String遇0x00会截断, 不能替代 */
 void Clear_BLERX_BUFF(void);
 void Send_Bluetooth_Data(char *dat);
 

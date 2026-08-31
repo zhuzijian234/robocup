@@ -82,6 +82,7 @@ virtualFolder:
         - path: ../HARDWARE/Servo/Servo.c
         - path: ../HARDWARE/TIM/PWM/PWM.c
         - path: ../HARDWARE/hc-05/bsp_bluetooth.c
+        - path: ../HARDWARE/hc-05/ble_tune.c
       folders: []
     - name: test
       files:

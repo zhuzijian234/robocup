@@ -51,6 +51,7 @@
 #include "leida_pwm.h"
 #include "LEIDA_DATA.h"
 #include "bsp_bluetooth.h"
+#include "ble_tune.h"           /* 蓝牙实时调参 (HARDWARE/hc-05/ble_tune.c) */
 #include "centre_line.h"
 #include "timer.h"
 #include "moto.h"
@@ -190,6 +191,8 @@ int main(void)
         Test_Bluetooth_Tune();
 #else
         /* ======================== 正常循线模式 ======================== */
+
+        BLE_Tune_Process();     /* 蓝牙命令解析: 每圈必跑(含雷达帧等待圈), 命令响应<1ms */
 
         /* 等待DMA接收完一帧雷达数据 */
         if (DMA_RX_DONE) {
@@ -466,6 +469,9 @@ int main(void)
                     }
                 }
             }
+
+            /* 本帧雷达处理完: 回传7通道波形给手机/VOFA+ (未连接时内部直接返回, 零开销) */
+            BLE_Tune_Telemetry(Servo_pd.err, servo_pwm, pid_select);
 
         } else {
             /* DMA数据未就绪，等待 */
