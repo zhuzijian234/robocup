@@ -23,11 +23,11 @@ void _sys_exit(int x)
 // 重定义fputc函数
 int fputc(int ch, FILE *f)
 {
-    while ((USART1->SR & 0X40) == 0) {
+    while ((USART3->SR & 0X40) == 0) {
     }
-    USART1->DR = (u8)ch;
+    USART3->DR = (u8)ch;
     return ch;
-}/*重定义printf,printf重定向到usart1->DR*/
+}/*重定义printf,printf重定向到usart3->DR*/
 #endif
 
 #if EN_USART1_RX // 如果使能了接收
@@ -169,4 +169,47 @@ void uart2_init(u32 bound)
 
     USART_DMACmd(USART2, USART_DMAReq_Rx, ENABLE); // 使能USART2 DMA接收
     USART_ClearFlag(USART2, USART_FLAG_TC);
+}
+
+/**
+ * @brief  初始化USART3 — 调试串口 (PC10=TX, PC11=RX)
+ *
+ * 用途: printf 重定向目标 (fputc 指向 USART3)。
+ * 注意: USART3 挂在 APB1 上 (不是 APB2), 时钟别写错。
+ *       接收不用中断也不用DMA (纯调试输出口)。
+ *
+ * @param  bound: 波特率 (调试用115200)
+ */
+void uart3_init(u32 bound)
+{
+    GPIO_InitTypeDef GPIO_InitStructure;
+    USART_InitTypeDef USART_InitStructure;
+
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);  // 使能GPIOC时钟
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE); // 使能USART3时钟 (APB1!)
+
+    // 串口3对应引脚复用映射 PC10(TX) PC11(RX)
+    GPIO_PinAFConfig(GPIOC, GPIO_PinSource10, GPIO_AF_USART3); // PC10复用为USART3
+    GPIO_PinAFConfig(GPIOC, GPIO_PinSource11, GPIO_AF_USART3); // PC11复用为USART3
+
+    // USART3端口配置
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_10 | GPIO_Pin_11; // PC10与PC11
+    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;              // 复用功能
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;         // 速度100MHz
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;             // 推挽复用输出
+    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;              // 上拉
+    GPIO_Init(GPIOC, &GPIO_InitStructure);                     // 初始化PC10,PC11
+
+    // USART3 初始化设置
+    USART_InitStructure.USART_BaudRate            = bound;                          // 波特率设置
+    USART_InitStructure.USART_WordLength          = USART_WordLength_8b;            // 字长为8位数据格式
+    USART_InitStructure.USART_StopBits            = USART_StopBits_1;               // 一个停止位
+    USART_InitStructure.USART_Parity              = USART_Parity_No;                // 无奇偶校验位
+    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None; // 无硬件数据流控制
+    USART_InitStructure.USART_Mode                = USART_Mode_Rx | USART_Mode_Tx;  // 收发模式
+    USART_Init(USART3, &USART_InitStructure);                                       // 初始化串口3
+
+    USART_Cmd(USART3, ENABLE); // 使能串口3
+
+    USART_ClearFlag(USART3, USART_FLAG_TC);
 }

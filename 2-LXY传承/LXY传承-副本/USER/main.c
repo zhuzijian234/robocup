@@ -67,7 +67,7 @@
  *   3: 测试③ 蓝牙调参链路 (test/test_bluetooth.c)
  * 测试模式的说明与预期现象表见 硬件功能测试方案.md。
  */
-#define HW_TEST_SELECT 3
+#define HW_TEST_SELECT 2
 
 /* 全局变量 */
 uint16_t RIGHT_duandian;           /* 右边界断点y坐标 */
@@ -90,8 +90,9 @@ float duandian_DIStance = 600;     /* 断点有效距离阈值 (mm) */
 
 int main(void)
 {
-    /* 首先初始化调试串口USART1，保证printf可用 */
+    /* 初始化调试串口: USART1(PA9/PA10, 保留备用) + USART3(PC10/PC11, printf已重定向) */
     uart_init(115200);
+    uart3_init(115200);                              /* 调试串口2 (PC10=TX, PC11=RX) */
 
     u32 t                 = 0;
     uint16_t ceshi_cnt    = 0;

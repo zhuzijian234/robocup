@@ -12,4 +12,5 @@ extern u16 USART_RX_STA;               /* 接收状态标记 */
 /* 如果想用串口中断接收，请不要注释以下宏定义 */
 void uart_init(u32 bound);
 void uart2_init(u32 bound); /* USART2初始化 — 雷达串口 (PA2=TX, PA3=RX) */
+void uart3_init(u32 bound); /* USART3初始化 — 调试串口 (PC10=TX, PC11=RX), printf重定向目标 */
 #endif
