@@ -40,8 +40,8 @@
  *   - 左断点 + 前方斜率>=0.7 -> 小左转 (pid=2)
  *
  * 调试开关:
- *   HW_TEST_MOTOR_SERVO = 1: 舵机/电机往复测试模式
- *                         0: 正常循线模式
+ *   HW_TEST_SELECT: 0=正常循线, 1=舵机测试, 2=电机测试, 3=蓝牙调参测试
+ *   (测试代码见 test/ 目录, 说明见 硬件功能测试方案.md)
  */
 
 #include "stm32f4xx.h"
@@ -56,13 +56,17 @@
 #include "moto.h"
 #include "Servo.h"
 #include "PWM.h"
+#include "test.h"
 
 /* ======================== 硬件测试宏 ========================
- * 设为1: 每次收到雷达DMA一帧数据后，舵机在[1360,1800]之间往复扫描，
- *        同时电机占空比在[10,100]之间往复变化并打印当前值，用于确认硬件是否正常。
- * 设为0: 关闭该测试，走正常循线逻辑。
+ * HW_TEST_SELECT 选择运行模式:
+ *   0: 正常循线 (默认)
+ *   1: 测试① 舵机往复扫描 (test/test_servo.c)
+ *   2: 测试② 电机正反转+测速 (test/test_motor.c)
+ *   3: 测试③ 蓝牙调参链路 (test/test_bluetooth.c)
+ * 测试模式的说明与预期现象表见 硬件功能测试方案.md。
  */
-#define HW_TEST_MOTOR_SERVO 1
+#define HW_TEST_SELECT 0
 
 /* 全局变量 */
 uint16_t RIGHT_duandian;           /* 右边界断点y坐标 */
@@ -124,14 +128,26 @@ int main(void)
     /* 速度PID初始化: kp, ki, kd */
     Speed_PID_Init(&Speed_pid, 8.5, 0.505, 0);
 
-    /* 电机初始化: 预分频42, 周期100, 初始占空比90% */
+    /* 电机初始化: 预分频42, 周期100 */
     moto_pwm = (uint16_t)(90 * 1);
-    Moto_Init(42, 100, moto_pwm);
+#if HW_TEST_SELECT == 0
+    Moto_Init(42, 100, moto_pwm);   /* 正常循线: 初始90%, 之后由速度环接管 */
+#else
+    Moto_Init(42, 100, 0);          /* 测试模式: 初始0%, 防止上电轮子就转 */
+#endif
 
     Encoder_Init();                                   /* 编码器初始化 (TIM4) */
 
     /* 速度定时器初始化: 84MHz/8400=10kHz, 周期100=10ms */
     TIM5_Int_Init(100 - 1, 8400 - 1);
+
+#if HW_TEST_SELECT != 0
+    /* 测试模式: 关闭速度环中断。
+     * TIM5每10ms会写一次电机PWM(Moto_Speed), 会覆盖测试代码的输出,
+     * 所以测试模式下必须关掉, 电机PWM完全交给测试代码控制。
+     * (舵机测试也不受影响: 关掉后电机保持0%占空比, 车原地不动) */
+    TIM_ITConfig(TIM5, TIM_IT_Update, DISABLE);
+#endif
 
     /* ===== 运行参数配置 ===== */
     Speed_mubiao = 17;                   /* 目标速度 */
@@ -163,49 +179,23 @@ int main(void)
     /* ======================== 主循环 ======================== */
     while (1) {
 
+#if HW_TEST_SELECT == 1
+        /* 测试① 舵机往复扫描 (函数自带死循环, 不会返回) */
+        Test_Servo_Sweep();
+#elif HW_TEST_SELECT == 2
+        /* 测试② 电机正反转+测速 */
+        Test_Motor_Run();
+#elif HW_TEST_SELECT == 3
+        /* 测试③ 蓝牙调参链路 */
+        Test_Bluetooth_Tune();
+#else
+        /* ======================== 正常循线模式 ======================== */
+
         /* 等待DMA接收完一帧雷达数据 */
         if (DMA_RX_DONE) {
             DMA_RX_DONE = 0;  /* 清除标志 */
 
             printf("DMA_RX_DONE\r\n");
-
-#if HW_TEST_MOTOR_SERVO
-            /* ===== 硬件测试模式: 舵机+电机往复扫描 ===== */
-            static uint16_t servo_pwm_test = 1560;  /* 初始舵机中位 */
-            static int8_t servo_dir        = 1;     /* 1=增大, -1=减小 */
-            static uint16_t moto_pwm_test  = 20;    /* 电机初始占空比 */
-            static int8_t moto_dir         = 1;
-            static uint32_t dma_event_cnt  = 0;
-            dma_event_cnt++;
-
-            /* 每2帧DMA事件改变一次舵机角度 (步进10) */
-            if (dma_event_cnt % 2 == 0) {
-                servo_pwm_test += (uint16_t)(servo_dir * 10);
-                if (servo_pwm_test >= 1800) {        /* 上限 */
-                    servo_pwm_test = 1800;
-                    servo_dir      = -1;
-                } else if (servo_pwm_test <= 1360) { /* 下限 */
-                    servo_pwm_test = 1360;
-                    servo_dir      = 1;
-                }
-                Servo_ChangePwm(servo_pwm_test);
-                printf("Servo_Test PWM: %u\r\n", servo_pwm_test);
-            }
-
-            /* 每帧改变电机占空比 (步进5) */
-            moto_pwm_test = (uint16_t)(moto_pwm_test + moto_dir * 5);
-            if (moto_pwm_test >= 100) {              /* 上限 */
-                moto_pwm_test = 100;
-                moto_dir      = -1;
-            } else if (moto_pwm_test <= 10) {        /* 下限，防止堵转判断 */
-                moto_pwm_test = 10;
-                moto_dir      = 1;
-            }
-            Moto_Speed(moto_pwm_test);
-            printf("Moto_Test PWM%%: %u\r\n", moto_pwm_test);
-#endif
-
-#if 1  /* 正常循线逻辑（始终编译） */
 
             /* ===== 第1步: 解析雷达数据 ===== */
             LEIDA_DATA_HANDLE1(LEIDA_DATA, DMA_USART2_RX_BUF_r, DMA_USART2_RX_BUF_LEN);
@@ -453,7 +443,7 @@ int main(void)
                             /* 斜率很小 -> 直接使用当前舵机位置 */
                             Servo_ChangePwm((uint16_t)servo_pwm);
                         } else if (CENTER_cnt < 8) {
-                            /* 中线点太少 -> 使用模式7 */
+                            /* 中线点太少 -> 使用模式7 (中线均值)*/
                             servo_pwm = Midline_PD(LEIDA_DATA_CENTER, &Servo_pd, &Midline,
                                                    servo_midpwm,
                                                    (uint16_t)(CENTER_cnt / 20.0 * 8),

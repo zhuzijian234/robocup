@@ -83,6 +83,13 @@ virtualFolder:
         - path: ../HARDWARE/TIM/PWM/PWM.c
         - path: ../HARDWARE/hc-05/bsp_bluetooth.c
       folders: []
+    - name: test
+      files:
+        - path: ../test/test.h
+        - path: ../test/test_servo.c
+        - path: ../test/test_motor.c
+        - path: ../test/test_bluetooth.c
+      folders: []
 dependenceList: []
 outDir: build
 miscInfo:
@@ -116,6 +123,7 @@ targets:
         - .cmsis/include
         - RTE/_Template
         - ../HARDWARE/hc-05
+        - ../test
       libList: []
     excludeList: []
     settings:

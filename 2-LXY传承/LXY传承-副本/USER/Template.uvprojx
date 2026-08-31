@@ -336,7 +336,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F40_41xxx,USE_STDPERIPH_DRIVER,ARM_MATH_MATRIX_CHECK,ARM_MATH_ROUNDING,__CC_ARM,ARM_MATH_CM4</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USER;..\FWLIB\inc;..\HARDWARE\DMA;..\HARDWARE\LEIDA_PWM;..\HARDWARE\hc-05;..\HARDWARE\LEIDA_DATA;..\HARDWARE\DSP;..\HARDWARE\CENTRE_LINE;..\HARDWARE\LEIDA_TIMER;..\HARDWARE\moto;..\HARDWARE\Servo;..\HARDWARE\TIM\PWM</IncludePath>
+              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USER;..\FWLIB\inc;..\HARDWARE\DMA;..\HARDWARE\LEIDA_PWM;..\HARDWARE\hc-05;..\HARDWARE\LEIDA_DATA;..\HARDWARE\DSP;..\HARDWARE\CENTRE_LINE;..\HARDWARE\LEIDA_TIMER;..\HARDWARE\moto;..\HARDWARE\Servo;..\HARDWARE\TIM\PWM;..\test</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -694,6 +694,31 @@
               <FileName>PWM.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\TIM\PWM\PWM.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>test</GroupName>
+          <Files>
+            <File>
+              <FileName>test.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\test\test.h</FilePath>
+            </File>
+            <File>
+              <FileName>test_servo.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\test\test_servo.c</FilePath>
+            </File>
+            <File>
+              <FileName>test_motor.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\test\test_motor.c</FilePath>
+            </File>
+            <File>
+              <FileName>test_bluetooth.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\test\test_bluetooth.c</FilePath>
             </File>
           </Files>
         </Group>
