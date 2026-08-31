@@ -72,6 +72,10 @@ virtualFolder:
         - path: ../HARDWARE/DMA/DMA.h
         - path: ../HARDWARE/LEIDA_PWM/leida_pwm.c
         - path: ../HARDWARE/LEIDA_PWM/leida_pwm.h
+        - path: ../HARDWARE/hc-05/bsp_bluetooth.c
+        - path: ../HARDWARE/hc-05/bsp_bluetooth.h
+        - path: ../HARDWARE/hc-05/ble_tune.c
+        - path: ../HARDWARE/hc-05/ble_tune.h
         - path: ../HARDWARE/LEIDA_DATA/LEIDA_DATA.c
         - path: ../HARDWARE/LEIDA_DATA/LEIDA_DATA.h
         - path: ../HARDWARE/DSP/arm_cortexM4lf_math.lib
@@ -81,8 +85,6 @@ virtualFolder:
         - path: ../HARDWARE/moto/moto.c
         - path: ../HARDWARE/Servo/Servo.c
         - path: ../HARDWARE/TIM/PWM/PWM.c
-        - path: ../HARDWARE/hc-05/bsp_bluetooth.c
-        - path: ../HARDWARE/hc-05/ble_tune.c
       folders: []
     - name: test
       files:
@@ -114,6 +116,7 @@ targets:
         - ../FWLIB/inc
         - ../HARDWARE/DMA
         - ../HARDWARE/LEIDA_PWM
+        - ../HARDWARE/hc-05
         - ../HARDWARE/LEIDA_DATA
         - ../HARDWARE/DSP
         - ../HARDWARE/CENTRE_LINE
@@ -121,10 +124,9 @@ targets:
         - ../HARDWARE/moto
         - ../HARDWARE/Servo
         - ../HARDWARE/TIM/PWM
+        - ../test
         - .cmsis/include
         - RTE/_Template
-        - ../HARDWARE/hc-05
-        - ../test
       libList: []
     excludeList: []
     settings:
