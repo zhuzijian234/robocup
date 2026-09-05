@@ -67,8 +67,7 @@
  *   3: 测试③ 蓝牙调参链路 (test/test_bluetooth.c)
  * 测试模式的说明与预期现象表见 硬件功能测试方案.md。
  */
-#define HW_TEST_SELECT 1
-
+#define HW_TEST_SELECT 0
 /* 全局变量 */
 uint16_t RIGHT_duandian;           /* 右边界断点y坐标 */
 uint16_t LEFT_duandian;            /* 左边界断点y坐标 */

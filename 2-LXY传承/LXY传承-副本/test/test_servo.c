@@ -45,9 +45,9 @@ void Test_Servo_Sweep(void)
 
         /* 打印当前PWM, 到端点/中位时多提示一句, 方便肉眼对照 */
         printf("Servo PWM: %d", (int)pwm);
-        if (pwm == TEST_SERVO_MIN)      printf("  <- 右打满");
-        else if (pwm == TEST_SERVO_MAX) printf("  <- 左打满");
-        else if (pwm == TEST_SERVO_MID) printf("  <- 中位");
+        if (pwm == TEST_SERVO_MIN)      printf("  <- youdaman");
+        else if (pwm == TEST_SERVO_MAX) printf("  <- zuodaman");
+        else if (pwm == TEST_SERVO_MID) printf("  <- zhongwei");
         printf("\r\n");
 
         delay_ms(TEST_SERVO_DELAY_MS);
