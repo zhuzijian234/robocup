@@ -16,7 +16,8 @@
 #define __TEST_H
 
 /* ===== 舵机行程参数 (测试①③共用) =====
- * LXY车默认值。换谢露车只改这三行: MIN=1170, MAX=1720, MID=1445 */
+ * 当前为谢露车: MIN=1170, MAX=1720, MID=1445。
+ * 换回LXY车改成: MIN=1360, MAX=1800, MID=1565 */
 #define TEST_SERVO_MIN  1170   /* 右打满 */
 #define TEST_SERVO_MAX  1720   /* 左打满 */
 #define TEST_SERVO_MID  1445   /* 中位 */
