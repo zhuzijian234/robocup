@@ -10,7 +10,7 @@
  *   【遥测】车→PC: float32小端 × 7通道 + 帧尾 00 00 80 7F = 32字节
  *          (VOFA+ FireWater 二进制引擎自动识别通道, 见 §3.6)。
  *
- * 实时生效原理: 控制循环每拍现读谢露参数(R_CL_*/YZ_j_*/zhuandian/Duandian_d)
+ * 实时生效原理: 控制循环每拍现读谢露参数(R_CL_系列/YZ_j_系列/zhuandian/Duandian_d)
  * 与 Speed_pid 字段, 所以本模块解析后直接赋值字段即可下一拍生效。
  * 绝不调用 Speed_PID_Init 改参数 —— 它会清零误差状态。
  *
@@ -20,7 +20,7 @@
 #include "ble_tune.h"
 #include "bsp_bluetooth.h"      /* BLERX_BUFF/BLERX_FLAG/BLERX_LEN, 蓝牙收发函数 */
 #include "centre_line.h"        /* Speed_pid */
-#include "xielu.h"              /* 谢露舵机参数 R_CL_*/YZ_j_*/zhuandian/Duandian_d, XIELU_ActiveGains */
+#include "xielu.h"              /* 谢露舵机参数 R_CL_系列/YZ_j_系列/zhuandian/Duandian_d, XIELU_ActiveGains */
 #include "moto.h"               /* Speed_now, Speed_mubiao */
 #include "stdio.h"
 #include "string.h"
