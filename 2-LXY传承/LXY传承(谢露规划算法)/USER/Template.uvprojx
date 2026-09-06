@@ -336,7 +336,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F40_41xxx,USE_STDPERIPH_DRIVER,ARM_MATH_MATRIX_CHECK,ARM_MATH_ROUNDING,__CC_ARM,ARM_MATH_CM4</Define>
               <Undefine></Undefine>
-              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USER;..\FWLIB\inc;..\HARDWARE\DMA;..\HARDWARE\LEIDA_PWM;..\HARDWARE\hc-05;..\HARDWARE\LEIDA_DATA;..\HARDWARE\DSP;..\HARDWARE\CENTRE_LINE;..\HARDWARE\LEIDA_TIMER;..\HARDWARE\moto;..\HARDWARE\Servo;..\HARDWARE\TIM\PWM;..\test</IncludePath>
+              <IncludePath>..\CORE;..\SYSTEM\delay;..\SYSTEM\sys;..\SYSTEM\usart;..\USER;..\FWLIB\inc;..\HARDWARE\DMA;..\HARDWARE\LEIDA_PWM;..\HARDWARE\hc-05;..\HARDWARE\LEIDA_DATA;..\HARDWARE\DSP;..\HARDWARE\CENTRE_LINE;..\HARDWARE\LEIDA_TIMER;..\HARDWARE\moto;..\HARDWARE\Servo;..\HARDWARE\TIM\PWM;..\HARDWARE\XIELU;..\test</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -704,6 +704,16 @@
               <FileName>PWM.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\TIM\PWM\PWM.c</FilePath>
+            </File>
+            <File>
+              <FileName>xielu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\XIELU\xielu.c</FilePath>
+            </File>
+            <File>
+              <FileName>xielu.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\HARDWARE\XIELU\xielu.h</FilePath>
             </File>
           </Files>
         </Group>

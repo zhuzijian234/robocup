@@ -83,6 +83,8 @@ virtualFolder:
         - path: HARDWARE/TIM/PWM/PWM.c
         - path: HARDWARE/hc-05/bsp_bluetooth.c
         - path: HARDWARE/hc-05/ble_tune.c
+        - path: HARDWARE/XIELU/xielu.c
+        - path: HARDWARE/XIELU/xielu.h
       folders: []
     - name: test
       files:
@@ -124,6 +126,7 @@ targets:
         - .cmsis/include
         - USER/RTE/_Template
         - HARDWARE/hc-05
+        - HARDWARE/XIELU
         - test
       libList: []
     excludeList: []

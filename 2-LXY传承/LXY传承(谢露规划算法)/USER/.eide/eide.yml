@@ -85,6 +85,8 @@ virtualFolder:
         - path: ../HARDWARE/moto/moto.c
         - path: ../HARDWARE/Servo/Servo.c
         - path: ../HARDWARE/TIM/PWM/PWM.c
+        - path: ../HARDWARE/XIELU/xielu.c
+        - path: ../HARDWARE/XIELU/xielu.h
       folders: []
     - name: test
       files:
@@ -124,6 +126,7 @@ targets:
         - ../HARDWARE/moto
         - ../HARDWARE/Servo
         - ../HARDWARE/TIM/PWM
+        - ../HARDWARE/XIELU
         - ../test
         - .cmsis/include
         - RTE/_Template
