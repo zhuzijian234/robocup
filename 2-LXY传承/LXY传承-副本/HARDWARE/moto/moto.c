@@ -4,7 +4,7 @@
  *
  * 硬件（对应谢露版引脚复用）:
  *   电机方向: PB15 (单IO, 高=正转)  [2026-09-06 PB10杜邦线故障, 临时挪至PB15]
- *   电机PWM:  TIM2 CH4, PB11, 84MHz/42/100 = 20kHz
+ *   电机PWM:  TIM2 CH1, PA5, 84MHz/42/100 = 20kHz  [2026-09-06 PB11杜邦线故障, 临时挪至PA5]
  *   编码器:   TIM4 正交编码器, PD12/PD13
  *
  * 速度计算（10ms采样）:
@@ -53,7 +53,7 @@ puse (初始占空比):
 
 void Moto_Speed(uint16_t Compare)
 {
-    TIM_SetCompare4(TIM2, (uint16_t)Compare);
+    TIM_SetCompare1(TIM2, (uint16_t)Compare);
 }
 
 void Encoder_Init(void)

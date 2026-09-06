@@ -87,7 +87,7 @@ void TIM5_IRQHandler(void)
         TIM_ClearITPendingBit(TIM5, TIM_IT_Update);
 
         if (daoche_flag == 1) {
-            TIM_SetCompare4(TIM2, (uint16_t)(100 * 0.5));  /* 50%制动,不足以驱动小车 */
+            TIM_SetCompare1(TIM2, (uint16_t)(100 * 0.5));  /* 50%制动,不足以驱动小车 */
         } else {
             Get_Encoder();
             moto_pwm = PID_realize(Speed_now, Speed_mubiao, &Speed_pid);

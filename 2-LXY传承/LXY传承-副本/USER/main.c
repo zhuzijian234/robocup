@@ -6,14 +6,14 @@
  *
  * 硬件平台: STM32F407VET6 @ 168MHz
  * 传感器:   M10系列激光雷达 (USART2, 230400bps, DMA接收)
- * 执行器:   舵机 (TIM3 CH1), 直流电机 (TIM2 CH4, 编码器 TIM4)
+ * 执行器:   舵机 (TIM3 CH1), 直流电机 (TIM2 CH1, 编码器 TIM4)
  * 通信:     HC-05蓝牙 (USART6)
  *
  * 引脚复用 (对应谢露版):
  *   雷达:     USART2, PA2(TX/被TIM9覆盖) PA3(RX/DMA), DMA1 Stream5 Channel4
  *   蓝牙:     USART6, PC6(TX) PC7(RX)
  *   舵机:     TIM3 CH1, PA6
- *   电机PWM:  TIM2 CH4, PB11
+ *   电机PWM:  TIM2 CH1, PA5  [2026-09-06 PB11杜邦线故障, 临时挪至PA5]
  *   电机方向: PB15 (单IO, 高=正转)  [2026-09-06 PB10杜邦线故障, 临时挪至PB15]
  *   编码器:   TIM4, PD12 PD13
  *   雷达电机: TIM9 CH1, PA2 (⚠ PA2与USART2_TX共用, 初始化顺序保证TIM9后初始化)
@@ -67,7 +67,7 @@
  *   3: 测试③ 蓝牙调参链路 (test/test_bluetooth.c)
  * 测试模式的说明与预期现象表见 硬件功能测试方案.md。
  */
-#define HW_TEST_SELECT 2
+#define HW_TEST_SELECT 0
 /* 全局变量 */
 uint16_t RIGHT_duandian;           /* 右边界断点y坐标 */
 uint16_t LEFT_duandian;            /* 左边界断点y坐标 */
@@ -109,7 +109,7 @@ int main(void)
 
     /* ===== 系统初始化 ===== */
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);  /* 2位抢占，2位子优先级 */
-    delay_init(84);                                  /* 延时函数初始化 */
+    delay_init(168);                                 /* 延时函数初始化 (参数=主频MHz, 本工程168MHz) */
 
     /* 注意初始化顺序: USART2先初始化(PA2=USART2 AF),
      * PWM_Init_leida后初始化(PA2=TIM9 CH1 AF, 覆盖USART2_TX)。
