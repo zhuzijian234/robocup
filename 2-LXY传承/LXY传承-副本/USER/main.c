@@ -151,7 +151,7 @@ int main(void)
 #endif
 
     /* ===== 运行参数配置 ===== */
-    Speed_mubiao = 17;                   /* 目标速度 */
+    Speed_mubiao = 10;                   /* 目标速度 */
 
     /* 最终舵机PID参数 (覆盖初始值) */
     Midline_PD_Init(&Servo_pd, 0.035, 0.040, 0.0395, 0.075, 0.022, 0.020);

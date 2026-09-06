@@ -278,19 +278,38 @@ uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midli
         }
     }
 
-    /* 模式1: 小角度右转 — 沿右边界走，加宽度补偿 */
-    if (flag == 1)
-        midline_pid->err = -((BLUE_Y_RIGHT - midline->b) / midline->k + paodao_distance / 100 * BLUE_DIS_RIGHT);
+    /* 模式1: 小角度右转 — 沿右边界走，加宽度补偿
+     * 2026-09-06修复: 竖直墙时k≈0, (BLUE_Y-b)/k会爆±inf、方向随机翻转,
+     * |k|<0.05时丢弃墙跟踪项, 只用补偿项(负值)保证右转 */
+    if (flag == 1) {
+        if (fabs(midline->k) < 0.05f)
+            midline_pid->err = -(paodao_distance / 100 * BLUE_DIS_RIGHT);
+        else
+            midline_pid->err = -((BLUE_Y_RIGHT - midline->b) / midline->k + paodao_distance / 100 * BLUE_DIS_RIGHT);
+    }
 
-    /* 模式2: 小角度左转 — 沿左边界走，减宽度补偿 */
-    if (flag == 2)
-        midline_pid->err = -((BLUE_Y_LEFT - midline->b) / midline->k - paodao_distance / 100 * BLUE_DIS_LEFT);
+    /* 模式2: 小角度左转 — 沿左边界走，减宽度补偿
+     * 2026-09-06修复: 同模式1, |k|<0.05时只用补偿项(正值)保证左转 */
+    if (flag == 2) {
+        if (fabs(midline->k) < 0.05f)
+            midline_pid->err = paodao_distance / 100 * BLUE_DIS_LEFT;
+        else
+            midline_pid->err = -((BLUE_Y_LEFT - midline->b) / midline->k - paodao_distance / 100 * BLUE_DIS_LEFT);
+    }
 
-    /* 模式3,4,8,9: 大/中等角度转弯 — 使用Δx= Δy/k 作为偏差 */
-    if (flag == 3) midline_pid->err = -fabs(centerline[CENTER_cnt_end - 1]._y - centerline[CENTER_cnt_start]._y) / midline->k;
-    if (flag == 4) midline_pid->err = -fabs(centerline[CENTER_cnt_end - 1]._y - centerline[CENTER_cnt_start]._y) / midline->k;
-    if (flag == 8) midline_pid->err = -fabs(centerline[CENTER_cnt_end - 1]._y - centerline[CENTER_cnt_start]._y) / midline->k;
-    if (flag == 9) midline_pid->err = -fabs(centerline[CENTER_cnt_end - 1]._y - centerline[CENTER_cnt_start]._y) / midline->k;
+    /* 模式3,4,8,9: 大/中等角度转弯 — 使用Δx= Δy/k 作为偏差
+     * k的符号由main.c强制(右转正/左转负), 但竖直拟合段k=0时强制变号无效,
+     * -fabs(Δy)/0=-inf -> 左弯(4/9)会打满右 (2026-09-06修复):
+     * |k|<0.05按0.05算并保持符号; k==0时按flag定方向(3/8右, 4/9左) */
+    if ((flag == 3) || (flag == 4) || (flag == 8) || (flag == 9)) {
+        float k_safe = midline->k;
+        if (fabs(k_safe) < 0.05f) {
+            if (k_safe < 0)      k_safe = -0.05f;
+            else if (k_safe > 0) k_safe = 0.05f;
+            else                 k_safe = ((flag == 4) || (flag == 9)) ? -0.05f : 0.05f;
+        }
+        midline_pid->err = -fabs(centerline[CENTER_cnt_end - 1]._y - centerline[CENTER_cnt_start]._y) / k_safe;
+    }
 
     /* 模式5: 中线垂直 — 让车保持在x=50mm（跑道中心） */
     if (flag == 5) midline_pid->err = -(zhongxian_chuizhi - 50);
