@@ -6,9 +6,9 @@
  *       (否则速度环每10ms会覆盖电机PWM, 测试输出不生效)。
  *
  * 流程:
- *   [正转] PB10=高, 占空比20/40/60/80%各1.5秒, 每100ms采样一次速度
+ *   [正转] PB15=高, 占空比20/40/60/80%各1.5秒, 每100ms采样一次速度
  *   [停]   占空比0, 停1秒
- *   [反转] PB10=低, 同样扫20%→80%
+ *   [反转] PB15=低, 同样扫20%→80%
  *   [停]   占空比0 → 从头循环
  *
  * 速度公式与 moto.c 一致: speed = 编码器计数 × 100 / (4 × 11 × 6.25)
@@ -34,18 +34,18 @@
 #define TEST_MOTO_SAMPLE_TIMES 15   /* 每档占空比采15次 × 100ms = 1.5秒 */
 
 /**
- * @brief  扫一个方向: dir=1正转(PB10高), dir=0反转(PB10低)
+ * @brief  扫一个方向: dir=1正转(PB15高), dir=0反转(PB15低)
  */
 static void Test_Moto_Sweep_One_Direction(uint8_t dir)
 {
     uint16_t duty;
 
     if (dir == 1) {
-        GPIO_SetBits(GPIOB, GPIO_Pin_10);    /* PB10高 = 正转 */
-        printf("\r\n[正转] PB10=高, 占空比20%%→80%%\r\n");
+        GPIO_SetBits(GPIOB, GPIO_Pin_15);    /* PB15高 = 正转 */
+        printf("\r\n[正转] PB15=高, 占空比20%%→80%%\r\n");
     } else {
-        GPIO_ResetBits(GPIOB, GPIO_Pin_10);  /* PB10低 = 反转 */
-        printf("\r\n[反转] PB10=低, 占空比20%%→80%%\r\n");
+        GPIO_ResetBits(GPIOB, GPIO_Pin_15);  /* PB15低 = 反转 */
+        printf("\r\n[反转] PB15=低, 占空比20%%→80%%\r\n");
     }
 
     for (duty = 20; duty <= 80; duty += 20) {

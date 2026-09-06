@@ -14,7 +14,7 @@
  *   蓝牙:     USART6, PC6(TX) PC7(RX)
  *   舵机:     TIM3 CH1, PA6
  *   电机PWM:  TIM2 CH4, PB11
- *   电机方向: PB10 (单IO, 高=正转)
+ *   电机方向: PB15 (单IO, 高=正转)  [2026-09-06 PB10杜邦线故障, 临时挪至PB15]
  *   编码器:   TIM4, PD12 PD13
  *   雷达电机: TIM9 CH1, PA2 (⚠ PA2与USART2_TX共用, 初始化顺序保证TIM9后初始化)
  *   Debug:    USART1, PA9(TX) PA10(RX)
@@ -67,7 +67,7 @@
  *   3: 测试③ 蓝牙调参链路 (test/test_bluetooth.c)
  * 测试模式的说明与预期现象表见 硬件功能测试方案.md。
  */
-#define HW_TEST_SELECT 0
+#define HW_TEST_SELECT 2
 /* 全局变量 */
 uint16_t RIGHT_duandian;           /* 右边界断点y坐标 */
 uint16_t LEFT_duandian;            /* 左边界断点y坐标 */

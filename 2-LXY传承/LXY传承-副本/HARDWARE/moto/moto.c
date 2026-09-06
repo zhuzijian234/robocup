@@ -3,7 +3,7 @@
  * @brief   直流电机驱动与编码器测速
  *
  * 硬件（对应谢露版引脚复用）:
- *   电机方向: PB10 (单IO, 高=正转)
+ *   电机方向: PB15 (单IO, 高=正转)  [2026-09-06 PB10杜邦线故障, 临时挪至PB15]
  *   电机PWM:  TIM2 CH4, PB11, 84MHz/42/100 = 20kHz
  *   编码器:   TIM4 正交编码器, PD12/PD13
  *
@@ -18,7 +18,7 @@
 #include "PWM.h"
 
 /**
- * @brief  电机方向引脚初始化 (PB10, 单IO)
+ * @brief  电机方向引脚初始化 (PB15, 单IO)
  */
 void DIR_Init(void)
 {
@@ -27,12 +27,12 @@ void DIR_Init(void)
 
     GPIO_InitStruct.GPIO_Mode  = GPIO_Mode_OUT;
     GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStruct.GPIO_Pin   = GPIO_Pin_10;
+    GPIO_InitStruct.GPIO_Pin   = GPIO_Pin_15;
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStruct.GPIO_PuPd  = GPIO_PuPd_NOPULL;
     GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    GPIO_SetBits(GPIOB, GPIO_Pin_10);  /* PB10高 = 正转方向 */
+    GPIO_SetBits(GPIOB, GPIO_Pin_15);  /* PB15高 = 正转方向 */
 }
 
 void Moto_Init(uint16_t psc, uint16_t arr, uint16_t puse)
