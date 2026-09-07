@@ -278,25 +278,34 @@ uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midli
         }
     }
 
-    /* 模式1: 小角度右转 — 沿右边界走，加宽度补偿
-     * 2026-09-06修复: 墙拟合斜率|k|较小时, (BLUE_Y-b)/k数值巨大且符号被
-     * 雷达量化噪声随机翻转 -> err在±500间交替, 舵机乱摆、方向随机错。
-     * 0.05阈值实测不够, 改为0.3: 墙近乎平行(|k|<0.3)时丢弃墙跟踪项,
-     * 只用补偿项(负值)保证右转; 墙明显倾斜(真实弯道)才启用墙跟踪 */
+    /* 模式1: 小角度右转 — 沿左边界走，加宽度补偿
+     * 2026-09-07修复: 原 (BLUE_Y-b)/k 反解"墙在y=BLUE_Y处的x", |k|∈[0.3,3]
+     * 时b与k强共变, 量化噪声被1/k放大 -> err符号随机翻转、方向随机错
+     * (2026-09-06补丁只盖了|k|<0.3)。改为: 在拟合段(后75%-95%)里找
+     * y最接近BLUE_Y的点直接取其x。无除法、有界、符号稳定; 语义与原式一致,
+     * 补偿项不变。注意: 入弯初期墙还直着时 x≈-350, err=+(350-补偿)偏左,
+     * 若实车仍见入弯先左打, 蓝牙 disr 27→50 左右即可抵消 */
     if (flag == 1) {
-        if (fabs(midline->k) < 0.3f)
-            midline_pid->err = -(paodao_distance / 100 * BLUE_DIS_RIGHT);
-        else
-            midline_pid->err = -((BLUE_Y_RIGHT - midline->b) / midline->k + paodao_distance / 100 * BLUE_DIS_RIGHT);
+        float x_closest = 0;
+        float best_dy   = 1e6f;
+        uint16_t i;
+        for (i = CENTER_cnt_start; i < CENTER_cnt_end; i++) {
+            float dy = fabs(centerline[i]._y - BLUE_Y_RIGHT);
+            if (dy < best_dy) { best_dy = dy; x_closest = centerline[i]._x; }
+        }
+        midline_pid->err = -(x_closest + paodao_distance / 100 * BLUE_DIS_RIGHT);
     }
 
-    /* 模式2: 小角度左转 — 沿左边界走，减宽度补偿
-     * 2026-09-06修复: 同模式1, |k|<0.3时只用补偿项(正值)保证左转 */
+    /* 模式2: 小角度左转 — 沿右边界走，减宽度补偿 (修复同模式1) */
     if (flag == 2) {
-        if (fabs(midline->k) < 0.3f)
-            midline_pid->err = paodao_distance / 100 * BLUE_DIS_LEFT;
-        else
-            midline_pid->err = -((BLUE_Y_LEFT - midline->b) / midline->k - paodao_distance / 100 * BLUE_DIS_LEFT);
+        float x_closest = 0;
+        float best_dy   = 1e6f;
+        uint16_t i;
+        for (i = CENTER_cnt_start; i < CENTER_cnt_end; i++) {
+            float dy = fabs(centerline[i]._y - BLUE_Y_LEFT);
+            if (dy < best_dy) { best_dy = dy; x_closest = centerline[i]._x; }
+        }
+        midline_pid->err = -(x_closest - paodao_distance / 100 * BLUE_DIS_LEFT);
     }
 
     /* 模式3,4,8,9: 大/中等角度转弯 — 偏差用"前墙跨过车道的程度"
