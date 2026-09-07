@@ -299,18 +299,22 @@ uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midli
             midline_pid->err = -((BLUE_Y_LEFT - midline->b) / midline->k - paodao_distance / 100 * BLUE_DIS_LEFT);
     }
 
-    /* 模式3,4,8,9: 大/中等角度转弯 — 使用Δx= Δy/k 作为偏差
-     * k的符号由main.c强制(右转正/左转负), 但竖直拟合段k=0时强制变号无效,
-     * -fabs(Δy)/0=-inf -> 左弯(4/9)会打满右 (2026-09-06修复):
-     * |k|<0.05按0.05算并保持符号; k==0时按flag定方向(3/8右, 4/9左) */
+    /* 模式3,4,8,9: 大/中等角度转弯 — 偏差用"前墙跨过车道的程度"
+     * err = -方向·min(175/|k|, 500), 方向由main.c强制的k符号定:
+     *   |k|<0.35(模式3/4) -> ≥500 被限幅打满(和原来一样);
+     *   0.35≤|k|<0.7(模式8/9) -> 250~500, 有比例, 8/9与3/4从此区分开;
+     *   k==0(拟合退化) -> 按flag定方向(3/8右, 4/9左), 打满。
+     * 2026-09-07修复: 原 -fabs(Δy)/k_safe 用弧扫数据窗口Δy(70-110°, 可达
+     * 1500mm)除k, 在模式自身的|k|<0.35触发域内结果恒超500 -> 每帧钉死±500,
+     * 弯道变成"打满+噪声D项乱踢", 且8/9与3/4输出完全相同(名存实亡) */
     if ((flag == 3) || (flag == 4) || (flag == 8) || (flag == 9)) {
-        float k_safe = midline->k;
-        if (fabs(k_safe) < 0.05f) {
-            if (k_safe < 0)      k_safe = -0.05f;
-            else if (k_safe > 0) k_safe = 0.05f;
-            else                 k_safe = ((flag == 4) || (flag == 9)) ? -0.05f : 0.05f;
-        }
-        midline_pid->err = -fabs(centerline[CENTER_cnt_end - 1]._y - centerline[CENTER_cnt_start]._y) / k_safe;
+        float dir = 1.0f;
+        float mag;
+        if (midline->k < 0)      dir = -1.0f;
+        else if (midline->k == 0) dir = ((flag == 4) || (flag == 9)) ? -1.0f : 1.0f;
+        mag = 175.0f / fabs(midline->k);   /* k==0 -> +inf, 下面钳到500 */
+        if (mag > 500.0f) mag = 500.0f;
+        midline_pid->err = -dir * mag;
     }
 
     /* 模式5: 中线垂直 — 让车保持在x=50mm（跑道中心） */
