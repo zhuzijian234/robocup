@@ -259,8 +259,12 @@ uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midli
     static int y_r     = 0;
     float sum_y;
 
-    /* 从小转弯模式切换到直道/垂线模式时，清零上次误差（避免D项跳变） */
-    if (((flag_r == 1) || (flag_r == 2)) && ((flag == 0) || (flag == 5)))
+    /* 从转弯模式切换到直道/垂线模式时，清零上次误差（避免D项跳变）
+     * 2026-09-07扩展: 原只清1/2→0/5; 弯道模式3/4/8/9出弯切回直道时
+     * err从±500骤降到~50, err_l不归零 -> D项≈0.075×450×10≈±337大反踢,
+     * 出弯猛摆, 看起来像摆错方向 */
+    if (((flag_r == 1) || (flag_r == 2) || (flag_r == 3) || (flag_r == 4)
+         || (flag_r == 8) || (flag_r == 9)) && ((flag == 0) || (flag == 5)))
         midline_pid->err_l = 0;
 
     /* ===== 根据控制模式计算偏差 ===== */
