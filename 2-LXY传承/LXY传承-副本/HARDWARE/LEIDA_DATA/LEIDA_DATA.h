@@ -42,6 +42,11 @@ typedef struct {
 
 #define LEIDA_DATA_COUNTER 800   /* 每帧最大数据点数 */
 extern uint16_t valid_couter;
+extern volatile uint32_t LEIDA_parse_calls;
+extern volatile uint32_t LEIDA_sync_failures;
+extern volatile uint32_t LEIDA_short_inputs;
+extern volatile uint32_t LEIDA_missing_packets;
+extern volatile uint16_t LEIDA_raw_count; /* slots read by header, NOT CRC verified */
 extern uint16_t LEIDA_speed_dps;   /* 雷达实时转速(度/秒), 数据包Byte2~3; 6Hz=2160, 8Hz=2880 */
 extern _LEIDA_DATA LEIDA_DATA[];        /* 雷达原始极坐标数据 */
 extern _LEIDA_DATA LEIDA_DATA2[];       /* 筛选后的有效极坐标数据 */
@@ -95,7 +100,7 @@ extern float zhongxian_junzhi;    /* 中线均值x坐标 */
 
 /* HANDLE1: 解析原始字节流为极坐标数据点
  * 每包47字节，12个数据点，同步头0x54
- * 返回1成功，0失败 */
+ * 返回: 成功=本次成功解析出的数据点数(每个命中帧头+12, 正常>=12), 0=未找到有效帧头 */
 uint16_t LEIDA_DATA_HANDLE1(_LEIDA_DATA data[], u8 arr[], u16 size);
 
 /* HANDLE2: 极坐标转笛卡尔坐标 */

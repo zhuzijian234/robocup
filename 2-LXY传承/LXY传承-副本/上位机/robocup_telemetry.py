@@ -3,7 +3,7 @@
 """
 robocup_telemetry.py — 诊断遥测核心库(解析 / 判读 / 报告),CLI + GUI 共用
 
-帧格式(定长 57B,与 HARDWARE/hc-05/ble_diag.c 一致):
+帧格式(定长 57B,旧版诊断格式；现役固件仅发送36B JustFloat):
     [0]=0xAA [1]=0x55 [2]=ver(0x01) [3]=seq
     [4..55]  26 × int16 小端(定标见 FIELD_TABLE)
     [56]     校验和 = byte[4..55] 累加 & 0xFF
@@ -25,6 +25,9 @@ import csv
 import time
 import struct
 import argparse
+import json
+import math
+import hashlib
 
 import numpy as np
 
@@ -80,11 +83,11 @@ ERR_SAT = 490.0                  # |err| 达到此值算饱和(全局限幅 ±50
 JITTER_MM = 150.0                # 断点相邻帧跳变阈值
 
 # ---- 帧周期推导(时间轴用) ----
-# LD14P 点速率 4000 点/秒(恒定,与转速无关); 每包 47 B 装 12 点 → 包率 333.33 包/秒
+# LD14P 按6Hz标称工况假设4000点/秒，其他转速下恒定性未实测; 每包 47 B 装 12 点 → 包率 333.33 包/秒
 #   → 字节率 = 4000/12 × 47 = 15,666.7 B/s
 # 车端 DMA 是"缓冲满 1798 B 才拷贝重启"(HARDWARE/DMA/DMA.c:78-86), 不是按整圈停
 #   → 帧周期 = 1798 / 15666.7 = 114.8 ms = 8.71 帧/秒
-# 注意: 若车端改了 DMA_USART2_RX_BUF_LEN, 只需改下面这个数, 报告时间轴自动跟着变
+# 注意: 若车端改了 DMA_USART2_RX_BUF_LEN, 还需核实字节率；换雷达必须同时更新协议和速率假设
 DMA_BUF_LEN = 1798
 LD_BYTES_PER_S = 4000.0 / 12 * 47          # ≈15666.7 B/s
 FRAME_DT = DMA_BUF_LEN / LD_BYTES_PER_S    # ≈0.1148 s
@@ -92,6 +95,38 @@ FRAME_DT = DMA_BUF_LEN / LD_BYTES_PER_S    # ≈0.1148 s
 
 def checksum(payload: bytes) -> int:
     return sum(payload) & 0xFF
+
+
+PHYSICAL_LIMITS = {"err": 600, "Midline.k": 30, "Forward.k": 30,
+                   "Forward_2.k": 30, "Forward_3.k": 30,
+                   "Midline.b": 30000, "Forward.b": 30000}
+
+
+def encode_field(name, value):
+    """返回 (int16存值, valid, clipped)，binary32运算、半整数远离零。"""
+    scale = dict(FIELD_TABLE)[name]
+    with np.errstate(over="ignore", invalid="ignore"):
+        value = float(np.float32(value))
+    if not math.isfinite(value):
+        return 0, False, False
+    if name == "pid_select" and (value != int(value) or not 0 <= value <= 9):
+        return 0, False, False
+    if name == "danbian_flag" and value not in (0, 1):
+        return 0, False, False
+    if name not in PHYSICAL_LIMITS and name != "Speed_now" and value < 0:
+        return 0, False, False
+    limit = PHYSICAL_LIMITS.get(name)
+    clipped = limit is not None and abs(value) > limit
+    if limit is not None:
+        value = max(-limit, min(limit, value))
+    with np.errstate(over="ignore"):
+        scaled = float(np.float32(np.float32(value) * np.float32(10 ** scale)))
+    if scaled > 32767:
+        return 32767, True, True
+    if scaled < -32768:
+        return -32768, True, True
+    iv = math.floor(scaled + 0.5) if scaled >= 0 else math.ceil(scaled - 0.5)
+    return iv, True, clipped
 
 
 def setup_cjk_font():
@@ -115,6 +150,9 @@ class StreamParser:
         self._ascii = bytearray()
         self._prev_seq = None
         self._n = 0
+        self.received_bytes = 0
+        self.capture_duration = None
+        self._host_t = None
 
     # ---- 内部 ----
     def _note_ascii(self, raw: bytes):
@@ -126,7 +164,7 @@ class StreamParser:
             self._ascii = bytearray(rest)
             s = line.strip(b"\r\x00").decode("ascii", "ignore").strip()
             if s:
-                self.ascii_lines.append({"t": self._n * FRAME_DT, "text": s})
+                self.ascii_lines.append({"t": self._host_t if self._host_t is not None else self._n * FRAME_DT, "text": s})
 
     def _add_frame(self, frame: bytes):
         vals = np.frombuffer(frame[PAYLOAD_OFF:PAYLOAD_OFF + FIELD_N * 2],
@@ -137,13 +175,15 @@ class StreamParser:
             if 0 < gap < 128:
                 self.dropped += gap
         self._prev_seq = seq
-        rec = {"seq": seq, "t": self._n * FRAME_DT}
+        rec = {"seq": seq, "t": self._host_t if self._host_t is not None else self._n * FRAME_DT}
         rec.update({name: float(vals[i]) for i, name in enumerate(FIELD_NAMES)})
         self.records.append(rec)
         self._n += 1
 
     # ---- 对外 ----
-    def feed(self, chunk: bytes):
+    def feed(self, chunk: bytes, host_t=None):
+        self._host_t = host_t
+        self.received_bytes += len(chunk)
         self.buf.extend(chunk)
         while True:
             idx = self.buf.find(HEADER)
@@ -181,14 +221,50 @@ class StreamParser:
                         dtype=np.float64)
 
 
+def save_capture(path, raw, events, duration):
+    """保存原始流及接收块时间；时间为主机单调钟相对秒，不是控制周期。"""
+    raw = bytes(raw)
+    with open(path, "wb") as f:
+        f.write(raw)
+    with open(path + ".rx.jsonl", "w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event) + "\n")
+    with open(path + ".meta.json", "w", encoding="utf-8") as f:
+        json.dump({"version": 1, "clock": "host_monotonic", "duration_s": duration,
+                   "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}, f)
+
+
 def parse_file(path: str) -> StreamParser:
+    path = os.fspath(path)
     p = StreamParser()
     with open(path, "rb") as f:
-        while True:
-            chunk = f.read(65536)
-            if not chunk:
-                break
-            p.feed(chunk)
+        raw = f.read()
+    if os.path.exists(path + ".meta.json"):
+        with open(path + ".meta.json", encoding="utf-8") as f:
+            meta = json.load(f)
+        duration = meta["duration_s"]
+        if (meta.get("version") != 1 or meta.get("clock") != "host_monotonic"
+                or not math.isfinite(duration) or duration <= 0
+                or meta["bytes"] != len(raw)
+                or meta["sha256"] != hashlib.sha256(raw).hexdigest()):
+            raise ValueError("采集元数据与原始文件不匹配或时长无效")
+        offset, previous = 0, 0.0
+        with open(path + ".rx.jsonl", encoding="utf-8") as f:
+            for line in f:
+                e = json.loads(line)
+                n, t = e["length"], e["t"]
+                if (not isinstance(n, int) or n <= 0 or e["offset"] != offset
+                        or offset + n > len(raw) or not math.isfinite(t)
+                        or not previous <= t <= duration):
+                    raise ValueError("接收块时间或偏移无效")
+                p.feed(raw[offset:offset+n], t)
+                offset += n
+                previous = t
+        if offset != len(raw):
+            raise ValueError("接收块记录不完整")
+        p.capture_duration = duration
+    else:
+        p.feed(raw)
     return p
 
 
@@ -239,15 +315,21 @@ def cmd_vofa(a):
         return 1
     print(f"{a.bin} → {len(rows)} 帧 JustFloat({a.nch}通道, 每帧{a.nch*4+4}字节)"
           + (f", {n_bad} 处疑似错帧" if n_bad else ""))
-    if a.sec:
-        fp = a.sec / len(rows)
-        print(f"  采集时长 {a.sec:.1f}s ÷ {len(rows)} 帧 → 帧周期 ≈ {fp*1000:.1f} ms"
+    duration = a.sec
+    if os.path.exists(a.bin + ".meta.json"):
+        duration = parse_file(a.bin).capture_duration
+    if duration:
+        fp = duration / len(rows)
+        print(f"  采集时长 {duration:.3f}s ÷ {len(rows)} 帧 → 帧周期 ≈ {fp*1000:.1f} ms"
               f"({1/fp:.1f} 帧/秒)")
     else:
         print("  (加 --sec 采集秒数 可算出帧周期)")
     print(f"  {'通道':<12}{'最小':>10}{'最大':>10}{'平均':>10}{'末值':>10}")
     for i, name in enumerate(VOFA_CH[:a.nch]):
-        col = [r[i] for r in rows]
+        col = [r[i] for r in rows if math.isfinite(r[i])]
+        if not col:
+            print(f"  {name:<12} 无有效测量")
+            continue
         print(f"  {name:<12}{min(col):>10.2f}{max(col):>10.2f}"
               f"{sum(col)/len(col):>10.2f}{col[-1]:>10.2f}")
     if a.nch >= 8:
@@ -277,7 +359,8 @@ def analyze(p: StreamParser) -> dict:
     M = p.matrix()
     N = len(M)
     res = {"n_frames": N, "bad_frames": p.bad_frames, "dropped": p.dropped,
-           "ascii_events": p.ascii_lines, "duration_s": N * FRAME_DT}
+           "ascii_events": p.ascii_lines, "duration_s": p.capture_duration if p.capture_duration is not None else N * FRAME_DT,
+           "measured": p.capture_duration is not None, "times": [r["t"] for r in p.records]}
     if N == 0:
         return res
 
@@ -295,10 +378,10 @@ def analyze(p: StreamParser) -> dict:
     # ---- 1. 链路 ----
     total = N + p.dropped
     res["link"] = {
-        "fps": N / res["duration_s"] if res["duration_s"] else 0,
+        "fps": N / res["duration_s"] if res["measured"] and res["duration_s"] else float("nan"),
         "drop_rate": 100.0 * p.dropped / total if total else 0,
         "bad_rate": 100.0 * p.bad_frames / (N + p.bad_frames) if (N + p.bad_frames) else 0,
-        "bytes_per_s": (N + p.dropped + p.bad_frames) * FRAME_LEN / res["duration_s"] if res["duration_s"] else 0,
+        "bytes_per_s": p.received_bytes / res["duration_s"] if res["measured"] and res["duration_s"] else float("nan"),
     }
 
     # ---- 2. 模式分布 ----
@@ -308,7 +391,7 @@ def analyze(p: StreamParser) -> dict:
         dist[int(m)] = {"count": c, "pct": 100.0 * c / N}
     switches = int(np.sum(mode[1:] != mode[:-1]))
     res["modes"] = {"dist": dist, "switches": switches,
-                    "switch_rate": switches / res["duration_s"] if res["duration_s"] else 0}
+                    "switch_rate": switches / res["duration_s"] if res["measured"] and res["duration_s"] else float("nan")}
 
     # ---- 3. err 饱和(分模式) ----
     sat = {}
@@ -363,7 +446,7 @@ def analyze(p: StreamParser) -> dict:
     for k in np.argsort(abs_d)[::-1][:5]:
         if abs_d[k] < 100 or k == 0:
             break
-        jumps.append({"frame": int(k), "t": k * FRAME_DT, "d_pwm": float(d_pwm[k]),
+        jumps.append({"frame": int(k), "t": p.records[k]["t"], "d_pwm": float(d_pwm[k]),
                       "mode_prev": int(prev_mode[k]), "mode": int(mode[k]),
                       "err_prev": float(err[k - 1]), "err": float(err[k])})
     res["pwm_jumps"] = {"gt100": int(np.sum(abs_d > 100)), "gt250": int(np.sum(abs_d > 250)),
@@ -388,12 +471,12 @@ def analyze(p: StreamParser) -> dict:
                                  "frames": (np.where(d > JITTER_MM)[0] + 1).tolist()[:20]}
 
     # ---- 9. 速度环 ----
-    tgt = M[0, idx["Speed_mubiao"]]
+    tgt = M[:, idx["Speed_mubiao"]]
     se = spd - tgt
     # 5 帧滑动平均后再数过零: 否则噪声会让每帧都翻号, 测不出真振荡
     se_s = np.convolve(se, np.ones(5) / 5.0, mode="same") if len(se) >= 5 else se
     res["speed"] = {
-        "target": float(tgt), "mean": float(np.mean(spd)), "std": float(np.std(spd)),
+        "target": float(np.mean(tgt)), "mean": float(np.mean(spd)), "std": float(np.std(spd)),
         "mean_err": float(np.mean(se)), "max": float(np.max(spd)), "min": float(np.min(spd)),
         "zero_cross": int(np.sum(np.diff(np.signbit(se_s).astype(np.int8)) != 0)),
     }
@@ -408,7 +491,7 @@ def analyze(p: StreamParser) -> dict:
         jl = np.concatenate([[0], np.abs(np.diff(dj_l))])
         score += 2.0 * ((jr > JITTER_MM) | (jl > JITTER_MM))
     score += 1.0 * (np.abs(d_pwm) > 250)
-    win = 25  # ≈2 秒
+    win = 25  # 25个收到的样本，不保证固定时长
     if N > win:
         ker = np.ones(win)
         rolling = np.convolve(score, ker, mode="valid")
@@ -424,7 +507,7 @@ def analyze(p: StreamParser) -> dict:
             seg_modes = mode[sl_]
             top.append({
                 "start": int(start), "end": int(start + win),
-                "t0": start * FRAME_DT, "t1": (start + win) * FRAME_DT,
+                "t0": p.records[start]["t"], "t1": p.records[start + win - 1]["t"],
                 "score": float(rolling[start]),
                 "modes": {MODE_NAME.get(int(m), str(m)): int(np.sum(seg_modes == m))
                           for m in np.unique(seg_modes)},
@@ -484,12 +567,12 @@ def write_report(res: dict, path: str, bin_name: str = ""):
     A(f"生成时间:{time.strftime('%Y-%m-%d %H:%M:%S')}  ")
     A(f"数据来源:`{bin_name}`  ")
     A(f"帧数:**{res['n_frames']}**,时长约 **{res['duration_s']:.1f} s** "
-      f"(按 {FRAME_DT*1000:.0f} ms/帧 推算)")
+      + ("(主机接收时间；不是设备控制周期)" if res["measured"] else f"(估计：按 {FRAME_DT*1000:.0f} ms/帧；缺测无法还原)"))
     A("")
     if res["n_frames"] == 0:
         A("## ⚠️ 没有解析到任何有效帧")
         A("")
-        A("- 检查:波特率是否为 115200、是否已发 `tele 2`、串口是否选对")
+        A("- 检查:协议/波特率是否匹配。现役固件为9600、36B JustFloat，不支持tele 2；请使用vofa子命令")
         A(f"- 本次共丢弃 {res['bad_frames']} 个疑似帧头、收集到 {len(res['ascii_events'])} 行 ASCII")
         with open(path, "w", encoding="utf-8") as f:
             f.write("\n".join(L))
@@ -499,22 +582,27 @@ def write_report(res: dict, path: str, bin_name: str = ""):
     A("---")
     A("## 1. 链路质量")
     A("")
-    A(f"- 实际帧率:**{L1['fps']:.1f} 帧/秒**(理论 {1.0/FRAME_DT:.1f} = {DMA_BUF_LEN}B ÷ {LD_BYTES_PER_S:.0f}B/s)")
+    A(f"- 主机接收帧率：{L1['fps']:.2f} 帧/秒" if res["measured"] else "- 无接收时间记录：不提供实测帧率或吞吐")
     A(f"- **丢帧率:{L1['drop_rate']:.2f}%**({res['dropped']} 帧,按 seq 跳变推算)")
-    A(f"- 校验失败:{res['bad_frames']} 帧({L1['bad_rate']:.2f}%)")
-    A(f"- 实际字节速率:**{L1['bytes_per_s']:.0f} B/s**(HC-05@115200 实测能力 ~7300)")
+    A(f"- 校验失败候选:{res['bad_frames']} 处({L1['bad_rate']:.2f}%)")
+    if res["measured"]:
+        A(f"- 主机接收吞吐：{L1['bytes_per_s']:.0f} B/s（含ASCII及全部收到的字节）")
     if res["ascii_events"]:
         A(f"- 期间收到 {len(res['ascii_events'])} 行蓝牙 ASCII 回复(参数变更/`get`),已剔除,不影响解析")
     A("")
     if L1["drop_rate"] > 5:
-        A("> ⚠️ **丢帧率 >5%**:115200 可能不稳,建议 `rate 2` 降载,或检查供电/干扰/距离")
+        A("> ⚠️ **丢帧率 >5%**:请核对协议和波特率、供电/干扰/距离；仅支持rate命令的固件才能用rate降载")
         A("")
 
+    if res["dropped"] or res["bad_frames"]:
+        A("> 存在缺测或损坏：相邻收到样本不一定是相邻控制帧；切换、过零、差分和片段评分仅作线索。")
     A("## 2. 模式分布")
     A("")
     A(_fmt_modes(res))
     A("")
-    A(f"- 模式切换 **{res['modes']['switches']} 次**({res['modes']['switch_rate']:.1f} 次/秒)")
+    A(f"- 已收到样本中的模式切换 **{res['modes']['switches']} 次**")
+    if res["measured"]:
+        A(f"- 接收窗口内可观测切换率：{res['modes']['switch_rate']:.2f} 次/秒（缺测可能漏事件）")
     A("")
 
     A("## 3. err 饱和(限幅 ±500)")
@@ -553,7 +641,7 @@ def write_report(res: dict, path: str, bin_name: str = ""):
         A("| 起始帧 | 结束帧 | 起始时刻(s) |")
         A("|---|---|---|")
         for s, e in da["runs"][:10]:
-            A(f"| {s} | {e-1} | {s*FRAME_DT:.1f} |")
+            A(f"| {s} | {e-1} | {res['times'][s]:.1f} |")
     A("")
 
     A("## 6. 出弯反踢(转弯→直道)")
@@ -589,7 +677,7 @@ def write_report(res: dict, path: str, bin_name: str = ""):
         A("| 起始帧 | 结束帧 | 时长(s) |")
         A("|---|---|---|")
         for s, e in ca["runs"][:10]:
-            A(f"| {s} | {e-1} | {(e-s)*FRAME_DT:.2f} |")
+            A(f"| {s} | {e-1} | {res['times'][e-1]-res['times'][s]:.2f} |")
     A("")
 
     A("## 8. 断点抖动(相邻帧跳变 >150mm)")
@@ -601,11 +689,11 @@ def write_report(res: dict, path: str, bin_name: str = ""):
     A("## 9. 速度环")
     A("")
     sp = res["speed"]
-    A(f"- 目标 {sp['target']:.1f},实际均值 {sp['mean']:.2f}(std {sp['std']:.2f},"
+    A(f"- 目标均值 {sp['target']:.1f}（误差按每帧目标计算）,实际均值 {sp['mean']:.2f}(std {sp['std']:.2f},"
       f"范围 {sp['min']:.1f}~{sp['max']:.1f})")
     A(f"- 平均误差 {sp['mean_err']:+.2f}")
     A(f"- 过零次数 **{sp['zero_cross']}**(对 5 帧滑动平均后的误差计数;数值大 = 在目标附近来回振荡)")
-    if sp["zero_cross"] / max(res["duration_s"], 1e-6) > 1.5:
+    if res["measured"] and not (res["dropped"] or res["bad_frames"]) and sp["zero_cross"] / max(res["duration_s"], 1e-6) > 1.5:
         A("- > ⚠️ 过零频繁,速度环有振荡:先降 `sp_kp` 或加 `sp_ki`,再看机械是否卡滞")
     A("")
 
@@ -638,7 +726,7 @@ def write_plot(p: StreamParser, res: dict, path: str):
         return
     M = p.matrix()
     i = {n: k for k, n in enumerate(FIELD_NAMES)}
-    t = np.arange(len(M)) * FRAME_DT
+    t = p.cols("t")
     fig, ax = plt.subplots(5, 1, figsize=(13, 11), sharex=True)
 
     ax[0].plot(t, M[:, i["err"]], lw=0.9, color="tab:red")
@@ -659,10 +747,10 @@ def write_plot(p: StreamParser, res: dict, path: str):
     ax[3].set_ylabel("duandian(mm)")
 
     ax[4].plot(t, M[:, i["Speed_now"]], lw=0.9, label="now")
-    ax[4].axhline(float(M[0, i["Speed_mubiao"]]), ls="--", lw=0.7, color="gray", label="target")
+    ax[4].plot(t, M[:, i["Speed_mubiao"]], ls="--", lw=0.7, color="gray", label="target")
     ax[4].legend(loc="upper right", fontsize=8)
     ax[4].set_ylabel("speed")
-    ax[4].set_xlabel(f"t (s, 按 {FRAME_DT*1000:.0f}ms/帧 推算)")
+    ax[4].set_xlabel("t (s, 主机接收时间)" if res["measured"] else "t (s, 标称周期估计)")
     ax[0].set_title(os.path.basename(path))
     plt.tight_layout()
     plt.savefig(path, dpi=110)
@@ -756,8 +844,9 @@ def make_demo_bin(path: str, seconds: float = 60.0, inject_bugs: bool = True):
         }
         payload = bytearray()
         for name, _ in FIELD_TABLE:
-            iv = int(round(vals[name] * (10.0 ** dict(FIELD_TABLE)[name])))
-            iv = max(-32768, min(32767, iv))
+            iv, valid, clipped = encode_field(name, vals[name])
+            if not valid:
+                raise ValueError("V1没有有效位，不能表达无效模拟量：" + name)
             payload += struct.pack("<h", iv)
         frame = bytearray([0xAA, 0x55, VER, seq]) + payload
         frame.append(checksum(frame[PAYLOAD_OFF:]))
@@ -816,31 +905,35 @@ def cmd_capture(a):
 
     ser = serial.Serial(port, a.baud, timeout=0.05)
     print(f"已打开 {port} @ {a.baud}")
-    if a.diag:
-        ser.write(b"tele 2\n")
-        time.sleep(0.4)
-        ser.reset_input_buffer()
-        print("已发送 tele 2")
     parser = StreamParser()
-    raw = bytearray()
-    t0 = time.time()
+    raw, events = bytearray(), []
+    t0 = time.monotonic()
     last = t0
     try:
-        while time.time() - t0 < a.sec:
+        if a.diag:
+            ser.write(b"tele 2\n")
+            print("已请求 tele 2；须收到有效诊断帧才确认，ERR回复保留在原始记录中")
+        while time.monotonic() - t0 < a.sec:
             chunk = ser.read(4096)
+            now = time.monotonic()
             if chunk:
+                events.append({"offset": len(raw), "length": len(chunk), "t": now-t0})
                 raw += chunk
-                parser.feed(chunk)
-            if time.time() - last > 2.0:
-                last = time.time()
-                print(f"  {time.time()-t0:5.1f}s  帧 {parser.total_frames}  坏 {parser.bad_frames}  丢 {parser.dropped}")
+                parser.feed(chunk, now-t0)
+            if now - last > 2.0:
+                last = now
+                print(f"  {now-t0:5.1f}s  帧 {parser.total_frames}  坏 {parser.bad_frames}  丢 {parser.dropped}")
+            if a.diag and now-t0 >= 3 and not parser.total_frames:
+                print("诊断切换未确认：3秒内无有效V1帧；现役固件不支持tele 2。已保留原始数据。")
+                break
     except KeyboardInterrupt:
         print("用户中断")
     finally:
+        duration = time.monotonic()-t0
         ser.close()
-    with open(a.out, "wb") as f:
-        f.write(bytes(raw))
-    print(f"已保存 {a.out}({len(raw)} 字节, {parser.total_frames} 帧)")
+        save_capture(a.out, raw, events, duration)
+    print(f"已保存 {a.out}({len(raw)} 字节, {parser.total_frames} 帧)及接收时间记录")
+    return 1 if a.diag and not parser.total_frames else 0
 
 
 def cmd_report(a):
@@ -880,7 +973,7 @@ def main():
 
     c = sub.add_parser("capture", help="采集原始字节流")
     c.add_argument("--port", default=None)
-    c.add_argument("--baud", type=int, default=115200)
+    c.add_argument("--baud", type=int, default=9600)
     c.add_argument("--sec", type=float, default=30)
     c.add_argument("--out", default="log/run.bin")
     c.add_argument("--diag", action="store_true", help="先发 tele 2 切到诊断流")

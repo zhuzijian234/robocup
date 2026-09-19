@@ -1,0 +1,76 @@
+{
+  "230400": {
+    "pclk": 42000000,
+    "brr_hex": "0xb6",
+    "actual_baud": 230769.23076923078,
+    "error_percent": 0.1602564102564097,
+    "byte_us": 43.40277777777778,
+    "half512_ms": 22.22222222222222,
+    "fifo8192_ms": 355.55555555555554
+  },
+  "460800": {
+    "pclk": 42000000,
+    "brr_hex": "0x5b",
+    "actual_baud": 461538.46153846156,
+    "error_percent": 0.1602564102564097,
+    "byte_us": 21.70138888888889,
+    "half512_ms": 11.11111111111111,
+    "fifo8192_ms": 177.77777777777777
+  },
+  "512000": {
+    "pclk": 42000000,
+    "brr_hex": "0x52",
+    "actual_baud": 512195.1219512195,
+    "error_percent": 0.038109756097570724,
+    "byte_us": 19.53125,
+    "half512_ms": 10.0,
+    "fifo8192_ms": 160.0
+  },
+  "extra_budget": {
+    "angle_index": 1440,
+    "valid_flags": 720,
+    "telemetry": 2816,
+    "protocol_scratch": 512,
+    "scan_metadata": 256,
+    "lidar_stats": 512,
+    "stack_increment_to4096": 3072,
+    "heap_reserve": 512,
+    "alignment_future_reserve": 2448
+  },
+  "memory": {
+    "M10_two_1024": {
+      "bytes": 92508,
+      "KiB": 90.33984375,
+      "remaining_bytes": 38564,
+      "remaining_KiB": 37.66015625
+    },
+    "M10P_two_2048": {
+      "bytes": 108892,
+      "KiB": 106.33984375,
+      "remaining_bytes": 22180,
+      "remaining_KiB": 21.66015625
+    },
+    "M10P_three_2048": {
+      "bytes": 125276,
+      "KiB": 122.33984375,
+      "remaining_bytes": 5796,
+      "remaining_KiB": 5.66015625
+    }
+  },
+  "demo_probe": {
+    "packet_points": 70,
+    "emitted_points": 2,
+    "array_wrap_packets": 35,
+    "nominal_sectors_per_turn": 24,
+    "array_spans_turns": 1.4583333333333333,
+    "example_angle_17300_outputs": [
+      163,
+      168
+    ],
+    "manual_valid70_first_last": [
+      173,
+      187.78571428571428
+    ],
+    "one_invalid_zero_in_half_35_at1000mm": 971
+  }
+}

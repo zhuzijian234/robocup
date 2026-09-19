@@ -11,7 +11,11 @@
 
 #include "stm32f4xx.h"
 
+#define BLE_MODE_HOLD    10u /* No PD update, hold output */
+#define BLE_MODE_INVALID 11u /* Insufficient input, hold output */
+#define BLE_MODE_FORCED  12u /* Direct PWM override, no PD update */
+
 void BLE_Tune_Process(void);                                              /* 主循环循线分支每圈调用: 解析蓝牙命令 */
-void BLE_Tune_Telemetry(float err, float servo_pwm, uint16_t pid_mode);   /* 每帧雷达处理完调用: 回传7通道波形 */
+void BLE_Tune_Telemetry(float err, float servo_pwm, uint16_t pid_mode);   /* 每帧雷达处理完调用: 回传8通道波形 */
 
 #endif

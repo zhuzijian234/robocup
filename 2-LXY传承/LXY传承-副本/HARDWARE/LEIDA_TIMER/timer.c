@@ -14,6 +14,36 @@
 #include "moto.h"
 #include "centre_line.h"
 
+/* Shared by main and TIM5; TIM5 is the sole motor-output arbiter. */
+volatile uint16_t Radar_age_ticks = 0;
+volatile uint8_t Radar_started = 0;
+volatile uint8_t Radar_stop_latched = 0;
+volatile uint32_t Radar_timeout_count = 0;
+volatile uint32_t Radar_invalid_inputs = 0;
+
+void Radar_ControlCompleted(void)
+{
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    /* Never clear a timeout by receiving another scan. */
+    if (!Radar_stop_latched) {
+        Radar_age_ticks = 0;
+        Radar_started = 1;
+    }
+    __set_PRIMASK(primask);
+}
+
+void Radar_GuardTick(void)
+{
+    if (Radar_started && !Radar_stop_latched) {
+        if (Radar_age_ticks < RADAR_TIMEOUT_TICKS) Radar_age_ticks++;
+        if (Radar_age_ticks >= RADAR_TIMEOUT_TICKS) {
+            Radar_stop_latched = 1;
+            Radar_timeout_count++;
+        }
+    }
+}
+
 /**
  * @brief  初始化TIM5为10ms周期中断定时器
  * @param  arr: 自动重装载值 (100-1 = 99, 对应10ms@10kHz)
@@ -86,7 +116,14 @@ void TIM5_IRQHandler(void)
     if (TIM_GetITStatus(TIM5, TIM_IT_Update) == SET) {
         TIM_ClearITPendingBit(TIM5, TIM_IT_Update);
 
-        if (daoche_flag == 1) {
+        Radar_GuardTick();
+        if (!Radar_started || Radar_stop_latched) {
+            /* Zero duty removes propulsion; it is not an active brake.
+             * Skip PI so its integral cannot accumulate during inhibition. */
+            Get_Encoder();
+            moto_pwm = 0;
+            Moto_Speed(0);
+        } else if (daoche_flag == 1) {
             TIM_SetCompare1(TIM2, (uint16_t)(100 * 0.5));  /* 50%制动,不足以驱动小车 */
         } else {
             Get_Encoder();

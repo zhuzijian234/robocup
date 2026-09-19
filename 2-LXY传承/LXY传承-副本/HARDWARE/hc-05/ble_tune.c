@@ -19,6 +19,7 @@
  */
 
 #include "ble_tune.h"
+#include "timer.h"
 #include "bsp_bluetooth.h"      /* BLERX_BUFF/BLERX_FLAG/BLERX_LEN, 蓝牙收发函数 */
 #include "centre_line.h"        /* Servo_pd, Speed_pid, BLUE_DIS_*, BLUE_Y_* */
 #include "LEIDA_DATA.h"         /* BLUE_ANGLE_LEFT_RIGHT */
@@ -96,6 +97,14 @@ void BLE_Tune_Telemetry(float err, float servo_pwm, uint16_t pid_mode)
     Bluetooth_Mode();                               /* 刷新STATE连接状态 */
     if (Get_Bluetooth_ConnectFlag() == 0) return;   /* 未连接不发 */
 
+    /* Quiet NaN marks an error that was not recomputed this input.
+     * Keep the 8-channel frame; do not modify controller history. */
+    if (pid_mode >= BLE_MODE_HOLD) {
+        FloatByte_t invalid;
+        invalid.b[0] = 0; invalid.b[1] = 0;
+        invalid.b[2] = 0xC0; invalid.b[3] = 0x7F;
+        err = invalid.f;
+    }
     Tele_SendFloat(err);
     Tele_SendFloat(servo_pwm);
     Tele_SendFloat(Servo_pd.kp);
@@ -135,9 +144,28 @@ static void Tune_ApplyOne(char *line)
     char *sp;
     char *sc;
     char *val;
-    char ack[40];
+    char ack[64];
     int iv;
     uint8_t i;
+
+    if (strcmp(line, "radar") == 0) {
+        /* Small bounded replies; request while stationary (blocking UART). */
+        sprintf(ack, "radar calls=%lu sync=%lu\r\n",
+                (unsigned long)LEIDA_parse_calls, (unsigned long)LEIDA_sync_failures);
+        Send_Bluetooth_Data(ack);
+        sprintf(ack, "short=%lu missing=%lu\r\n",
+                (unsigned long)LEIDA_short_inputs, (unsigned long)LEIDA_missing_packets);
+        Send_Bluetooth_Data(ack);
+        sprintf(ack, "raw=%u invalid=%lu\r\n", (unsigned)LEIDA_raw_count,
+                (unsigned long)Radar_invalid_inputs);
+        Send_Bluetooth_Data(ack);
+        sprintf(ack, "age10ms=%u start=%u stop=%u\r\n", (unsigned)Radar_age_ticks,
+                (unsigned)Radar_started, (unsigned)Radar_stop_latched);
+        Send_Bluetooth_Data(ack);
+        sprintf(ack, "timeouts=%lu\r\n", (unsigned long)Radar_timeout_count);
+        Send_Bluetooth_Data(ack);
+        return;
+    }
 
     if (strcmp(line, "get") == 0) { Tune_SendAll(); return; }  /* 精确匹配, 防"getxx"误触发 */
 

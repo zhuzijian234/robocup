@@ -57,7 +57,7 @@ class App:
         self._build_ui()
         self.refresh_ports()
         self.root.after(POLL_MS, self._tick)
-        self.log("就绪。步骤:选串口 → 连接 → 点【★一键诊断】;或先【开始采集】手动跑一圈。")
+        self.log("就绪。现役固件用9600和【开始采集】；【一键诊断】仅适用于支持tele 2的诊断固件。")
 
     # ==================== 界面 ====================
     def _build_ui(self):
@@ -71,7 +71,7 @@ class App:
         ttk.Label(top, text="波特率").pack(side="left", padx=(12, 0))
         self.cb_baud = ttk.Combobox(top, width=8, state="readonly",
                                     values=["115200", "9600", "230400", "57600", "38400"])
-        self.cb_baud.current(0)
+        self.cb_baud.current(1)
         self.cb_baud.pack(side="left", padx=4)
         self.btn_conn = ttk.Button(top, text="连接", width=8, command=self.toggle_conn)
         self.btn_conn.pack(side="left", padx=6)
@@ -240,12 +240,15 @@ class App:
             return
         if self.capturing:
             return
-        if send_tele:
-            self.send("tele 2\n")
-            time.sleep(0.3)
-            self.ser.reset_input_buffer()
+        self.parser = core.StreamParser()
+        self.raw = bytearray()
+        self.rx_events = []
+        self.vofa_buf = bytearray()
+        self.diag_pending = send_tele
+        if send_tele and not self.send("tele 2\n"):
+            return
         self.capturing = True
-        self.t_start = time.time()
+        self.t_start = time.monotonic()
         self.t_stop = self.t_start + float(self.sp_sec.get())
         self.btn_start["state"] = "disabled"
         self.btn_diag["state"] = "disabled"
@@ -254,18 +257,19 @@ class App:
 
     def stop_capture(self, quiet=False):
         self.capturing = False
+        self.diag_pending = False
         self.btn_start["state"] = "normal"
         self.btn_diag["state"] = "normal"
         self.btn_stop["state"] = "disabled"
         n = self.parser.total_frames
-        dur = max(0.0, time.time() - self.t_start)
+        dur = max(0.0, time.monotonic() - self.t_start)
         if n == 0 and not self.raw:
             self.log("⚠ 本次没有收到任何数据 — 检查串口是否选对、蓝牙是否已连接")
             return None
-        name = time.strftime("run_%m%d_%H%M%S")
+        name = time.strftime("run_%m%d_%H%M%S") + f"_{time.monotonic_ns()}"
         binp = os.path.join(self.log_dir(), name + ".bin")
-        with open(binp, "wb") as f:
-            f.write(bytes(self.raw))
+        core.save_capture(binp, self.raw, self.rx_events, dur)
+        self.parser.capture_duration = dur
         self.last_bin = binp
         if n == 0:
             self.log(f"停止采集:未解析到57字节诊断帧,但原始数据已存 {len(self.raw)} 字节"
@@ -321,7 +325,7 @@ class App:
             self.log("判读:无有效帧")
             return
         L = res["link"]
-        self.log(f"判读:帧率 {L['fps']:.1f}/s,丢帧 {L['drop_rate']:.2f}%,"
+        self.log(f"判读:接收帧率 {L['fps']:.1f}/s（nan=无时间记录）,丢帧 {L['drop_rate']:.2f}%,"
                  f"饱和 {res['err_sat']['overall_pct']:.1f}%,"
                  f"方向异常 {res['dir_anomaly']['runs_ge3']} 段,"
                  f"强制打满 {res['carry']['frames']} 帧,"
@@ -356,7 +360,10 @@ class App:
                 if n:
                     chunk = self.ser.read(min(n, 8192))
                     if chunk:
-                        self.parser.feed(chunk)
+                        if self.capturing:
+                            elapsed = time.monotonic() - self.t_start
+                            self.rx_events.append({"offset": len(self.raw), "length": len(chunk), "t": elapsed})
+                            self.parser.feed(chunk, elapsed)
                         self.vofa_buf += chunk
                         if len(self.vofa_buf) > 16384:
                             del self.vofa_buf[:-8192]
@@ -366,14 +373,22 @@ class App:
             self.log(f"✗ 串口异常,已断开:{e}")
             self.disconnect()
 
+        if self.capturing and self.diag_pending:
+            if self.parser.total_frames:
+                self.diag_pending = False
+                self.log("已收到有效V1诊断帧，诊断流确认")
+            elif time.monotonic() - self.t_start >= 3:
+                self.log("诊断切换未确认：无有效V1帧。现役固件不支持tele 2；保留原始回复，请用普通采集。")
+                self.stop_capture()
+
         # 自动停止
-        if self.capturing and time.time() >= self.t_stop:
+        if self.capturing and time.monotonic() >= self.t_stop:
             self._finish_auto()
 
         self._update_labels()
-        if time.time() - self._last_draw > 0.2:
+        if time.monotonic() - self._last_draw > 0.2:
             self._update_plot()
-            self._last_draw = time.time()
+            self._last_draw = time.monotonic()
         self.root.after(POLL_MS, self._tick)
 
     def _update_labels(self):
@@ -388,10 +403,10 @@ class App:
                                     f"err {r['err']:+.0f}   pwm {r['servo_pwm']:.0f}   "
                                     f"速度 {r['Speed_now']:.1f}/{r['Speed_mubiao']:.0f}")
         if self.capturing:
-            left = max(0.0, self.t_stop - time.time())
+            left = max(0.0, self.t_stop - time.monotonic())
             self.lb_time["text"] = f"采集中… 剩余 {left:.0f} s"
         elif p.total_frames:
-            self.lb_time["text"] = f"时长 ≈ {p.total_frames*core.FRAME_DT:.1f} s"
+            self.lb_time["text"] = (f"采集时长 {p.capture_duration:.1f} s" if p.capture_duration is not None else "采集中")
 
         # 老遥测(VOFA+ 8通道)实时读数: 第8通道 = 雷达转速(度/秒)
         # 要求至少3帧且间距正常, 免得把诊断流(57字节帧)里的巧合字节当成帧

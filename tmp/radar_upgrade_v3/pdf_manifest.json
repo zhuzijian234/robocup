@@ -1,0 +1,50 @@
+[
+  {
+    "source": "M10-10KHz\\M10_10KHz_用户手册.pdf",
+    "pages": 23,
+    "sha256": "cb8b6d73b300f065c4d973c72f974124f6e2d8996cadd5ae572d93ecd3992d50",
+    "text": "tmp\\radar_upgrade_v3\\M10-10KHz_M10_10KHz_用户手册_cb8b6d73.txt"
+  },
+  {
+    "source": "M10-10KHz\\M10_10K_通讯协议.pdf",
+    "pages": 5,
+    "sha256": "2f8be40b32d4aca254e48dd18e8509249f420ff16cd1d262b30d2482b82a7900",
+    "text": "tmp\\radar_upgrade_v3\\M10-10KHz_M10_10K_通讯协议_2f8be40b.txt"
+  },
+  {
+    "source": "M10-10KHz\\STM32读取M10P雷达数据说明.pdf",
+    "pages": 7,
+    "sha256": "cbbc470c39f13f2bdb0647a68c23ea67cde325cc9450eb80e9467cc2844a104e",
+    "text": "tmp\\radar_upgrade_v3\\M10-10KHz_STM32读取M10P雷达数据说明_cbbc470c.txt"
+  },
+  {
+    "source": "M10P-20KHz\\M10P_20KHz_用户手册.pdf",
+    "pages": 29,
+    "sha256": "54972628c13ddc280e24a18a1c55a8028be4a4d564331588b766abb15e9ede0a",
+    "text": "tmp\\radar_upgrade_v3\\M10P-20KHz_M10P_20KHz_用户手册_54972628.txt"
+  },
+  {
+    "source": "M10P-20KHz\\M10P_20K_数据输出格式.pdf",
+    "pages": 4,
+    "sha256": "fe3c979b6abe18e216c253a76e3802ac8792161fd1c744a27ff2fe7e36f3f56a",
+    "text": "tmp\\radar_upgrade_v3\\M10P-20KHz_M10P_20K_数据输出格式_fe3c979b.txt"
+  },
+  {
+    "source": "M10P-20KHz\\STM32读取M10P雷达数据说明.pdf",
+    "pages": 7,
+    "sha256": "cbbc470c39f13f2bdb0647a68c23ea67cde325cc9450eb80e9467cc2844a104e",
+    "text": "tmp\\radar_upgrade_v3\\M10P-20KHz_STM32读取M10P雷达数据说明_cbbc470c.txt"
+  },
+  {
+    "source": "M10P-20KHz\\M10P雷达F407VET6例程(2023.5.17)\\M10P_20KHz_用户手册.pdf",
+    "pages": 29,
+    "sha256": "54972628c13ddc280e24a18a1c55a8028be4a4d564331588b766abb15e9ede0a",
+    "text": "tmp\\radar_upgrade_v3\\M10P-20KHz_M10P_20KHz_用户手册_54972628.txt"
+  },
+  {
+    "source": "M10P-20KHz\\M10P雷达F407VET6例程(2023.5.17)\\M10P_20K_数据输出格式.pdf",
+    "pages": 4,
+    "sha256": "fe3c979b6abe18e216c253a76e3802ac8792161fd1c744a27ff2fe7e36f3f56a",
+    "text": "tmp\\radar_upgrade_v3\\M10P-20KHz_M10P_20K_数据输出格式_fe3c979b.txt"
+  }
+]

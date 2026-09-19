@@ -1,0 +1,8 @@
+{
+  "source_count": 55,
+  "failures": [],
+  "warnings": 44,
+  "settings": "AC5 Cortex-M4.fp.sp C99 O0 MicroLIB split_sections; current uvproj source/include/defines; existing EIDE scatter",
+  "ram_bytes": 58248,
+  "rom_bytes": 30724
+}

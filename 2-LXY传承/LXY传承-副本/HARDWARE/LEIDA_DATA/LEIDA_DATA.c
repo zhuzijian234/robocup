@@ -45,6 +45,11 @@ u8 tiaoshi = 0;  /* 调试标志 */
  * 6Hz → 2160, 8Hz → 2880 (手册示例帧: 68 08 → 0x0868 = 2152 ≈ 5.98Hz)
  * 手册提示: 电机个体差异, 占空比设典型值时实际转速有差异, 需依此字段闭环 */
 uint16_t LEIDA_speed_dps = 0;
+volatile uint32_t LEIDA_parse_calls = 0;
+volatile uint32_t LEIDA_sync_failures = 0;
+volatile uint32_t LEIDA_short_inputs = 0;
+volatile uint32_t LEIDA_missing_packets = 0;
+volatile uint16_t LEIDA_raw_count = 0;
 
 /* ======================== HANDLE1: 原始串口帧解析 ======================== */
 
@@ -65,16 +70,34 @@ uint16_t LEIDA_speed_dps = 0;
  *
  * 解析后角度旋转+90度: 0°=右侧(x+), 90°=前方(y+), 180°=左侧(x-)
  *
- * @return 1=成功, 0=未找到有效帧头
+ * 本帧未写出的槽位(帧头缺失的整包、块尾未覆盖区间)会被清零, 避免上一帧的旧点残留;
+ * 所有未更新槽位（包括同步失败）清零；distance==0表示无可用距离，
+ * 可能是清零占位或雷达原始零距离，不能仅靠数值区分二者。
+ *
+ * @return 成功=本次成功解析出的数据点数(每个命中帧头+12), 0=未找到有效帧头
  */
 uint16_t LEIDA_DATA_HANDLE1(_LEIDA_DATA data[], u8 arr[], u16 size)
 {
     int i, j, k;
+    int parsed = 0;   /* 本次真正解析写出的数据点数(每命中一个帧头 +12)。bit26"原始点数"用它, 与"47字节步进遍历槽数"区分 */
     float start_angle;
     float end_angle;
 
+    LEIDA_parse_calls++;
+    LEIDA_raw_count = 0;
+    /* Three header bytes at offsets 0, 47, 94 need at least 95 bytes.
+     * Clear on every unsuccessful return; caller owns COUNTER output slots. */
+    if (size < 95) {
+        LEIDA_short_inputs++;
+        for (k = 0; k < LEIDA_DATA_COUNTER; k++) {
+            data[k].angle = 0.0f;
+            data[k].distance = 0.0f;
+        }
+        return 0;
+    }
+
     /* 寻找同步模式: 间隔47字节的三个连续0x54帧头 */
-    for (i = 0; i < size - 47 - 47 - 1; i++) {
+    for (i = 0; i + 94 < size; i++) {
         if (arr[i] == 0x54) {
             if (arr[i + 47] == 0x54) {
                 if (arr[i + 94] == 0x54) {
@@ -83,15 +106,23 @@ uint16_t LEIDA_DATA_HANDLE1(_LEIDA_DATA data[], u8 arr[], u16 size)
             }
         }
     }
-    if (i == size - 47 - 47 - 1) return 0;  /* 未找到有效同步 */
+    if (i + 94 >= size) {
+        LEIDA_sync_failures++;
+        for (k = 0; k < LEIDA_DATA_COUNTER; k++) {
+            data[k].angle = 0.0f;
+            data[k].distance = 0.0f;
+        }
+        return 0;
+    }
 
     /* 解析数据包: 每包47字节 -> 12个数据点 */
-    for (j = 0; i < size - 47 - 1 && j < LEIDA_DATA_COUNTER - 12; i += 47, j += 12) {
+    for (j = 0; i + 47 <= size && j + 12 <= LEIDA_DATA_COUNTER; i += 47, j += 12) {
         if (arr[i] == 0x54) {
             start_angle = (((u16)arr[i + 5] << 8) + (u16)arr[i + 4]) / 100.0f;
             end_angle   = (((u16)arr[i + 43] << 8) + (u16)arr[i + 42]) / 100.0f;
             /* 转速: Byte2~3 (低字节在前), 单位 度/秒。只读不影响任何算法 */
             LEIDA_speed_dps = (((u16)arr[i + 3] << 8) + (u16)arr[i + 2]);
+            parsed += 12;   /* 只统计真正写出数据的点: 帧头缺失时 47 字节步进跳过的整包不计入 */
 
             /* 处理角度回绕: 结束角度<起始角度，说明扫描跨过了0度 */
             if (start_angle > end_angle)
@@ -139,9 +170,27 @@ arr[i+7+3*k]              arr[i+6+3*k]
                 if (data[j + k].angle > 360.0f) data[j + k].angle -= 360.0f;
                 if (data[j + k].angle < 0.0f)   data[j + k].angle += 360.0f;
             }
+        } else {
+            LEIDA_missing_packets++;
+            /* 帧头缺失: 这 12 个槽位本帧没有写入, 清零。
+             * 不清零的话它们会保留上一帧的旧点, 被 HANDLE3_2 当作有效点计入 valid_couter。 */
+            for (k = 0; k < 12; k++) {
+                data[j + k].angle    = 0.0f;
+                data[j + k].distance = 0.0f;
+            }
         }
     }
-    return 1;
+
+    /* 块尾未覆盖到的槽位同样清零: 每块的整包数随块相位变化(当前 1798B/47B 时是 37 或 38),
+     * 上一帧写过的尾部槽位本帧可能不再被写到, 残留旧点会混进 HANDLE3_2 的筛选结果。
+     * 上界用输出容量 LEIDA_DATA_COUNTER；本函数仍仅适用于47字节/12点协议，换雷达必须更换解析器。 */
+    for (k = j; k < LEIDA_DATA_COUNTER; k++) {
+        data[k].angle    = 0.0f;
+        data[k].distance = 0.0f;
+    }
+
+    LEIDA_raw_count = (uint16_t)parsed;
+    return (uint16_t)parsed;   /* 成功=本次解析出的点数; 未找到有效帧头已在上面返回 0 */
 }
 
 /* ======================== HANDLE2: 极坐标转笛卡尔坐标 ======================== */
