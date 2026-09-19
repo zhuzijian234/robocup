@@ -1,0 +1,49 @@
+{
+  "v1_gap": {
+    "dropped": 1,
+    "reported_delta_s": 0.11476595744680851,
+    "two_nominal_periods_s": 0.22953191489361702,
+    "reported_fps": 8.71338524286244
+  },
+  "unprotected_seq": {
+    "frames_accepted": 1,
+    "seq": 7,
+    "checksum_errors": 0
+  },
+  "changing_target": {
+    "reported_mean_err": 1.0,
+    "actual_per_sample_mean_err": 0
+  },
+  "draft_encoding": {
+    "err": {
+      "input": 500,
+      "decoded": 60.0
+    },
+    "k": {
+      "input": 0.5,
+      "decoded": 0.03
+    }
+  },
+  "wire_budget": {
+    "57B_at_12Hz": {
+      "bytes_s": 684,
+      "uart_115200_pct": 5.9375,
+      "packet_wire_ms": 4.947916666666666
+    },
+    "57B_at_20Hz": {
+      "bytes_s": 1140,
+      "uart_115200_pct": 9.895833333333332,
+      "packet_wire_ms": 4.947916666666666
+    },
+    "108B_at_12Hz": {
+      "bytes_s": 1296,
+      "uart_115200_pct": 11.25,
+      "packet_wire_ms": 9.375
+    },
+    "108B_at_20Hz": {
+      "bytes_s": 2160,
+      "uart_115200_pct": 18.75,
+      "packet_wire_ms": 9.375
+    }
+  }
+}

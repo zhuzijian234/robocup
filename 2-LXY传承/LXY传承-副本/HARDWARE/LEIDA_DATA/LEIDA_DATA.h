@@ -42,6 +42,7 @@ typedef struct {
 
 #define LEIDA_DATA_COUNTER 800   /* 每帧最大数据点数 */
 extern uint16_t valid_couter;
+extern uint16_t LEIDA_speed_dps;   /* 雷达实时转速(度/秒), 数据包Byte2~3; 6Hz=2160, 8Hz=2880 */
 extern _LEIDA_DATA LEIDA_DATA[];        /* 雷达原始极坐标数据 */
 extern _LEIDA_DATA LEIDA_DATA2[];       /* 筛选后的有效极坐标数据 */
 extern _LEIDA_DATA_plane LEIDA_DATA_plane[];  /* 笛卡尔平面坐标数据 */

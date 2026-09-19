@@ -7,8 +7,8 @@
  *          整数按 scale 缩放为浮点写入参数 (避开 MicroLIB 不支持 sscanf %f 的坑,
  *          用 atoi 解析)。命令以 \n 结尾, 解析层按 \n 分帧 (蓝牙空中分块交货,
  *          IDLE 分帧不可靠, 见 蓝牙实时调参方案.md §3.3)。
- *   【遥测】车→PC: float32小端 × 7通道 + 帧尾 00 00 80 7F = 32字节
- *          (VOFA+ FireWater 二进制引擎自动识别通道, 见 §3.6)。
+ *   【遥测】车→PC: float32小端 × 8通道 + 帧尾 00 00 80 7F = 36字节
+ *          (VOFA+ JustFloat 引擎靠帧尾自动识别通道数, 见 §3.6)。
  *
  * 实时生效原理: 控制循环每拍现读 Servo_pd/Speed_pid/BLUE_* 字段,
  * 所以本模块解析后直接赋值字段即可下一拍生效。
@@ -88,8 +88,8 @@ static void Tele_SendTail(void)
     BLE_Send_Bit(0x7F);
 }
 
-/* 每雷达帧调用一次: 7通道 = 误差/舵机PWM/kp/kd/pid模式/当前速度/目标速度
- * 帧长 7×4+4=32字节 ≈ 33ms @9600; 雷达帧周期约78ms, 带宽安全。
+/* 每雷达帧调用一次: 8通道 = 误差/舵机PWM/kp/kd/pid模式/当前速度/目标速度/雷达转速
+ * 帧长 8×4+4=36字节 ≈ 37.5ms @9600; 雷达帧周期 114.8ms, 带宽安全(占32.7%)。
  * 未连接时直接返回: 零发送零阻塞, 车跑着不连蓝牙和原来完全一样 */
 void BLE_Tune_Telemetry(float err, float servo_pwm, uint16_t pid_mode)
 {
@@ -103,6 +103,7 @@ void BLE_Tune_Telemetry(float err, float servo_pwm, uint16_t pid_mode)
     Tele_SendFloat((float)pid_mode);
     Tele_SendFloat(Speed_now);
     Tele_SendFloat(Speed_mubiao);
+    Tele_SendFloat((float)LEIDA_speed_dps);         /* 通道8: 雷达转速(度/秒), 6Hz=2160 */
     Tele_SendTail();
 }
 

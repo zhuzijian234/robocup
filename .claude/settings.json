@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wsl.exe -d Ubuntu-22.04 -- bash -lc \"command -v pdftoppm; command -v pdftocairo; echo DONE\")",
+      "Bash(mkdir -p /tmp/pdfrender)",
+      "Bash(npm init *)",
+      "Bash(timeout 300 npm install pdfjs-dist @napi-rs/canvas --no-audit --no-fund)",
+      "Bash(node extract.mjs \"D:/OneDrive/Desktop/robocup/1.LD14P激光雷达数据手册.pdf\" ./ds_text text)",
+      "Bash(node extract.mjs \"D:/OneDrive/Desktop/robocup/2.LD14P激光雷达开发手册_v0.1.pdf\" ./dm_text text)",
+      "Bash(D:/anaconda3/anaconda3/python.exe -c ' *)",
+      "Bash(powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\27768\\\\AppData\\\\Local\\\\Temp\\\\pdf2png.ps1\" -PdfPath \"D:\\\\OneDrive\\\\Desktop\\\\robocup\\\\M10P-PHY\\\\M10P-PHY_通讯协议_V1.0.0_20240123.pdf\" -OutDir \"C:\\\\Users\\\\27768\\\\AppData\\\\Local\\\\Temp\\\\m10p_proto_img\" -Scale 3)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\27768\\AppData\\Local\\Temp\\pdfrender",
+      "C:\\Users\\27768\\AppData\\Local\\Temp"
+    ]
+  }
+}

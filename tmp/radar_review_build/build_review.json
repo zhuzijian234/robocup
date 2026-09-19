@@ -1,0 +1,282 @@
+[
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\USER\\main.c",
+    "exit": 0,
+    "output": "\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\USER\\main.c\", line 96: Warning:  #177-D: variable \"t\"  was declared but never referenced\r\n      u32 t                 = 0;\r\n          ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\USER\\main.c\", line 100: Warning:  #177-D: variable \"jiaodu_piancha\"  was declared but never referenced\r\n      float jiaodu_piancha;\r\n            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\USER\\main.c\", line 103: Warning:  #177-D: variable \"qulu_forward\"  was declared but never referenced\r\n      float qulu_forward;\r\n            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\USER\\main.c\", line 104: Warning:  #177-D: variable \"qulu_jinduan\"  was declared but never referenced\r\n      float qulu_jinduan;\r\n            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\USER\\main.c\", line 108: Warning:  #177-D: variable \"tubian\"  was declared but never referenced\r\n      uint16_t tubian               = 0;\r\n               ^\r\nD:\\OneDrive\\Desktop\\robocup\\2-LXY����\\LXY����-����\\USER\\main.c: 5 warnings, 0 errors\r\n"
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\USER\\stm32f4xx_it.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\USER\\system_stm32f4xx.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\CORE\\startup_stm32f40_41xxx.s",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\misc.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_adc.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_can.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_crc.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_cryp.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_cryp_aes.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_cryp_des.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_cryp_tdes.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_dac.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_dbgmcu.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_dcmi.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_dma2d.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_dma.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_exti.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_flash.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_flash_ramfunc.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_fsmc.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_gpio.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_hash.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_hash_md5.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_hash_sha1.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_i2c.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_iwdg.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_ltdc.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_pwr.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_rcc.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_rng.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_rtc.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_sai.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_sdio.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_spi.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_syscfg.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_tim.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_usart.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\FWLIB\\src\\stm32f4xx_wwdg.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\SYSTEM\\delay\\delay.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\SYSTEM\\sys\\sys.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\SYSTEM\\usart\\usart.c",
+    "exit": 0,
+    "output": "\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\SYSTEM\\usart\\usart.c\", line 50: Warning:  #177-D: variable \"NVIC_InitStructure\"  was declared but never referenced\r\n      NVIC_InitTypeDef NVIC_InitStructure;\r\n                       ^\r\nD:\\OneDrive\\Desktop\\robocup\\2-LXY����\\LXY����-����\\SYSTEM\\usart\\usart.c: 1 warning, 0 errors\r\n"
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\DMA\\DMA.c",
+    "exit": 0,
+    "output": "\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\DMA\\DMA.c\", line 80: Warning:  #223-D: function \"memcpy\" declared implicitly\r\n          memcpy(DMA_USART2_RX_BUF_r, DMA_USART2_RX_BUF, DMA_USART2_RX_BUF_LEN);\r\n          ^\r\nD:\\OneDrive\\Desktop\\robocup\\2-LXY����\\LXY����-����\\HARDWARE\\DMA\\DMA.c: 1 warning, 0 errors\r\n"
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_PWM\\leida_pwm.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\hc-05\\bsp_bluetooth.c",
+    "exit": 0,
+    "output": "\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\hc-05\\bsp_bluetooth.c\", line 39: Warning:  #9-D: nested comment is not allowed\r\n  /*参数1: BSP_BLUETOOTH_TX_PORT\r\n  ^\r\nD:\\OneDrive\\Desktop\\robocup\\2-LXY����\\LXY����-����\\HARDWARE\\hc-05\\bsp_bluetooth.c: 1 warning, 0 errors\r\n"
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\hc-05\\ble_tune.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c",
+    "exit": 0,
+    "output": "\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 264: Warning:  #1035-D: single-precision operand implicitly converted to double-precision\r\n           angle_right += 0.6, angle_left -= 0.6) {\r\n           ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 264: Warning:  #1035-D: single-precision operand implicitly converted to double-precision\r\n           angle_right += 0.6, angle_left -= 0.6) {\r\n                               ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 246: Warning:  #177-D: variable \"center_cnt_r\"  was declared but never referenced\r\n      int center_cnt_r = 0;\r\n          ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 251: Warning:  #177-D: variable \"temp\"  was declared but never referenced\r\n      _LEIDA_DATA_plane temp;\r\n                        ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 601: Warning:  #177-D: variable \"zhidao_counter\"  was declared but never referenced\r\n      uint16_t zhidao_counter = 0;\r\n               ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 681: Warning:  #177-D: variable \"j\"  was declared but never referenced\r\n      uint16_t i, j;\r\n                  ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 683: Warning:  #177-D: variable \"zhidao_counter\"  was declared but never referenced\r\n      uint16_t zhidao_counter = 0;\r\n               ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 684: Warning:  #177-D: variable \"midline\"  was declared but never referenced\r\n      Midline_type midline;\r\n                   ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 685: Warning:  #177-D: variable \"cnt\"  was declared but never referenced\r\n      uint16_t cnt = 0;\r\n               ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 687: Warning:  #177-D: variable \"y_max\"  was declared but never referenced\r\n      float y_max     = -4000;\r\n            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 688: Warning:  #177-D: variable \"y_max_r\"  was declared but never referenced\r\n      float y_max_r   = -4000;\r\n            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 689: Warning:  #177-D: variable \"y_max_r_r\"  was declared but never referenced\r\n      float y_max_r_r = -4000;\r\n            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 690: Warning:  #177-D: variable \"y_min\"  was declared but never referenced\r\n      float y_min     = 4000;\r\n            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 691: Warning:  #177-D: variable \"y_min_r\"  was declared but never referenced\r\n      float y_min_r   = 4000;\r\n            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 692: Warning:  #177-D: variable \"y_min_r_r\"  was declared but never referenced\r\n      float y_min_r_r = 4000;   /* 修复: 原为-4000, 同类初值错�?(此处jiange未使�?, 仅保持一�?) */\r\n            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 693: Warning:  #177-D: variable \"jiange\"  was declared but never referenced\r\n      float jiange    = 0;\r\n            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c\", line 1029: Warning:  #870-D: invalid multibyte character sequence\r\n      printf(\"[LEIDA] �? %u/%u 个点:\\r\\n\", n, count);\r\n                       ^\r\nD:\\OneDrive\\Desktop\\robocup\\2-LXY����\\LXY����-����\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.c: 17 warnings, 0 errors\r\n"
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\CENTRE_LINE\\CENTRE_LINE.c",
+    "exit": 0,
+    "output": "\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\CENTRE_LINE\\CENTRE_LINE.c\", line 259: Warning:  #177-D: variable \"y_r\"  was declared but never referenced\r\n      static int y_r     = 0;\r\n                 ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\CENTRE_LINE\\CENTRE_LINE.c\", line 260: Warning:  #177-D: variable \"sum_y\"  was declared but never referenced\r\n      float sum_y;\r\n            ^\r\nD:\\OneDrive\\Desktop\\robocup\\2-LXY����\\LXY����-����\\HARDWARE\\CENTRE_LINE\\CENTRE_LINE.c: 2 warnings, 0 errors\r\n"
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\LEIDA_TIMER\\timer.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\moto\\moto.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\Servo\\Servo.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\HARDWARE\\TIM\\PWM\\PWM.c",
+    "exit": 0,
+    "output": ""
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_servo.c",
+    "exit": 0,
+    "output": "\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_servo.c\", line 35: Warning:  #870-D: invalid multibyte character sequence\r\n      printf(\"\\r\\n===== 测试�? 舵机测试 =====\\r\\n\");\r\n                            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_servo.c\", line 36: Warning:  #870-D: invalid multibyte character sequence\r\n      printf(\"先回中位 %d, �?2�?, 确认轮子指向正前方\\r\\n\", TEST_SERVO_MID);\r\n                          ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_servo.c\", line 36: Warning:  #870-D: invalid multibyte character sequence\r\n      printf(\"先回中位 %d, �?2�?, 确认轮子指向正前方\\r\\n\", TEST_SERVO_MID);\r\n                            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_servo.c\", line 40: Warning:  #870-D: invalid multibyte character sequence\r\n      printf(\"开始往复扫�?: 范围[%d, %d], 步进%d, 每步%d毫秒\\r\\n\",\r\n                       ^\r\nD:\\OneDrive\\Desktop\\robocup\\2-LXY����\\LXY����-����\\test\\test_servo.c: 4 warnings, 0 errors\r\n"
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_motor.c",
+    "exit": 0,
+    "output": "\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_motor.c\", line 45: Warning:  #870-D: invalid multibyte character sequence\r\n          printf(\"\\r\\n[正转] PB15=�?, 占空�?20%%�?80%%\\r\\n\");\r\n                                  ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_motor.c\", line 45: Warning:  #870-D: invalid multibyte character sequence\r\n          printf(\"\\r\\n[正转] PB15=�?, 占空�?20%%�?80%%\\r\\n\");\r\n                                        ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_motor.c\", line 45: Warning:  #870-D: invalid multibyte character sequence\r\n          printf(\"\\r\\n[正转] PB15=�?, 占空�?20%%�?80%%\\r\\n\");\r\n                                             ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_motor.c\", line 48: Warning:  #870-D: invalid multibyte character sequence\r\n          printf(\"\\r\\n[反转] PB15=�?, 占空�?20%%�?80%%\\r\\n\");\r\n                                  ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_motor.c\", line 48: Warning:  #870-D: invalid multibyte character sequence\r\n          printf(\"\\r\\n[反转] PB15=�?, 占空�?20%%�?80%%\\r\\n\");\r\n                                        ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_motor.c\", line 48: Warning:  #870-D: invalid multibyte character sequence\r\n          printf(\"\\r\\n[反转] PB15=�?, 占空�?20%%�?80%%\\r\\n\");\r\n                                             ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_motor.c\", line 54: Warning:  #870-D: invalid multibyte character sequence\r\n          printf(\"占空�? %d%%:\\r\\n\", (int)duty);\r\n                      ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_motor.c\", line 79: Warning:  #870-D: invalid multibyte character sequence\r\n      printf(\"\\r\\n===== 测试�? 电机测试 =====\\r\\n\");\r\n                            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_motor.c\", line 80: Warning:  #870-D: invalid multibyte character sequence\r\n      printf(\"注意: 车要架起�?! 电机PWM已由main.c交给本测试独�?(TIM5已关)\\r\\n\");\r\n                          ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_motor.c\", line 80: Warning:  #870-D: invalid multibyte character sequence\r\n      printf(\"注意: 车要架起�?! 电机PWM已由main.c交给本测试独�?(TIM5已关)\\r\\n\");\r\n                                                     ^\r\nD:\\OneDrive\\Desktop\\robocup\\2-LXY����\\LXY����-����\\test\\test_motor.c: 10 warnings, 0 errors\r\n"
+  },
+  {
+    "file": "D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_bluetooth.c",
+    "exit": 0,
+    "output": "\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_bluetooth.c\", line 130: Warning:  #870-D: invalid multibyte character sequence\r\n      printf(\"\\r\\n===== 测试�? 蓝牙调参测试 =====\\r\\n\");\r\n                            ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_bluetooth.c\", line 134: Warning:  #870-D: invalid multibyte character sequence\r\n      printf(\"  m50    设置电机占空�?%% (0~100)\\r\\n\");\r\n                                 ^\r\n\"D:\\OneDrive\\Desktop\\robocup\\2-LXY传承\\LXY传承-副本\\test\\test_bluetooth.c\", line 145: Warning:  #870-D: invalid multibyte character sequence\r\n                  printf(\"\\r\\n蓝牙已连�?! 开始遥测\\r\\n\");\r\n                                     ^\r\nD:\\OneDrive\\Desktop\\robocup\\2-LXY����\\LXY����-����\\test\\test_bluetooth.c: 3 warnings, 0 errors\r\n"
+  },
+  {
+    "file": "LINK",
+    "exit": 0,
+    "output": ""
+  }
+]

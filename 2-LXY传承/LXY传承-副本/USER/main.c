@@ -470,7 +470,7 @@ int main(void)
                 }
             }
 
-            /* 本帧雷达处理完: 回传7通道波形给手机/VOFA+ (未连接时内部直接返回, 零开销) */
+            /* 本帧雷达处理完: 回传8通道波形给手机/VOFA+ (未连接时内部直接返回, 零开销) */
             BLE_Tune_Telemetry(Servo_pd.err, servo_pwm, pid_select);
 
         } else {
