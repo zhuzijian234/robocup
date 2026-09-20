@@ -25,9 +25,11 @@ import csv
 import time
 import struct
 import argparse
+import telemetry_v2 as v2
 import json
 import math
 import hashlib
+from pathlib import Path
 
 import numpy as np
 
@@ -142,6 +144,8 @@ class StreamParser:
     """增量解析: 反复 feed() 字节块, 记录累积在 .records / .ascii_lines 等"""
 
     def __init__(self):
+        self.v2 = v2.Decoder()
+        self.meta = {}
         self.buf = bytearray()
         self.records = []      # list[dict]
         self.ascii_lines = []  # 蓝牙 ASCII 回复(参数变更等)
@@ -159,12 +163,22 @@ class StreamParser:
         if not raw:
             return
         self._ascii.extend(raw)
-        while b"\n" in self._ascii:
+        while True:
+            tail=self._ascii.find(b"\x00\x00\x80\x7f")
+            newline=self._ascii.find(b"\n")
+            if tail>=0 and (newline<0 or tail<newline):
+                del self._ascii[:tail+4]
+                continue
+            if newline<0:break
             line, _, rest = self._ascii.partition(b"\n")
             self._ascii = bytearray(rest)
-            s = line.strip(b"\r\x00").decode("ascii", "ignore").strip()
-            if s:
+            try:
+                s = line.strip(b"\r").decode("ascii").strip()
+            except UnicodeDecodeError:
+                continue
+            if s.startswith(("INFO ", "OK ", "ERR ", "radar ")) or any(s.startswith(n+"=") for n in v2.PARAMETERS):
                 self.ascii_lines.append({"t": self._host_t if self._host_t is not None else self._n * FRAME_DT, "text": s})
+        if len(self._ascii)>256:self._ascii.clear()
 
     def _add_frame(self, frame: bytes):
         vals = np.frombuffer(frame[PAYLOAD_OFF:PAYLOAD_OFF + FIELD_N * 2],
@@ -195,6 +209,22 @@ class StreamParser:
             if idx:
                 self._note_ascii(bytes(self.buf[:idx]))
                 del self.buf[:idx]
+            if len(self.buf)<3:return
+            if self.buf[2]==2:
+                if len(self.buf)<6:return
+                n=int.from_bytes(self.buf[4:6],"little")
+                if not 16<=n<=256:
+                    self.bad_frames+=1;del self.buf[0];continue
+                if len(self.buf)<n:return
+                try:
+                    rec=self.v2.accept(bytes(self.buf[:n]),FIELD_NAMES,SCALES,self._host_t)
+                except (ValueError, UnicodeError, struct.error):
+                    self.bad_frames+=1;del self.buf[0];continue
+                del self.buf[:n]
+                if rec is not None:self.records.append(rec)
+                continue
+            if self.buf[2]!=1:
+                self.bad_frames+=1;del self.buf[0];continue
             if len(self.buf) < FRAME_LEN:
                 return
             frame = bytes(self.buf[:FRAME_LEN])
@@ -221,7 +251,7 @@ class StreamParser:
                         dtype=np.float64)
 
 
-def save_capture(path, raw, events, duration):
+def save_capture(path, raw, events, duration, metadata=None):
     """保存原始流及接收块时间；时间为主机单调钟相对秒，不是控制周期。"""
     raw = bytes(raw)
     with open(path, "wb") as f:
@@ -231,7 +261,7 @@ def save_capture(path, raw, events, duration):
             f.write(json.dumps(event) + "\n")
     with open(path + ".meta.json", "w", encoding="utf-8") as f:
         json.dump({"version": 1, "clock": "host_monotonic", "duration_s": duration,
-                   "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}, f)
+                   "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(), **(metadata or {})}, f)
 
 
 def parse_file(path: str) -> StreamParser:
@@ -263,6 +293,7 @@ def parse_file(path: str) -> StreamParser:
         if offset != len(raw):
             raise ValueError("接收块记录不完整")
         p.capture_duration = duration
+        p.meta = meta
     else:
         p.feed(raw)
     return p
@@ -356,6 +387,8 @@ def _runs(mask: np.ndarray):
 
 def analyze(p: StreamParser) -> dict:
     """对解析结果做 10 项判读, 返回结果字典(供报告/图形使用)"""
+    if p.v2.messages:
+        return v2.analyze(p,FIELD_NAMES)
     M = p.matrix()
     N = len(M)
     res = {"n_frames": N, "bad_frames": p.bad_frames, "dropped": p.dropped,
@@ -530,6 +563,14 @@ def analyze(p: StreamParser) -> dict:
 # ============================ 输出: CSV / 报告 / 图 ============================
 
 def write_csv(p: StreamParser, path: str):
+    if p.v2.messages:
+        with open(path,"w",newline="",encoding="utf-8-sig") as f:
+            writer=csv.DictWriter(f,fieldnames=["t"]+FIELD_NAMES+v2.EXTRA,extrasaction="ignore")
+            writer.writeheader();writer.writerows(r for r in p.records if r.get("version")==2)
+        with open(os.path.splitext(path)[0]+".events.jsonl","w",encoding="utf-8") as f:
+            for m in p.v2.messages:
+                if m["type"]!=1:f.write(json.dumps(m,ensure_ascii=False)+"\n")
+        return
     prev_mode, prev_pwm, prev_err = None, None, None
     with open(path, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
@@ -560,6 +601,8 @@ def _fmt_sat(res):
 
 
 def write_report(res: dict, path: str, bin_name: str = ""):
+    if res.get("v2"):
+        return v2.report(res,path,bin_name)
     L = []
     A = L.append
     A(f"# 遥测判读报告 — {bin_name or 'run'}")
@@ -724,6 +767,17 @@ def write_plot(p: StreamParser, res: dict, path: str):
 
     if res["n_frames"] == 0:
         return
+    if res.get("v2"):
+        rows=res["rows"]
+        if not rows:return
+        fig,axes=plt.subplots(3,1,figsize=(12,8),sharex=True)
+        for segment in sorted({r["segment"] for r in rows}):
+            group=[r for r in rows if r["segment"]==segment]
+            t=[r["host_t"] if r["host_t"] is not None else r["t"] for r in group]
+            for ax,key in zip(axes,["err","servo_pwm","Speed_now"]):
+                ax.plot(t,[r[key] for r in group],".",markersize=2);ax.set_ylabel(key)
+        axes[-1].set_xlabel("主机接收时间(s)，仅画采样点，不连接缺失区间")
+        fig.tight_layout();fig.savefig(path,dpi=110);plt.close(fig);return
     M = p.matrix()
     i = {n: k for k, n in enumerate(FIELD_NAMES)}
     t = p.cols("t")
@@ -936,6 +990,64 @@ def cmd_capture(a):
     return 1 if a.diag and not parser.total_frames else 0
 
 
+def cmd_capture_v2(a):
+    import serial
+    if not math.isfinite(a.sec) or a.sec<=0:raise ValueError("采集时长必须大于0")
+    import uuid
+    from datetime import datetime, timezone
+    port=a.port or _auto_pick_port()
+    if not port:raise ValueError("请选择串口")
+    path=os.path.abspath(a.out);os.makedirs(os.path.dirname(path),exist_ok=True)
+    if os.path.exists(path):raise FileExistsError("日志已存在，请换一个--out文件名："+path)
+    parser=StreamParser();hasher=hashlib.sha256();offset=0;events=[]
+    start=time.monotonic();formal=None;end_reason="complete";error=None
+    meta={"run_uuid":str(uuid.uuid4()),"started_utc":datetime.now(timezone.utc).isoformat(),
+          "host_version":"v2.1","host_sha256":hashlib.sha256(Path(__file__).read_bytes()+Path(v2.__file__).read_bytes()).hexdigest(),"protocol":2,"port":port,"baud":a.baud,"requested_rate":a.rate}
+    serial_port=serial.Serial(port,a.baud,timeout=.03)
+    def send(cmd):
+        events.append({"t":time.monotonic()-start,"command":cmd.strip()})
+        serial_port.write(cmd.encode("ascii"));return True
+    handshake=v2.Handshake(send,parser,a.rate)
+    try:
+        with open(path,"wb") as raw,open(path+".rx.jsonl","w",encoding="utf-8") as rx:
+            handshake.start(time.monotonic())
+            last_rx=time.monotonic()
+            while True:
+                if a.stop_file and os.path.exists(a.stop_file):
+                    end_reason="user_stop";break
+                chunk=serial_port.read(4096);now=time.monotonic()
+                if chunk:
+                    raw.write(chunk);hasher.update(chunk)
+                    rx.write(json.dumps({"offset":offset,"length":len(chunk),"t":now-start,"host_monotonic_ns":time.monotonic_ns()})+"\n")
+                    offset+=len(chunk);parser.feed(chunk,now-start);last_rx=now
+                if formal is None:
+                    handshake.poll(now)
+                    if handshake.done:
+                        formal=now;meta["pre_roll_s"]=now-start
+                        meta["session"]=handshake.session;meta["info"]=handshake.info
+                        print("V2协商及配置完整，开始正式采集",flush=True)
+                else:
+                    if any(m["session"]!=handshake.session for m in parser.v2.messages[-10:]):
+                        raise ValueError("设备会话改变，停止当前run并重新协商")
+                    # Unknown parameter revision requires a new exact snapshot.
+                    unknown=any(r.get("version")==2 and (r["session"],r["param_revision"]) not in parser.v2.configs for r in parser.records[-1:])
+                    if unknown and now-getattr(handshake,"last_config_request",0)>2:
+                        send("getcfg\n");handshake.last_config_request=now
+                    if now-last_rx>3:raise TimeoutError("链路或设备无响应")
+                    if now-formal>=a.sec:break
+    except KeyboardInterrupt:end_reason="user_interrupt"
+    except Exception as exc:end_reason="error";error=str(exc)
+    finally:
+        serial_port.close();duration=time.monotonic()-start
+        meta.update(version=1,clock="host_monotonic",duration_s=duration,bytes=offset,
+                    sha256=hasher.hexdigest(),ended_utc=datetime.now(timezone.utc).isoformat(),
+                    end_reason=end_reason,error=error,commands=events,
+                    configs={f"{sid}:{rev}":cfg for (sid,rev),cfg in parser.v2.configs.items()})
+        with open(path+".meta.json","w",encoding="utf-8") as f:json.dump(meta,f,ensure_ascii=False,indent=2)
+    print("已保存 "+path+("；错误："+error if error else ""),flush=True)
+    return 1 if error else 0
+
+
 def cmd_report(a):
     for path in a.bin:
         base = os.path.splitext(path)[0]
@@ -978,6 +1090,15 @@ def main():
     c.add_argument("--out", default="log/run.bin")
     c.add_argument("--diag", action="store_true", help="先发 tele 2 切到诊断流")
     c.set_defaults(func=cmd_capture)
+
+    cv = sub.add_parser("capture-v2",help="协商会话/配置后采集V2，流式保存")
+    cv.add_argument("--port",default=None)
+    cv.add_argument("--baud",type=int,default=115200)
+    cv.add_argument("--sec",type=float,default=30)
+    cv.add_argument("--rate",type=int,choices=range(1,11),default=1)
+    cv.add_argument("--out",default="log/v2.bin")
+    cv.add_argument("--stop-file",default=None,help=argparse.SUPPRESS)
+    cv.set_defaults(func=cmd_capture_v2)
 
     r = sub.add_parser("report", help="解析 → CSV + 报告 + 图")
     r.add_argument("bin", nargs="+")

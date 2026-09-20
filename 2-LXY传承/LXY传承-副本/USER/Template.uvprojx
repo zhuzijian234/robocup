@@ -651,6 +651,21 @@
               <FilePath>..\HARDWARE\hc-05\bsp_bluetooth.h</FilePath>
             </File>
             <File>
+              <FileName>ble_diag.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\hc-05\ble_diag.c</FilePath>
+            </File>
+            <File>
+              <FileName>ble_diag.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\HARDWARE\hc-05\ble_diag.h</FilePath>
+            </File>
+            <File>
+              <FileName>ble_tx.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\hc-05\ble_tx.c</FilePath>
+            </File>
+            <File>
               <FileName>ble_tune.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\hc-05\ble_tune.c</FilePath>

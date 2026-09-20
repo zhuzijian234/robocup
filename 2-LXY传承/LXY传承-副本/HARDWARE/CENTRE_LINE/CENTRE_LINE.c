@@ -1,3 +1,4 @@
+#include "ble_diag.h"
 /**
  * @file    CENTRE_LINE.c
  * @brief   中线检测、PID控制与路径拟合算法实现
@@ -24,6 +25,7 @@
  */
 
 #include "centre_line.h"
+#define CONTROL_TRACE(...) ((void)0)
 #include "moto.h"
 
 Midline_type Midline;
@@ -90,6 +92,7 @@ void Midline_fit(_LEIDA_DATA_plane *centerline, int startline, int endline, Midl
         midline->k = sumUp / sumDown;
 
     midline->b = averageY - midline->k * averageX;
+    Diag_Fit(midline,(sumlines>=2 && sumDown>0));
 }
 
 /* ======================== 曲率计算 ======================== */
@@ -337,7 +340,7 @@ uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midli
     if (flag == 6) midline_pid->err = -(zhongxian_junzhi);
     if (flag == 7) midline_pid->err = -(zhongxian_junzhi);
 
-    printf("ERROR:%f\r\n", midline_pid->err);
+    CONTROL_TRACE("ERROR:%f\r\n", midline_pid->err);
 
     /* 偏差限幅 [-500, 500] */
     if (midline_pid->err > 500)  midline_pid->err = 500;
@@ -369,9 +372,9 @@ uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midli
     /* 保存当前误差，供下一帧D项使用 */
     midline_pid->err_l = midline_pid->err;
 
-    printf("flag:%d\r\n", flag);
-    printf("speed_now:%f,speed_mubiao:%f\r\r\n", Speed_now, Speed_mubiao);
-    printf("PWM_Before:%f\r\n", servo_pwm);
+    CONTROL_TRACE("flag:%d\r\n", flag);
+    CONTROL_TRACE("speed_now:%f,speed_mubiao:%f\r\r\n", Speed_now, Speed_mubiao);
+    CONTROL_TRACE("PWM_Before:%f\r\n", servo_pwm);
 
     /* 舵机PWM限幅 (行程参数见centre_line.h的SERVO_PWM_MIN/MAX) */
     if (servo_pwm > SERVO_PWM_MAX) servo_pwm = SERVO_PWM_MAX;
@@ -383,9 +386,9 @@ uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midli
     /* 保存flag供下一帧检测模式切换 */
     flag_r = flag;
 
-    printf("PWM_After:%lf\r\n", (double)servo_pwm);
-    printf("\r\n");
-    printf("\r\n");
+    CONTROL_TRACE("PWM_After:%lf\r\n", (double)servo_pwm);
+    CONTROL_TRACE("\r\n");
+    CONTROL_TRACE("\r\n");
     return (uint16_t)servo_pwm;
 }
 

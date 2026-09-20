@@ -1,3 +1,5 @@
+#include "ble_diag.h"
+#define CONTROL_TRACE(...) ((void)0)
 /**
  * @file    main.c
  * @brief   雷达小车主程序 — 初始化、主控制循环、多模式转向决策
@@ -95,6 +97,7 @@ int main(void)
 
     u32 t                 = 0;
     uint16_t parsed_points = 0;
+    uint32_t input_seq, input_ms, input_us, irq_state;
     uint16_t ceshi_cnt    = 0;
     uint16_t break_flag   = 0;     /* 数据异常标志 */
     uint16_t danbian_flag = 0;     /* 单边标志 (用于S弯检测) */
@@ -110,6 +113,7 @@ int main(void)
 
     /* ===== 系统初始化 ===== */
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);  /* 2位抢占，2位子优先级 */
+    Diag_Init();
     delay_init(168);                                 /* 延时函数初始化 (参数=主频MHz, 本工程168MHz) */
 
     /* 注意初始化顺序: USART2先初始化(PA2=USART2 AF),
@@ -176,7 +180,7 @@ int main(void)
     /* 断点判断距离阈值 */
     duandian_DIStance = 550;
 
-    printf("Start\r\n");
+    CONTROL_TRACE("Start\r\n");
 
     /* ======================== 主循环 ======================== */
     while (1) {
@@ -193,29 +197,37 @@ int main(void)
 #else
         /* ======================== 正常循线模式 ======================== */
 
+        Diag_Poll();
         BLE_Tune_Process();     /* 蓝牙命令解析: 每圈必跑(含雷达帧等待圈), 命令响应<1ms */
 
         /* 等待DMA接收完一帧雷达数据 */
         if (DMA_RX_DONE) {
-            DMA_RX_DONE = 0;  /* 清除标志 */
+            irq_state=__get_PRIMASK();__disable_irq();
+            DMA_RX_DONE = 0;
+            input_seq=Diag_input_seq;input_ms=Diag_input_ms;input_us=Diag_input_us;
+            __set_PRIMASK(irq_state);
+            Diag_Begin(input_ms,input_us);
             telemetry_mode = BLE_MODE_HOLD;
 
-            printf("DMA_RX_DONE\r\n");
+            CONTROL_TRACE("DMA_RX_DONE\r\n");
 
             /* ===== 第1步: 解析雷达数据 ===== */
             parsed_points = LEIDA_DATA_HANDLE1(LEIDA_DATA, DMA_USART2_RX_BUF_r, DMA_USART2_RX_BUF_LEN);
 
             /* ===== 第2步: 筛选有效点 (距离>=100mm) ===== */
+            if(input_seq!=Diag_input_seq){parsed_points=0;Diag_input_drop++;}
             valid_couter = parsed_points ? LEIDA_DATA_HANDLE3_2(LEIDA_DATA2, LEIDA_DATA, LEIDA_DATA_COUNTER) : 0;
 
             /* 有效点太少 -> 数据异常，跳过此帧 */
             /* 注意: 不能写break — 这里最内层循环就是while(1)主循环,
              * break会直接跳出主循环, 整个控制程序当场死掉(只剩TIM5速度中断还在跑)。
              * 正确做法是continue: 跳过本帧剩余处理, 等下一帧雷达数据 */
+            Diag_Field(12,valid_couter,1);
             if (valid_couter <= 20) {
                 Radar_invalid_inputs++;
                 break_flag = 1;
-                printf("Data invalid, skip frame: %d\r\n", valid_couter);  /* 调试打印, 稳定后可删 */
+                CONTROL_TRACE("Data invalid, skip frame: %d\r\n", valid_couter);  /* 调试打印, 稳定后可删 */
+                Diag_Submit(BLE_MODE_INVALID,parsed_points,LEIDA_speed_dps,0);
                 BLE_Tune_Telemetry(Servo_pd.err, (float)TIM3->CCR1, BLE_MODE_INVALID);
                 continue;
             }
@@ -287,7 +299,7 @@ int main(void)
 
                     /* 斜率强制取正（右转方向） */
                     if (Midline_forward.k < 0) Midline_forward.k = -Midline_forward.k;
-                    printf("k: %f,b: %f\r\n", Midline_forward.k, Midline_forward.b);
+                    CONTROL_TRACE("k: %f,b: %f\r\n", Midline_forward.k, Midline_forward.b);
 
                     /* 模式3: 大角度右转，使用前方拟合数据 */
                     pid_select = 3;
@@ -306,7 +318,7 @@ int main(void)
                            && (danbian_flag == 1)) {
 
                     if (Midline_forward.k < 0) Midline_forward.k = -Midline_forward.k;
-                    printf("k: %f,b: %f\r\n", Midline_forward.k, Midline_forward.b);
+                    CONTROL_TRACE("k: %f,b: %f\r\n", Midline_forward.k, Midline_forward.b);
 
                     /* 模式8: 中等角度右转 (S弯中段) */
                     pid_select = 8;
@@ -356,7 +368,7 @@ int main(void)
                 if ((fabs(Midline_forward.k) < 0.35) && (Forward_cnt)
                     && (LEFT_duandian < duandian_distance)) {
 
-                    printf("k: %f,b: %f\r\n", Midline_forward.k, Midline_forward.b);
+                    CONTROL_TRACE("k: %f,b: %f\r\n", Midline_forward.k, Midline_forward.b);
                     if (Midline_forward.k > 0) Midline_forward.k = -Midline_forward.k;
                     /* 斜率强制取负（左转方向） */
                     pid_select = 4;  /* 大角度左转 */
@@ -374,7 +386,7 @@ int main(void)
                            && ((fabs(Midline_forward_2.k) < 0.25) || (fabs(Midline_forward_3.k) < 0.25))
                            && (danbian_flag == 1)) {
 
-                    printf("k: %f,b: %f\r\n", Midline_forward.k, Midline_forward.b);
+                    CONTROL_TRACE("k: %f,b: %f\r\n", Midline_forward.k, Midline_forward.b);
                     if (Midline_forward.k > 0) Midline_forward.k = -Midline_forward.k;
                     pid_select = 9;  /* 中等角度左转 */
                     telemetry_mode = pid_select;
@@ -446,6 +458,7 @@ int main(void)
                     zhongxian_chuizhi = LEIDA_DATA_HANDLE11(LEIDA_DATA_CENTER,
                                         (uint16_t)(CENTER_cnt / 20.0 * 8),
                                         (uint16_t)(CENTER_cnt / 20.0 * 18));
+                    Diag_Field(25,zhongxian_chuizhi,CENTER_cnt>=2);
 
                     if (zhongxian_chuizhi == 0) {
                         /* 中线不垂直 -> 普通中线拟合 */
@@ -488,7 +501,16 @@ int main(void)
             }
 
             /* 本帧雷达处理完: 回传8通道波形给手机/VOFA+ (未连接时内部直接返回, 零开销) */
+            Diag_Field(9,RIGHT_duandian,1);Diag_Field(10,LEFT_duandian,1);
+            if(paodao_distance_r>600 && paodao_distance_r<900)Diag_Field(11,paodao_distance,1);
+            else Diag_HeldField(11,paodao_distance,1);
+            Diag_Field(13,RIGHT_cnt,1);Diag_Field(14,LEFT_cnt,1);
+            Diag_Field(15,Forward_cnt,1);Diag_Field(16,Forward_cnt_2,1);Diag_Field(17,Forward_cnt_3,1);
+            Diag_Field(20,danbian_flag,1);
+            Diag_Field(21,state_left_cnt,1);Diag_Field(22,state_right_cnt,1);
+            Diag_Field(23,state_left_cnt_2,1);Diag_Field(24,state_right_cnt_2,1);
             Radar_ControlCompleted();
+            Diag_Submit(telemetry_mode,parsed_points,LEIDA_speed_dps,1);
             BLE_Tune_Telemetry(Servo_pd.err, (float)TIM3->CCR1, telemetry_mode);
 
         } else {

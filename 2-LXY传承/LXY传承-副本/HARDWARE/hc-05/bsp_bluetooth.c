@@ -2,7 +2,7 @@
  * @file    bsp_bluetooth.c
  * @brief   HC-05蓝牙模块驱动 — USART6
  *
- * 硬件: USART6 (PC6=TX, PC7=RX), 波特率9600
+ * 硬件: USART6 (PC6=TX, PC7=RX), 默认波特率115200
  * 连接状态: PC2 (HC-05 STATE引脚, 高=已连接, 低=未连接)
  *
  * 功能:
@@ -18,6 +18,7 @@
 
 #include "bsp_bluetooth.h"
 #include "stdio.h"
+#include "ble_diag.h"
 
 unsigned char Bluetooth_ConnectFlag = 0;  /* 蓝牙连接状态: 0=未连接, 1=已连接 */
 unsigned char BLERX_BUFF[BLERX_LEN_MAX]; /*接收缓冲区*/
@@ -26,7 +27,7 @@ unsigned char BLERX_LEN  = 0;            /*当前已收到的字节数  */
 
 /**
  * @brief  初始化USART6的GPIO引脚 (TX=PC6, RX=PC7)
- * @param  bund: 波特率 (默认9600)
+ * @param  bund: 波特率 (默认115200)
  */
 void Bluetooth_GPIO_Init(unsigned int bund)
 {
@@ -105,18 +106,15 @@ void Bluetooth_GPIO_Init(unsigned int bund)
  */
 void BLE_Send_Bit(unsigned char ch)
 {
-    USART_SendData(BSP_BLUETOOTH, (uint8_t)ch);
-    while (RESET == USART_GetFlagStatus(BSP_BLUETOOTH, USART_FLAG_TXE));
+    BLE_Queue(&ch, 1, 2);
 }
 
 /**
  * @brief  通过蓝牙发送字符串
  */
 void BLE_send_String(unsigned char *str)
-{   /*判断逻辑:指针本身非空并且不指向\0*/
-    while (str && *str) {
-        BLE_Send_Bit(*str++); /*先取*str当前字符的值再指针后移*/
-    }
+{
+    if(str) BLE_Queue(str,(uint16_t)strlen((char*)str),2);
 }
 
 /**
@@ -153,7 +151,7 @@ void Bluetooth_Link_Gpio_Init(void)
  */
 void Bluetooth_Init(void)
 {
-    Bluetooth_GPIO_Init(9600);
+    Bluetooth_GPIO_Init(BLE_UART_BAUD);
     Bluetooth_Link_Gpio_Init();
 #if DEBUG
     printf("Bluetooth_Init succeed!\r\n");
@@ -226,23 +224,15 @@ void Send_Bluetooth_Data(char *dat)
  */
 void BSP_BLUETOOTH_IRQHandler(void)
 {
-    /* RXNE: 收到一个字节 */
-    if (USART_GetITStatus(BSP_BLUETOOTH, USART_IT_RXNE) == SET) { /*检查RXNE硬件标志是否置位,RXNE中断是否使能*/
-        if (BLERX_LEN < BLERX_LEN_MAX - 1) {
-            BLERX_BUFF[BLERX_LEN++] = USART_ReceiveData(BSP_BLUETOOTH);/*留一字节给\0*/
-        } else {
-            USART_ReceiveData(BSP_BLUETOOTH);  /* 读DR清除中断标志，丢弃数据(缓冲区满了)*/
+    uint32_t sr=BSP_BLUETOOTH->SR;
+    if(sr & (USART_SR_RXNE|USART_SR_ORE|USART_SR_FE|USART_SR_NE|USART_SR_IDLE)) {
+        uint8_t ch=(uint8_t)BSP_BLUETOOTH->DR;
+        if(sr & (USART_SR_ORE|USART_SR_FE|USART_SR_NE)) { Diag_rx_overflow++; BLERX_FLAG=2; }
+        else if(sr & USART_SR_RXNE) {
+            if(BLERX_LEN<BLERX_LEN_MAX-1) { BLERX_BUFF[BLERX_LEN++]=ch; BLERX_BUFF[BLERX_LEN]=0; }
+            else { Diag_rx_overflow++; BLERX_FLAG=2; }
         }
-        USART_ClearITPendingBit(BSP_BLUETOOTH, USART_IT_RXNE);
     }
-
-    /* IDLE: 一帧数据接收完毕 */
-    if (USART_GetITStatus(BSP_BLUETOOTH, USART_IT_IDLE) == SET) {
-        volatile uint32_t temp; /*防止删除temp变量*/
-        temp = BSP_BLUETOOTH->SR;  /* 读SR清除IDLE标志 */
-        temp = BSP_BLUETOOTH->DR;  /* 读DR清除IDLE标志 */
-
-        BLERX_BUFF[BLERX_LEN] = '\0';  /* 确保字符串正确结束 */
-        BLERX_FLAG            = 1;     /* 通知主循环: 有新数据 */
-    }
+    if((sr&USART_SR_IDLE) && BLERX_LEN && BLERX_FLAG!=2)BLERX_FLAG=1;
+    if(USART_GetITStatus(BSP_BLUETOOTH,USART_IT_TXE)==SET)BLE_TxIRQ();
 }

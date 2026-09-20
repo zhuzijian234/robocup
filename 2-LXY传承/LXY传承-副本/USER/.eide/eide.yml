@@ -75,6 +75,9 @@ virtualFolder:
         - path: ../HARDWARE/hc-05/bsp_bluetooth.c
         - path: ../HARDWARE/hc-05/bsp_bluetooth.h
         - path: ../HARDWARE/hc-05/ble_tune.c
+        - path: ../HARDWARE/hc-05/ble_diag.c
+        - path: ../HARDWARE/hc-05/ble_diag.h
+        - path: ../HARDWARE/hc-05/ble_tx.c
         - path: ../HARDWARE/hc-05/ble_tune.h
         - path: ../HARDWARE/LEIDA_DATA/LEIDA_DATA.c
         - path: ../HARDWARE/LEIDA_DATA/LEIDA_DATA.h

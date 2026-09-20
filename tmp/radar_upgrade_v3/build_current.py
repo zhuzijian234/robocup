@@ -1,11 +1,11 @@
 from pathlib import Path
 import xml.etree.ElementTree as ET
-import subprocess, json, hashlib, re
+import subprocess, json, hashlib, re, os
 
 ROOT = Path(__file__).resolve().parents[2]
 PROJECT = ROOT / '2-LXY传承/LXY传承-副本/USER/Template.uvprojx'
-OUT = Path(__file__).resolve().parent / 'current_build'
-OUT.mkdir(exist_ok=True)
+OUT = Path(os.environ.get('ROBOCUP_BUILD_OUT', str(Path(__file__).resolve().parent / 'current_build')))
+OUT.mkdir(parents=True, exist_ok=True)
 BIN = Path('D:/Keil5/ARM/ARMCC/bin')
 tree = ET.parse(PROJECT)
 target = tree.find('.//Target')
@@ -52,3 +52,5 @@ if not summary['failures']:
         summary[name]=int(re.search(pattern,txt).group(1))
 (OUT/'summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2),encoding='utf-8')
 print(json.dumps(summary,ensure_ascii=False))
+
+raise SystemExit(1 if summary["failures"] else 0)

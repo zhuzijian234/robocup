@@ -1,3 +1,4 @@
+#include "ble_diag.h"
 /**
  * @file    DMA.c
  * @brief   DMA驱动 — 雷达串口USART2高速数据接收
@@ -77,6 +78,8 @@ void DMA1_Stream5_IRQHandler(void)
     if (DMA_GetFlagStatus(DMA1_Stream5, DMA_FLAG_TCIF5) != RESET) {
         DMA_Cmd(DMA1_Stream5, DISABLE);  /* 暂停DMA以安全拷贝缓冲区 */
 
+        if(DMA_RX_DONE)Diag_input_drop++;
+        Diag_InputDone();
         memcpy(DMA_USART2_RX_BUF_r, DMA_USART2_RX_BUF, DMA_USART2_RX_BUF_LEN);
         DMA_RX_DONE = 1;  /* 通知主循环: 一帧数据就绪 */
 

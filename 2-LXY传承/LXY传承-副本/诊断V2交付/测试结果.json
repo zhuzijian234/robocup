@@ -1,0 +1,22 @@
+{
+  "python_tests": 18,
+  "python_failures": 0,
+  "python_errors": 0,
+  "python_passed": true,
+  "c_codec_compile_link_exit": 0,
+  "c_codec_runtime_executed": false,
+  "firmware": {
+    "source_count": 57,
+    "failures": [],
+    "warnings": 44,
+    "settings": "AC5 Cortex-M4.fp.sp C99 O0 MicroLIB split_sections; current uvproj source/include/defines; existing EIDE scatter",
+    "ram_bytes": 63456,
+    "rom_bytes": 36396
+  },
+  "build_output": "tmp/telemetry_v2_verified_build",
+  "flashed": false,
+  "hardware_tested": false,
+  "baseline_ram_bytes": 58248,
+  "stack_increment_bytes": 3072,
+  "diag_static_increment_bytes": 2136
+}

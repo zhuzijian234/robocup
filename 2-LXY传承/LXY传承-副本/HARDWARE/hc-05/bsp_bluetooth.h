@@ -2,7 +2,7 @@
  * @file    bsp_bluetooth.h
  * @brief   HC-05蓝牙模块驱动 — 引脚定义与API声明
  *
- * 硬件: USART6 (PC6=TX, PC7=RX), 波特率9600
+ * 硬件: USART6 (PC6=TX, PC7=RX), 波特率由ble_diag.h的BLE_UART_BAUD指定，默认115200
  * 连接状态引脚: PC2 (HC-05的STATE引脚, 高=已连接, 低=未连接)
  *
  * 对应谢露版引脚复用: 蓝牙从USART3移至USART6 (但谢露版蓝牙未启用)
@@ -58,7 +58,7 @@ unsigned char Get_Bluetooth_ConnectFlag(void);
 void Bluetooth_Mode(void);
 void Receive_Bluetooth_Data(void);
 void BLE_send_String(unsigned char *str);
-void BLE_Send_Bit(unsigned char ch);   /* 单字节发送(轮询TXE) — ble_tune.c发二进制遥测用;
+void BLE_Send_Bit(unsigned char ch);   /* 兼容单字节入队；新二进制消息必须用BLE_Queue整帧入队;
                                           BLE_send_String遇0x00会截断, 不能替代 */
 void Clear_BLERX_BUFF(void);
 void Send_Bluetooth_Data(char *dat);

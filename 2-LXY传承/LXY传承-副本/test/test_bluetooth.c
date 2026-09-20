@@ -1,3 +1,4 @@
+#include "ble_diag.h"
 /**
  * @file    test_bluetooth.c
  * @brief   测试③ 蓝牙调参链路测试 — 实时遥测 + 手机命令实时改舵机/电机
@@ -135,6 +136,7 @@ void Test_Bluetooth_Tune(void)
     printf("  ?      查询当前状态\r\n");
 
     while (1) {
+        BLE_TxPoll();
         tick++;
 
         /* 1. 刷新连接状态, 变化时打印 */

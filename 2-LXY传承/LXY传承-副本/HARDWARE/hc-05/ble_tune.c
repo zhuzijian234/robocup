@@ -19,6 +19,7 @@
  */
 
 #include "ble_tune.h"
+#include "ble_diag.h"
 #include "timer.h"
 #include "bsp_bluetooth.h"      /* BLERX_BUFF/BLERX_FLAG/BLERX_LEN, 蓝牙收发函数 */
 #include "centre_line.h"        /* Servo_pd, Speed_pid, BLUE_DIS_*, BLUE_Y_* */
@@ -69,67 +70,29 @@ typedef union {
     uint8_t b[4];
 } FloatByte_t;
 
-/* 发一个 float32: 小端低字节在前 (Cortex-M4 天然小端, 无需转换) */
-static void Tele_SendFloat(float v)
+void BLE_Tune_Telemetry(float err,float pwm,uint16_t mode)
 {
-    FloatByte_t u;
-    u.f = v;
-    BLE_Send_Bit(u.b[0]);
-    BLE_Send_Bit(u.b[1]);
-    BLE_Send_Bit(u.b[2]);
-    BLE_Send_Bit(u.b[3]);
+    uint8_t packet[36];float values[8];uint32_t qnan=0x7fc00000;
+    if(Diag_mode!=1)return;
+    values[0]=err;if(mode>=10)memcpy(&values[0],&qnan,4);
+    values[1]=pwm;values[2]=Servo_pd.kp;values[3]=Servo_pd.kd;values[4]=mode;
+    values[5]=Speed_now;values[6]=Speed_mubiao;values[7]=LEIDA_speed_dps;
+    memcpy(packet,values,32);packet[32]=0;packet[33]=0;packet[34]=0x80;packet[35]=0x7f;
+    BLE_Queue(packet,36,0);
 }
-
-/* 帧尾: float 正无穷(0x7F800000)的小端表示, VOFA+ 靠它识别通道数 */
-static void Tele_SendTail(void)
-{
-    BLE_Send_Bit(0x00);
-    BLE_Send_Bit(0x00);
-    BLE_Send_Bit(0x80);
-    BLE_Send_Bit(0x7F);
-}
-
-/* 每雷达帧调用一次: 8通道 = 误差/舵机PWM/kp/kd/pid模式/当前速度/目标速度/雷达转速
- * 帧长 8×4+4=36字节 ≈ 37.5ms @9600; 雷达帧周期 114.8ms, 带宽安全(占32.7%)。
- * 未连接时直接返回: 零发送零阻塞, 车跑着不连蓝牙和原来完全一样 */
-void BLE_Tune_Telemetry(float err, float servo_pwm, uint16_t pid_mode)
-{
-    Bluetooth_Mode();                               /* 刷新STATE连接状态 */
-    if (Get_Bluetooth_ConnectFlag() == 0) return;   /* 未连接不发 */
-
-    /* Quiet NaN marks an error that was not recomputed this input.
-     * Keep the 8-channel frame; do not modify controller history. */
-    if (pid_mode >= BLE_MODE_HOLD) {
-        FloatByte_t invalid;
-        invalid.b[0] = 0; invalid.b[1] = 0;
-        invalid.b[2] = 0xC0; invalid.b[3] = 0x7F;
-        err = invalid.f;
-    }
-    Tele_SendFloat(err);
-    Tele_SendFloat(servo_pwm);
-    Tele_SendFloat(Servo_pd.kp);
-    Tele_SendFloat(Servo_pd.kd);
-    Tele_SendFloat((float)pid_mode);
-    Tele_SendFloat(Speed_now);
-    Tele_SendFloat(Speed_mubiao);
-    Tele_SendFloat((float)LEIDA_speed_dps);         /* 通道8: 雷达转速(度/秒), 6Hz=2160 */
-    Tele_SendTail();
-}
+uint8_t Tune_ConfigValue(uint16_t i,uint16_t*key,float*value)
+{if(i>=PARAM_NUM)return 0;*key=100+i;*value=*param_tab[i].ptr;return 1;}
 
 /* ======================== 【调参】get 命令回显 ======================== */
 /* 回发全部参数 "名字=整数\r\n", 整数按 scale 四舍五入 (如 kp → "kp=35")。
- * 注意: 16行 ≈ 230字节 @9600 ≈ 240ms, 主循环会停控约0.24秒, 建议停车时用 */
-static void Tune_SendAll(void)
-{
-    static const int mul[4] = {1, 10, 100, 1000};
-    char line[40];
-    uint8_t i;
-
-    for (i = 0; i < PARAM_NUM; i++) {
-        int iv = (int)(*param_tab[i].ptr * mul[param_tab[i].scale] + 0.5f);
-        sprintf(line, "%s=%d\r\n", param_tab[i].name, iv);
-        Send_Bluetooth_Data(line);
-    }
+ * 逐行异步入队，完整消息之间可调度CONTROL；精确备份使用getcfg */
+static uint8_t get_index=PARAM_NUM;
+static void Tune_SendAll(void){get_index=0;}
+static void Tune_GetPoll(void){
+    static const int mul[4]={1,10,100,1000};char line[40];int iv;
+    if(get_index>=PARAM_NUM || BLE_FreeCritical()<3)return;
+    iv=(int)(*param_tab[get_index].ptr*mul[param_tab[get_index].scale]+0.5f);
+    sprintf(line,"%s=%d\r\n",param_tab[get_index].name,iv);Send_Bluetooth_Data(line);get_index++;
 }
 
 /* ======================== 【调参】单行命令解析 ======================== */
@@ -148,23 +111,18 @@ static void Tune_ApplyOne(char *line)
     int iv;
     uint8_t i;
 
-    if (strcmp(line, "radar") == 0) {
-        /* Small bounded replies; request while stationary (blocking UART). */
-        sprintf(ack, "radar calls=%lu sync=%lu\r\n",
-                (unsigned long)LEIDA_parse_calls, (unsigned long)LEIDA_sync_failures);
-        Send_Bluetooth_Data(ack);
-        sprintf(ack, "short=%lu missing=%lu\r\n",
-                (unsigned long)LEIDA_short_inputs, (unsigned long)LEIDA_missing_packets);
-        Send_Bluetooth_Data(ack);
-        sprintf(ack, "raw=%u invalid=%lu\r\n", (unsigned)LEIDA_raw_count,
-                (unsigned long)Radar_invalid_inputs);
-        Send_Bluetooth_Data(ack);
-        sprintf(ack, "age10ms=%u start=%u stop=%u\r\n", (unsigned)Radar_age_ticks,
-                (unsigned)Radar_started, (unsigned)Radar_stop_latched);
-        Send_Bluetooth_Data(ack);
-        sprintf(ack, "timeouts=%lu\r\n", (unsigned long)Radar_timeout_count);
-        Send_Bluetooth_Data(ack);
-        return;
+    if(BLE_FreeCritical()<2)return;
+    if(Diag_Command(line)){get_index=PARAM_NUM;return;}
+
+    if (strcmp(line,"radar")==0) {
+        char status[224];
+        sprintf(status,"radar calls=%lu sync=%lu short=%lu missing=%lu raw=%u invalid=%lu age10ms=%u start=%u stop=%u timeouts=%lu\r\n",
+            (unsigned long)LEIDA_parse_calls,(unsigned long)LEIDA_sync_failures,
+            (unsigned long)LEIDA_short_inputs,(unsigned long)LEIDA_missing_packets,
+            (unsigned)LEIDA_raw_count,(unsigned long)Radar_invalid_inputs,
+            (unsigned)Radar_age_ticks,(unsigned)Radar_started,(unsigned)Radar_stop_latched,
+            (unsigned long)Radar_timeout_count);
+        Send_Bluetooth_Data(status);return;
     }
 
     if (strcmp(line, "get") == 0) { Tune_SendAll(); return; }  /* 精确匹配, 防"getxx"误触发 */
@@ -172,66 +130,55 @@ static void Tune_ApplyOne(char *line)
     sp = strchr(line, ' ');
     sc = strchr(line, ':');
     if ((sp == NULL) || ((sc != NULL) && (sc < sp))) sp = sc;  /* 取更靠前的作切点 */
-    if (sp == NULL) { Send_Bluetooth_Data("ERR fmt\r\n"); return; }
+    if (sp == NULL) { Diag_Reject("ERR fmt\r\n"); return; }
     *sp = '\0';                     /* 切断 → line="kp", sp+1="45..." */
     val = sp + 1;
-    while (*val && !((*val >= '0' && *val <= '9') || *val == '-')) val++;  /* 跳过":"等非数字前缀 */
-    if (*val == '\0') { Send_Bluetooth_Data("ERR fmt\r\n"); return; }
-    iv = atoi(val);                 /* 整数解析, 避开 MicroLIB 不支持 sscanf %f 的坑 */
+    while (*val==' ' || *val==':') val++;  /* 跳过":"等非数字前缀 */
+    if (*val == '\0') { Diag_Reject("ERR fmt\r\n"); return; }
+    {
+        char *end; long parsed=strtol(val,&end,10);
+        if(end==val || *end || parsed< -32768 || parsed>32767){Diag_Reject("ERR value\r\n");return;}
+        iv=(int)parsed;
+    }
 
     for (i = 0; i < PARAM_NUM; i++) {
         if (strcmp(line, param_tab[i].name) != 0) continue;
 
         if ((iv < param_tab[i].min_i) || (iv > param_tab[i].max_i)) {
-            Send_Bluetooth_Data("ERR range\r\n");   /* 超范围: 拒绝, 不写值 */
+            Diag_Reject("ERR range\r\n");   /* 超范围: 拒绝, 不写值 */
             return;
         }
         /* 直接赋值字段, 下一拍控制循环现读新值即生效。
          * 绝不调用 Midline_PD_Init/Speed_PID_Init —— 它们会清零误差状态 */
-        *param_tab[i].ptr = (float)iv / mul[param_tab[i].scale];
+        if(!Diag_Parameter(100+i,param_tab[i].ptr,(float)iv/mul[param_tab[i].scale])){Diag_Reject("ERR busy\r\n");return;}
         sprintf(ack, "OK %s=%d\r\n", line, iv);
         Send_Bluetooth_Data(ack);
         return;
     }
-    Send_Bluetooth_Data("ERR name\r\n");
+    Diag_Reject("ERR name\r\n");
 }
 
 /* ======================== 【调参】主入口 ======================== */
 /* 主循环每圈调用。流程:
- *   BLERX_FLAG==0 → 直接返回 (USART6 IDLE 中断置位后才处理)
+ *   BLERX_FLAG==0 → 只轮询待发get回复 (USART6 IDLE 中断置位后才处理)
  *   临界区整体拷出 BLERX_BUFF → 按 \n 分行逐条执行 → 半行尾巴留到下一帧拼 */
 void BLE_Tune_Process(void)
 {
-    static char tail[BLERX_LEN_MAX];    /* 跨IDLE保留的半行尾巴:
-                                           蓝牙空中分块交货, 一条命令可能被 IDLE
-                                           切成两帧, 没见到\n的半行不能丢 */
-    static uint8_t tail_len = 0;
-    char *start, *end;
-    uint8_t len, copy_n;
-
-    if (BLERX_FLAG == 0) return;
-
-    /* 关中断整体拷出: 防止解析期间 RX 中断又往里写。
-     * Clear 也放进临界区, 避免开中断后新到的字节被误清 */
-    __disable_irq();
-    len    = BLERX_LEN;
-    copy_n = (len > BLERX_LEN_MAX - 1 - tail_len) ? (uint8_t)(BLERX_LEN_MAX - 1 - tail_len) : len;
-    memcpy(tail + tail_len, BLERX_BUFF, copy_n);
-    tail_len += copy_n;
-    Clear_BLERX_BUFF();
-    __enable_irq();
-
-    tail[tail_len] = '\0';
-
-    /* 按 \n 分行: 支持一次发多条命令 */
-    start = tail;
-    while ((end = strchr(start, '\n')) != NULL) {
-        *end = '\0';
-        if (end > start && end[-1] == '\r') end[-1] = '\0';  /* 兼容串口助手"发送新行"带的CR */
-        if (end != start) Tune_ApplyOne(start);              /* 空行跳过 */
-        start = end + 1;
+    static char tail[BLERX_LEN_MAX];static uint8_t used,discard;
+    uint8_t buf[BLERX_LEN_MAX],len,i,error;uint32_t p;
+    Tune_GetPoll();
+    if(!BLERX_FLAG)return;
+    p=__get_PRIMASK();__disable_irq();len=BLERX_LEN;error=BLERX_FLAG==2;memcpy(buf,BLERX_BUFF,len);Clear_BLERX_BUFF();__set_PRIMASK(p);
+    if(error){used=0;discard=1;}
+    for(i=0;i<len;i++){
+        if(buf[i]=='\n'){
+            if(!discard){if(used && tail[used-1]=='\r')used--;tail[used]=0;if(used)Tune_ApplyOne(tail);}
+            else Diag_Reject("ERR overflow\r\n");
+            used=0;discard=0;
+        }else if(!discard){
+            if(buf[i]<32 && buf[i]!='\r'){discard=1;used=0;}
+            else if(used<sizeof(tail)-1)tail[used++]=(char)buf[i];
+            else {discard=1;used=0;Diag_rx_overflow++;}
+        }
     }
-    /* 没见到\n的半行留到下一帧继续拼 (与IDLE何时切帧无关) */
-    tail_len = (uint8_t)strlen(start);
-    memmove(tail, start, tail_len + 1);
 }

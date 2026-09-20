@@ -83,6 +83,9 @@ virtualFolder:
         - path: HARDWARE/TIM/PWM/PWM.c
         - path: HARDWARE/hc-05/bsp_bluetooth.c
         - path: HARDWARE/hc-05/ble_tune.c
+        - path: HARDWARE/hc-05/ble_diag.c
+        - path: HARDWARE/hc-05/ble_diag.h
+        - path: HARDWARE/hc-05/ble_tx.c
       folders: []
     - name: test
       files:

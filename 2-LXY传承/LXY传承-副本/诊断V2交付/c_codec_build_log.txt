@@ -1,0 +1,1 @@
+C codec golden test compiled/linked; NOT EXECUTED. Check codec_test_result in simulator.
