@@ -261,6 +261,11 @@ uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midli
     static int flag_r  = 0;  /* 上一帧的flag */
     static int y_r     = 0;
     float sum_y;
+    Diag_detail_u[4]|=1;Diag_detail_u[6]=(uint32_t)flag_r;
+    Diag_detail_u[7]=CENTER_cnt_start;Diag_detail_u[8]=CENTER_cnt_end;
+    Diag_detail_u[9]=CENTER_cnt_end>CENTER_cnt_start?CENTER_cnt_end-CENTER_cnt_start:0;
+    Diag_detail_f[13]=midline_pid->err_l;
+    Diag_detail_f[11]=midline->k;Diag_detail_f[12]=midline->b;
 
     /* 从转弯模式切换到直道/垂线模式时，清零上次误差（避免D项跳变）
      * 2026-09-07扩展: 原只清1/2→0/5; 弯道模式3/4/8/9出弯切回直道时
@@ -268,7 +273,7 @@ uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midli
      * 出弯猛摆, 看起来像摆错方向 */
     if (((flag_r == 1) || (flag_r == 2) || (flag_r == 3) || (flag_r == 4)
          || (flag_r == 8) || (flag_r == 9)) && ((flag == 0) || (flag == 5)))
-        midline_pid->err_l = 0;
+        {midline_pid->err_l = 0;Diag_detail_u[4]|=4;}
 
     /* ===== 根据控制模式计算偏差 ===== */
 
@@ -298,7 +303,8 @@ uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midli
         uint16_t i;
         for (i = CENTER_cnt_start; i < CENTER_cnt_end; i++) {
             float dy = fabs(centerline[i]._y - BLUE_Y_RIGHT);
-            if (dy < best_dy) { best_dy = dy; x_closest = centerline[i]._x; }
+            if (dy < best_dy) { best_dy = dy; x_closest = centerline[i]._x;
+                Diag_detail_u[4]|=2;Diag_detail_f[8]=x_closest;Diag_detail_f[9]=centerline[i]._y;Diag_detail_f[10]=dy; }
         }
         midline_pid->err = -(x_closest + paodao_distance / 100 * BLUE_DIS_RIGHT);
     }
@@ -310,7 +316,8 @@ uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midli
         uint16_t i;
         for (i = CENTER_cnt_start; i < CENTER_cnt_end; i++) {
             float dy = fabs(centerline[i]._y - BLUE_Y_LEFT);
-            if (dy < best_dy) { best_dy = dy; x_closest = centerline[i]._x; }
+            if (dy < best_dy) { best_dy = dy; x_closest = centerline[i]._x;
+                Diag_detail_u[4]|=2;Diag_detail_f[8]=x_closest;Diag_detail_f[9]=centerline[i]._y;Diag_detail_f[10]=dy; }
         }
         midline_pid->err = -(x_closest - paodao_distance / 100 * BLUE_DIS_LEFT);
     }
@@ -369,6 +376,16 @@ uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midli
     /* 缩放到实际舵机PWM范围 (servo_midpwm已除10) */
     servo_pwm = servo_pwm * 10;
 
+    /* Record the actual operands before err_l is overwritten; PWM units. */
+    if(flag==6 || flag==7){Diag_detail_f[14]=zhongxian_junzhi;Diag_detail_u[4]|=256;}
+    Diag_detail_f[0]=midline_pid->err_l;Diag_detail_f[1]=midline_pid->err;
+    Diag_detail_f[4]=(flag==1 || flag==2)?midline_pid->kp_3:(flag==0 || flag>=5 && flag<=7)?midline_pid->kp:midline_pid->kp_2;
+    Diag_detail_f[5]=(flag==1 || flag==2)?midline_pid->kd_3:(flag==0 || flag>=5 && flag<=7)?midline_pid->kd:midline_pid->kd_2;
+    Diag_detail_f[2]=10*Diag_detail_f[4]*midline_pid->err;
+    Diag_detail_f[3]=10*Diag_detail_f[5]*(midline_pid->err-midline_pid->err_l);
+    Diag_detail_f[6]=servo_pwm;Diag_detail_f[7]=10.0f*servo_midpwm;
+    if((flag==1 || flag==2) && !(Diag_detail_u[4]&2))Diag_detail_u[4]|=8;
+    if(servo_pwm<SERVO_PWM_MIN || servo_pwm>SERVO_PWM_MAX)Diag_detail_u[4]|=16;
     /* 保存当前误差，供下一帧D项使用 */
     midline_pid->err_l = midline_pid->err;
 
@@ -426,6 +443,7 @@ uint16_t Speed_PID(float speed_now, float speed_mubiao, pid_type *speed_pid, uin
 
     speed_pid->err_l = speed_pid->err;
 
+    Diag_motor_integral=err_sum;Diag_motor_prelimit=moto_pwm;
     /* 输出限幅 [0, 100] */
     if (moto_pwm >= 100) moto_pwm = 100;
     if (moto_pwm <= 0)   moto_pwm = 0;

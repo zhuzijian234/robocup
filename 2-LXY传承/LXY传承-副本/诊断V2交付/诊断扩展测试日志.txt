@@ -1,0 +1,31 @@
+V2协商及配置完整，开始正式采集
+已保存 C:\Users\27768\AppData\Local\Temp\tmpg5arkhwt\live.bin
+test_fragmented_full_motor_frame_and_raw_float (test_diagnostic_extension.ExtensionTests.test_fragmented_full_motor_frame_and_raw_float) ... ok
+test_missing_detail_not_zero_faults_and_malformed_resync (test_diagnostic_extension.ExtensionTests.test_missing_detail_not_zero_faults_and_malformed_resync) ... ok
+test_motor_invalid_flags_rejected (test_diagnostic_extension.ExtensionTests.test_motor_invalid_flags_rejected) ... ok
+test_pairing_uses_session_control_sequence_and_revision (test_diagnostic_extension.ExtensionTests.test_pairing_uses_session_control_sequence_and_revision) ... ok
+test_speed_clipping_excluded_from_mean (test_diagnostic_extension.ExtensionTests.test_speed_clipping_excluded_from_mean) ... ok
+test_unknown_schema_rejected (test_diagnostic_extension.ExtensionTests.test_unknown_schema_rejected) ... ok
+test_demo_end_to_end (test_telemetry.TelemetryTests.test_demo_end_to_end) ... ok
+test_encoding (test_telemetry.TelemetryTests.test_encoding) ... ok
+test_gui_capture_resets_session (test_telemetry.TelemetryTests.test_gui_capture_resets_session) ... ok
+test_legacy_has_no_measured_rate (test_telemetry.TelemetryTests.test_legacy_has_no_measured_rate) ... ok
+test_real_time_bytes_and_split_frame (test_telemetry.TelemetryTests.test_real_time_bytes_and_split_frame) ... ok
+test_target_changes (test_telemetry.TelemetryTests.test_target_changes) ... ok
+test_vofa_nan_does_not_become_tail (test_telemetry.TelemetryTests.test_vofa_nan_does_not_become_tail) ... ok
+test_bytewise_and_invalid_mask (test_v2.V2Tests.test_bytewise_and_invalid_mask) ... ok
+test_capture_cli_serial_roundtrip (test_v2.V2Tests.test_capture_cli_serial_roundtrip) ... ok
+test_configs_cross_tlv_and_event (test_v2.V2Tests.test_configs_cross_tlv_and_event) ... ok
+test_corruption_resync (test_v2.V2Tests.test_corruption_resync) ... ok
+test_crc_and_lengths (test_v2.V2Tests.test_crc_and_lengths) ... ok
+test_crc_protects_sequence_and_reserved_bits (test_v2.V2Tests.test_crc_protects_sequence_and_reserved_bits) ... ok
+test_handshake_requires_ack_and_config (test_v2.V2Tests.test_handshake_requires_ack_and_config) ... ok
+test_info_after_default_vofa (test_v2.V2Tests.test_info_after_default_vofa) ... ok
+test_report_and_csv (test_v2.V2Tests.test_report_and_csv) ... ok
+test_time_wrap_session_and_duplicates (test_v2.V2Tests.test_time_wrap_session_and_duplicates) ... ok
+test_unknown_type_and_missing_sequence (test_v2.V2Tests.test_unknown_type_and_missing_sequence) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 0.854s
+
+OK

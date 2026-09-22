@@ -21,6 +21,36 @@ static uint8_t have_control, have_valid, last_ok, sample, config_pending, config
 static uint32_t config_id;
 static float fields[26], config_params[16];
 static uint8_t frame[256];
+uint32_t Diag_detail_u[24];
+float Diag_detail_f[16];
+volatile float Diag_motor_integral, Diag_motor_prelimit;
+/* Single TIM5 producer / main consumer; payload published before head. */
+typedef struct {uint32_t seq,rev,us;uint16_t raw,pwm;float speed,target,integral,prelimit;uint32_t flags;} MotorSample;
+static MotorSample motor_ring[64];
+static volatile uint32_t motor_head,motor_tail,motor_seq,motor_dropped;
+static uint32_t hold_count;
+static void motor_reset(void){uint32_t p=__get_PRIMASK();__disable_irq();motor_tail=motor_head;__set_PRIMASK(p);}
+void Diag_MotorTick(uint16_t raw,uint8_t fresh,uint8_t pi){
+    MotorSample *s;uint32_t seq=++motor_seq;
+    if(Diag_mode!=3 || !Diag_session)return;
+    if(motor_head-motor_tail>=64){motor_dropped++;return;}
+    s=&motor_ring[motor_head&63];s->seq=seq;s->rev=Diag_revision;s->us=Diag_TimeUs();
+    s->raw=raw;s->pwm=(uint16_t)TIM2->CCR1;s->speed=Speed_now;s->target=Speed_mubiao;
+    s->integral=Diag_motor_integral;s->prelimit=Diag_motor_prelimit;
+    s->flags=(fresh?1u:0u)|(pi?2u:0u)|(Radar_started?4u:0u)|(Radar_stop_latched?8u:0u)|(daoche_flag?16u:0u);
+    __DMB();motor_head++;
+}
+/* CRC8 matches the LD14P development manual table (poly 0x4d, init 0).
+ * Observation only: these checks do not change parser acceptance/control. */
+void Diag_RadarPacket(const uint8_t *a){
+    uint8_t crc=0,b;uint16_t i,start=(uint16_t)(a[4]|a[5]<<8),end=(uint16_t)(a[42]|a[43]<<8);
+    Diag_detail_u[12]++;
+    for(i=0;i<46;i++){crc^=a[i];for(b=0;b<8;b++)crc=(uint8_t)((crc<<1)^((crc&0x80)?0x4d:0));}
+    if(crc!=a[46])Diag_detail_u[13]++;
+    if(a[1]!=0x2c)Diag_detail_u[14]++;
+    if(start>=36000 || end>=36000)Diag_detail_u[15]++;
+}
+
 static const uint16_t scales[26]={10,1,1,1000,1,1000,1,1000,1000,1,1,1,1,1,1,1,1,1,10,1,1,1,1,1,1,1};
 static void put16(uint8_t*p,uint16_t v){p[0]=v;p[1]=v>>8;}
 static void put32(uint8_t*p,uint32_t v){put16(p,(uint16_t)v);put16(p+2,(uint16_t)(v>>16));}
@@ -61,7 +91,9 @@ void Diag_Init(void){
     TIM6->CR1=TIM_CR1_CEN;
 }
 void Diag_InputDone(void){Diag_input_us=Diag_TimeUs();Diag_input_ms=Diag_TimeMs();Diag_input_seq++;}
-void Diag_Begin(uint32_t ms,uint32_t us){mask=updated=0;memset(fields,0,sizeof fields);in_ms=ms;(void)us;begin_us=Diag_TimeUs();}
+void Diag_Begin(uint32_t ms,uint32_t us){mask=updated=0;memset(fields,0,sizeof fields);in_ms=ms;(void)us;begin_us=Diag_TimeUs();
+    memset(Diag_detail_u,0,sizeof Diag_detail_u);memset(Diag_detail_f,0,sizeof Diag_detail_f);
+}
 void Diag_Field(uint8_t i,float v,uint8_t valid){if(i<26){fields[i]=v;updated|=1u<<i;if(valid)mask|=1u<<i;else mask&=~(1u<<i);}}
 void Diag_HeldField(uint8_t i,float value,uint8_t valid){Diag_Field(i,value,valid);updated&=~(1u<<i);}
 void Diag_Fit(const void*ptr,uint8_t valid){
@@ -73,6 +105,33 @@ void Diag_Fit(const void*ptr,uint8_t valid){
 }
 static void header(uint8_t type,uint16_t n){memset(frame,0,n);frame[0]=0xaa;frame[1]=0x55;frame[2]=2;frame[3]=type;put16(frame+4,n);put32(frame+10,Diag_session);}
 void Diag_Finalize(uint8_t*p,uint16_t n){if(n>=16 && p[0]==0xaa && p[1]==0x55 && p[2]==2){put32(p+6,tx_seq++);put16(p+n-2,Diag_CRC(p+2,n-4));}}
+static void motor_poll(void){
+    uint32_t tail=motor_tail,head=motor_head,seq,rev;uint8_t n=0;uint16_t off;MotorSample *s;
+    if(Diag_mode!=3 || !Diag_session || tail==head || !BLE_NormalSpace())return;
+    if(head-tail<8 && (uint32_t)(Diag_TimeUs()-motor_ring[tail&63].us)<80000u)return;
+    seq=motor_ring[tail&63].seq;rev=motor_ring[tail&63].rev;
+    while(n<8 && tail+n!=head && motor_ring[(tail+n)&63].rev==rev && motor_ring[(tail+n)&63].seq==seq+n)n++;
+    header(6,(uint16_t)(32+28*n));put16(frame+14,1);put16(frame+16,n);put32(frame+18,seq);put32(frame+22,rev);put32(frame+26,motor_dropped);
+    for(n=0,off=30;tail+n!=head && n<8;n++,off+=28){
+        s=&motor_ring[(tail+n)&63];if(s->rev!=rev || s->seq!=seq+n)break;
+        put32(frame+off,s->us);put16(frame+off+4,s->raw);put16(frame+off+6,s->pwm);
+        memcpy(frame+off+8,&s->speed,4);memcpy(frame+off+12,&s->target,4);
+        memcpy(frame+off+16,&s->integral,4);memcpy(frame+off+20,&s->prelimit,4);put32(frame+off+24,s->flags);
+    }
+    if(BLE_Queue(frame,(uint16_t)(32+28*n),0)){__DMB();motor_tail=tail+n;}
+}
+static void detail_submit(uint32_t elapsed,uint8_t action,uint8_t ok){
+    uint8_t i;
+    (void)action;
+    Diag_detail_u[0]=1;Diag_detail_u[1]=control_seq;Diag_detail_u[2]=Diag_revision;
+    Diag_detail_u[5]=elapsed;Diag_detail_u[11]=hold_count;
+    (void)ok;
+    Diag_detail_u[19]=LEIDA_sync_failures;Diag_detail_u[20]=LEIDA_missing_packets;
+    Diag_detail_u[21]=Diag_input_drop;Diag_detail_u[22]=Diag_tx_drop;Diag_detail_u[23]=motor_dropped;
+    header(5,176);for(i=0;i<24;i++)put32(frame+14+4*i,Diag_detail_u[i]);
+    for(i=0;i<16;i++)memcpy(frame+110+4*i,&Diag_detail_f[i],4);
+    BLE_Queue(frame,176,0);
+}
 void Diag_Submit(uint16_t mode,uint16_t raw,uint16_t speed,uint8_t ok){
     uint32_t now=Diag_TimeUs(),ms=Diag_TimeMs(),clip=0,v=mask,u=updated,p,dt=0;
     uint8_t i,valid,clipped,action,motor;int16_t value;
@@ -94,6 +153,7 @@ void Diag_Submit(uint16_t mode,uint16_t raw,uint16_t speed,uint8_t ok){
     v|=mask;u|=updated;
     v|=(1u<<28)|(1u<<29);u|=(1u<<28)|(1u<<29);
     if(raw){v|=(1u<<26)|(1u<<27);u|=(1u<<26)|(1u<<27);}
+    hold_count=action==2?hold_count+1:0;
     if(++sample<Diag_rate)return;sample=0;
     if(Diag_mode<2)return;
     header(1,108);
@@ -107,6 +167,7 @@ void Diag_Submit(uint16_t mode,uint16_t raw,uint16_t speed,uint8_t ok){
     put32(frame+66,control_seq);put32(frame+70,in_ms);put32(frame+74,ms);put32(frame+78,dt);
     put32(frame+82,v);put32(frame+86,u);put32(frame+90,clip);frame[94]=action;frame[95]=motor;frame[96]=DIAG_LIDAR_ID;frame[97]=1;
     put32(frame+98,Diag_revision);put16(frame+102,raw);put16(frame+104,raw?speed:0);BLE_Queue(frame,108,0);
+    detail_submit(now-begin_us,action,ok);
 }
 /* CONFIG registry: 1 layout,2 build,3 lidar,4 algorithm,5 input_kind,6 baud,
  * 7 rate,8 timeout_ms,9 health_ms,10 units,11 DMA bytes,12 capacities,
@@ -138,14 +199,14 @@ void Diag_Reject(const char*reason){if(Diag_mode==3 && BLE_FreeCritical()>=2)tex
 uint8_t Diag_Parameter(uint16_t key,float*ptr,float value){uint32_t p;if(config_pending || BLE_FreeCritical()<2)return 0;if(Diag_mode==3)event(key,*ptr,value);p=__get_PRIMASK();__disable_irq();*ptr=value;Diag_revision++;__set_PRIMASK(p);return 1;}
 static uint8_t number(const char*s,uint32_t*value){uint32_t n=0;uint8_t digits=0;while(*s){if(*s<'0'||*s>'9'||n>429496729u||(n==429496729u && *s>'5'))return 0;n=n*10+(*s++-'0');digits=1;}*value=n;return digits;}
 uint8_t Diag_Command(char*line){uint32_t n;char ack[180];
-    if(!strcmp(line,"info")){sprintf(ack,"INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=1 input=%u atomic=0\r\n",DIAG_LAYOUT,DIAG_BUILD_ID,(unsigned)DIAG_LIDAR_ID,(unsigned)DIAG_INPUT_KIND);Send_Bluetooth_Data(ack);return 1;}
+    if(!strcmp(line,"info")){sprintf(ack,"INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=1 input=%u atomic=0 detail=1 motor=1\r\n",DIAG_LAYOUT,DIAG_BUILD_ID,(unsigned)DIAG_LIDAR_ID,(unsigned)DIAG_INPUT_KIND);Send_Bluetooth_Data(ack);return 1;}
     if(!strcmp(line,"getcfg")){if(Diag_mode!=3){Diag_Reject("ERR mode\r\n");return 1;}Diag_ConfigStart();Send_Bluetooth_Data("OK getcfg\r\n");return 1;}
     if(!strncmp(line,"session ",8)){
         if(!number(line+8,&n)||!n){Diag_Reject("ERR session\r\n");return 1;}
-        BLE_FlushPending();Diag_session=n;tx_seq=0;config_pending=0;sample=0;sprintf(ack,"OK session %lu\r\n",(unsigned long)n);Send_Bluetooth_Data(ack);return 1;}
+        BLE_FlushPending();Diag_session=n;motor_reset();tx_seq=0;config_pending=0;sample=0;sprintf(ack,"OK session %lu\r\n",(unsigned long)n);Send_Bluetooth_Data(ack);return 1;}
     if(!strncmp(line,"tele ",5)){
         if(!number(line+5,&n)||n>3){Diag_Reject("ERR tele\r\n");return 1;}
-        BLE_FlushPending();Diag_mode=(uint8_t)n;sample=0;config_pending=0;sprintf(ack,"OK tele %lu\r\n",(unsigned long)n);Send_Bluetooth_Data(ack);return 1;}
+        BLE_FlushPending();Diag_mode=(uint8_t)n;motor_reset();sample=0;config_pending=0;sprintf(ack,"OK tele %lu\r\n",(unsigned long)n);Send_Bluetooth_Data(ack);return 1;}
     if(!strncmp(line,"rate ",5)){
         if(!number(line+5,&n)||n<1||n>10 || config_pending){Diag_Reject("ERR rate\r\n");return 1;}
         Diag_rate=(uint8_t)n;sample=0;Diag_revision++;sprintf(ack,"OK rate %lu\r\n",(unsigned long)n);Send_Bluetooth_Data(ack);return 1;}
@@ -157,6 +218,7 @@ void Diag_Poll(void){
     BLE_TxPoll();
     if(!Get_Bluetooth_ConnectFlag())return;
     config_poll();
+    motor_poll();
     if(Diag_mode==3 && BLE_FreeCritical()>=3){
         if(previous_stop!=Radar_stop_latched){sprintf(event_text,"motor_stop_latched=%u",(unsigned)Radar_stop_latched);text_event(3,event_text);previous_stop=Radar_stop_latched;}
         else if(reported_drop!=Diag_tx_drop){sprintf(event_text,"tx_drop_total=%lu",(unsigned long)Diag_tx_drop);text_event(4,event_text);reported_drop=Diag_tx_drop;}

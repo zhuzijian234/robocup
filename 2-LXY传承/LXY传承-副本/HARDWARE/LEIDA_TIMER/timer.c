@@ -11,6 +11,7 @@
  */
 
 #include "timer.h"
+#include "ble_diag.h"
 #include "moto.h"
 #include "centre_line.h"
 
@@ -116,19 +117,22 @@ void TIM5_IRQHandler(void)
     if (TIM_GetITStatus(TIM5, TIM_IT_Update) == SET) {
         TIM_ClearITPendingBit(TIM5, TIM_IT_Update);
 
+        uint8_t encoder_fresh=0,pi_fresh=0;
+        extern uint16_t Encoder_cnt_temp;
         Radar_GuardTick();
         if (!Radar_started || Radar_stop_latched) {
             /* Zero duty removes propulsion; it is not an active brake.
              * Skip PI so its integral cannot accumulate during inhibition. */
-            Get_Encoder();
+            Get_Encoder();encoder_fresh=1;
             moto_pwm = 0;
             Moto_Speed(0);
         } else if (daoche_flag == 1) {
             TIM_SetCompare1(TIM2, (uint16_t)(100 * 0.5));  /* 50%制动,不足以驱动小车 */
         } else {
-            Get_Encoder();
-            moto_pwm = PID_realize(Speed_now, Speed_mubiao, &Speed_pid);
+            Get_Encoder();encoder_fresh=1;
+            moto_pwm = PID_realize(Speed_now, Speed_mubiao, &Speed_pid);pi_fresh=1;
             Moto_Speed(moto_pwm);
         }
+        Diag_MotorTick(Encoder_cnt_temp,encoder_fresh,pi_fresh);
     }
 }

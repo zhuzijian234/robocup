@@ -1,0 +1,39 @@
+{
+  "source_count": 57,
+  "failures": [],
+  "warnings": 44,
+  "settings": "AC5 Cortex-M4.fp.sp C99 O0 MicroLIB split_sections; current uvproj source/include/defines; existing EIDE scatter",
+  "ram_bytes": 65944,
+  "rom_bytes": 38328,
+  "python_exit": 0,
+  "python_tests": 24,
+  "firmware_id": "#define DIAG_BUILD_ID \"sha256-bfbab1c906d18aff\"",
+  "ram_delta_bytes": 2488,
+  "hardware_tested": false,
+  "flashed": false,
+  "old_log_regression": {
+    "n_frames": 266,
+    "bad_frames": 0,
+    "speed_error_samples": 257,
+    "speed_error": -9.91284046692607,
+    "diagnosis": {
+      "detail_frames": 0,
+      "unpaired_controls": 266,
+      "motor_samples": 0,
+      "motor_sequence_gaps": 0,
+      "encoder_negative": 0,
+      "motor_zero_pwm": 0,
+      "empty_reference": 0,
+      "radar_crc_bad": 0,
+      "radar_packets": 0,
+      "motor_drop_max": 0,
+      "pd_d_abs_max": null
+    }
+  },
+  "ld14p_manual_crc_reference": {
+    "length": 47,
+    "calculated": 80,
+    "expected": 80,
+    "note": "reference calculation; not ARM runtime test"
+  }
+}

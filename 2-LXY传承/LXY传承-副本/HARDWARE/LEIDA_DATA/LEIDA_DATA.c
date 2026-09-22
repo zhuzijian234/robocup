@@ -33,6 +33,7 @@
  */
 
 #include "LEIDA_DATA.h"
+#include "ble_diag.h"
 #include "centre_line.h"
 
 _LEIDA_DATA LEIDA_DATA[LEIDA_DATA_COUNTER];
@@ -83,6 +84,7 @@ uint16_t LEIDA_DATA_HANDLE1(_LEIDA_DATA data[], u8 arr[], u16 size)
     float start_angle;
     float end_angle;
 
+    Diag_detail_u[4]|=64;Diag_detail_u[17]=0xffffffffu;
     LEIDA_parse_calls++;
     LEIDA_raw_count = 0;
     /* Three header bytes at offsets 0, 47, 94 need at least 95 bytes.
@@ -115,9 +117,11 @@ uint16_t LEIDA_DATA_HANDLE1(_LEIDA_DATA data[], u8 arr[], u16 size)
         return 0;
     }
 
+    Diag_detail_u[17]=(uint32_t)i;
     /* 解析数据包: 每包47字节 -> 12个数据点 */
     for (j = 0; i + 47 <= size && j + 12 <= LEIDA_DATA_COUNTER; i += 47, j += 12) {
         if (arr[i] == 0x54) {
+            Diag_RadarPacket(arr+i);
             start_angle = (((u16)arr[i + 5] << 8) + (u16)arr[i + 4]) / 100.0f;
             end_angle   = (((u16)arr[i + 43] << 8) + (u16)arr[i + 42]) / 100.0f;
             /* 转速: Byte2~3 (低字节在前), 单位 度/秒。只读不影响任何算法 */
@@ -171,7 +175,7 @@ arr[i+7+3*k]              arr[i+6+3*k]
                 if (data[j + k].angle < 0.0f)   data[j + k].angle += 360.0f;
             }
         } else {
-            LEIDA_missing_packets++;
+            LEIDA_missing_packets++;Diag_detail_u[16]++;
             /* 帧头缺失: 这 12 个槽位本帧没有写入, 清零。
              * 不清零的话它们会保留上一帧的旧点, 被 HANDLE3_2 当作有效点计入 valid_couter。 */
             for (k = 0; k < 12; k++) {
@@ -189,6 +193,8 @@ arr[i+7+3*k]              arr[i+6+3*k]
         data[k].distance = 0.0f;
     }
 
+    for(k=0;k<j;k++)if(data[k].distance>0 && data[k].angle>=0 && data[k].angle<360)
+        Diag_detail_u[18]|=1u<<(uint16_t)(data[k].angle/30);
     LEIDA_raw_count = (uint16_t)parsed;
     return (uint16_t)parsed;   /* 成功=本次解析出的点数; 未找到有效帧头已在上面返回 0 */
 }

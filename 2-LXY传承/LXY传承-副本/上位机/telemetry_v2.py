@@ -6,6 +6,7 @@ import math
 import json
 import time
 import secrets
+import csv
 from collections import Counter
 
 LAYOUT = "rc26-mask31-v2.1"
@@ -17,6 +18,13 @@ KEYS.update({100+i:n for i,n in enumerate(PARAMETERS)})
 HEALTH = "uptime_ms input_age_ms valid_age_ms input_seq control_seq uart_errors dma_errors rx_overflow scan_overflow input_drop tx_drop process_max_us rx_peak param_revision status_flags unsupported_mask".split()
 EXTRA = "version session tx_seq control_seq input_end_ms control_end_ms control_dt_us valid_mask updated_mask clipped_mask action_reason motor_state lidar_id algorithm_id param_revision raw_count radar_dps segment host_t".split()
 
+
+DETAIL_U = "schema control_seq param_revision input_seq detail_flags process_us previous_mode ref_start ref_end ref_count center_count hold_count radar_packets radar_crc_bad radar_verlen_bad radar_angle_bad radar_header_missing radar_sync_offset radar_angle_bins radar_sync_fail_total radar_missing_total input_drop_total tx_drop_total motor_drop_total".split()
+DETAIL_F = "pd_err_previous pd_err pd_p pd_d pd_kp pd_kd pwm_unclamped pwm_mid ref_x ref_y ref_dy pd_line_k pd_line_b pd_err_before_reset center_mean width_candidate".split()
+MOTOR_FIELDS = "sample_us encoder_raw motor_pwm speed_float target_float motor_integral motor_prelimit motor_flags".split()
+
+def detail_key(row):
+    return row['session'],row['control_seq'],row['param_revision']
 
 def crc16(data):
     crc = 0xffff
@@ -104,6 +112,23 @@ class Decoder:
                 lidar_id=lidar,algorithm_id=algorithm,param_revision=rev,raw_count=raw,radar_dps=speed,
                 segment=self.segment,host_t=host_t)
             msg.update(rec)
+        elif kind==5:
+            if n!=176:raise ValueError("DETAIL length")
+            msg.update(zip(DETAIL_U,struct.unpack_from('<24I',payload)))
+            msg.update(zip(DETAIL_F,struct.unpack_from('<16f',payload,96)))
+            if msg['schema']!=1 or msg['detail_flags']&~511:raise ValueError("DETAIL schema/flags")
+        elif kind==6:
+            if len(payload)<16:raise ValueError("MOTOR prefix")
+            schema,count,first,rev,dropped=struct.unpack_from('<HHIII',payload)
+            if schema!=1 or not 1<=count<=8 or len(payload)!=16+28*count:raise ValueError("MOTOR schema/length")
+            samples=[]
+            for i in range(count):
+                sample=dict(zip(MOTOR_FIELDS,struct.unpack_from('<IHHffffI',payload,16+28*i)))
+                if sample['motor_flags']&~31:raise ValueError("MOTOR flags")
+                sample.update(sample_seq=(first+i)&0xffffffff,param_revision=rev,session=session,host_t=host_t)
+                sample['encoder_signed']=sample['encoder_raw'] if sample['encoder_raw']<32768 else sample['encoder_raw']-65536
+                samples.append(sample)
+            msg.update(schema=schema,motor_dropped=dropped,samples=samples)
         elif kind==2:
             if n!=80: raise ValueError("HEALTH length")
             msg.update(zip(HEALTH,struct.unpack("<16I",payload)))
@@ -190,7 +215,7 @@ def analyze(parser,field_names):
     preroll=getattr(parser,"meta",{}).get("pre_roll_s",0)
     rows=[r for r in parser.records if r.get("version")==2 and (r.get("host_t") is None or r["host_t"]>=preroll)]
     periods=[r["control_dt_us"]/1000 for r in rows if r["valid_mask"]&(1<<30)]
-    errors=[r["Speed_now"]-r["Speed_mubiao"] for r in rows if math.isfinite(r["Speed_now"]) and math.isfinite(r["Speed_mubiao"])]
+    errors=[r["Speed_now"]-r["Speed_mubiao"] for r in rows if math.isfinite(r["Speed_now"]) and math.isfinite(r["Speed_mubiao"]) and not r["clipped_mask"]&((1<<18)|(1<<19))]
     jumps=[]
     for a,b in zip(rows,rows[1:]):
         if (a["segment"]==b["segment"] and (b["control_seq"]-a["control_seq"])&0xffffffff==1
@@ -199,15 +224,43 @@ def analyze(parser,field_names):
     pd=[r for r in rows if r["action_reason"]==1 and r["valid_mask"]&5==5 and r["updated_mask"]&5==5]
     near_sat=sum(abs(r["err"])>=490 for r in pd if not r["clipped_mask"]&1)
     clipped_fields={name:sum(bool(r["clipped_mask"]&(1<<i)) for r in rows) for i,name in enumerate(field_names)}
+    keys={detail_key(r) for r in rows}
+    details=[m for m in parser.v2.messages if m['type']==5 and detail_key(m) in keys]
+    motors=[s for m in parser.v2.messages if m['type']==6 for s in m['samples']
+            if s['host_t'] is None or s['host_t']>=preroll]
+    paired={detail_key(m) for m in details}
+    motor_gaps=0
+    for a,b in zip(motors,motors[1:]):
+        if a['session']==b['session']:
+            gap=(b['sample_seq']-a['sample_seq']-1)&0xffffffff
+            if gap<0x80000000:motor_gaps+=gap
+    diagnosis=dict(detail_frames=len(details),unpaired_controls=sum(detail_key(r) not in paired for r in rows),
+        motor_samples=len(motors),motor_sequence_gaps=motor_gaps,encoder_negative=sum(bool(s['motor_flags']&1) and s['encoder_signed']<0 for s in motors),
+        motor_zero_pwm=sum(s['motor_pwm']==0 for s in motors),
+        empty_reference=sum(bool(m['detail_flags']&8) for m in details),
+        radar_crc_bad=sum(m['radar_crc_bad'] for m in details),
+        radar_packets=sum(m['radar_packets'] for m in details),
+        motor_drop_max=max((m['motor_dropped'] for m in parser.v2.messages if m['type']==6),default=0),
+        pd_d_abs_max=max((abs(m['pd_d']) for m in details if m['detail_flags']&1 and math.isfinite(m['pd_d'])),default=None))
     unknown=sum((r["session"],r["param_revision"]) not in parser.v2.configs for r in rows)
     return dict(v2=True,n_frames=len(rows),bad_frames=parser.bad_frames,dropped=parser.v2.missing,
         duration_s=parser.capture_duration,periods=periods,speed_error=sum(errors)/len(errors) if errors else None,
         actions=dict(Counter(r["action_reason"] for r in rows)),max_pwm_step=max(jumps,default=None),
         pd_modes=dict(Counter(int(r["pid_select"]) for r in pd)),near_saturation=near_sat,
         clipped_fields=clipped_fields,
-        unknown_config=unknown,configs=parser.v2.configs,health=[m for m in parser.v2.messages if m["type"]==2],
+        diagnosis=diagnosis,speed_error_samples=len(errors),unknown_config=unknown,configs=parser.v2.configs,health=[m for m in parser.v2.messages if m["type"]==2],
         rows=rows,received_bytes=parser.received_bytes)
 
+
+def write_extensions(parser,path):
+    from pathlib import Path
+    base=Path(path).with_suffix('')
+    details=[m for m in parser.v2.messages if m['type']==5]
+    motors=[s for m in parser.v2.messages if m['type']==6 for s in m['samples']]
+    for suffix,rows,names in [('.detail.csv',details,['session','tx_seq','host_t']+DETAIL_U+DETAIL_F),
+        ('.motor.csv',motors,['session','param_revision','sample_seq','host_t']+MOTOR_FIELDS+['encoder_signed'])]:
+        with open(str(base)+suffix,'w',newline='',encoding='utf-8-sig') as f:
+            writer=csv.DictWriter(f,fieldnames=names,extrasaction='ignore');writer.writeheader();writer.writerows(rows)
 
 def report(result,path,name=""):
     p=result["periods"];dur=result["duration_s"]
@@ -220,9 +273,13 @@ def report(result,path,name=""):
       f"有效且本次更新的PD模式分布：{result['pd_modes']}",
       f"PD误差近饱和样本（|err|≥490，排除编码限幅）：{result['near_saturation']}",
       f"编码限幅字段计数：{ {k:v for k,v in result['clipped_fields'].items() if v} }",
-      f"按逐帧目标计算的平均速度误差：{result['speed_error']}",
+      f"平均速度误差（排除编码限幅，仍需检查传感器有效性）：{result['speed_error']}；样本 {result['speed_error_samples']}",
       f"连续同配置控制帧的最大PWM差：{result['max_pwm_step']}"]
     if dur:lines += [f"含协商阶段的主机接收吞吐：{result['received_bytes']/dur:.1f} B/s；采集总时长：{dur:.3f}s"]
+    lines += ["", "## 扩展诊断", "", "```json",json.dumps(result['diagnosis'],ensure_ascii=False,indent=2),"```",
+              "detail_frames=0 或 motor_samples=0 表示无扩展证据，不等于无异常。编码器负数是16位计数的有符号解释；必须结合方向与原始计数确认。",
+              "雷达CRC统计仅为观察，不代表控制已拒收坏包；rate>1时只统计被发送的块。MOTOR筛选按整包主机接收时间，边界最多包含约80ms协商阶段样本。",
+              "motor_pwm为定时器CCR指令，不是电流/转矩/实际转速。所有累计计数是本次上电值，不直接等于本次采集新增。"]
     lines += ["", "## HEALTH", "",f"收到{len(result['health'])}条；末条：", "```json",
               json.dumps(result['health'][-1] if result['health'] else {},ensure_ascii=False,indent=2),"```",
               "unsupported_mask指示尚未实现的统计，不能把占位0解释成零错误。",

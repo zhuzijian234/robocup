@@ -156,7 +156,7 @@ int main(void)
 #endif
 
     /* ===== 运行参数配置 ===== */
-    Speed_mubiao = 8;                   /* 目标速度 */
+    Speed_mubiao = 10;                   /* 目标速度 */
 
     /* 最终舵机PID参数 (覆盖初始值) */
     Midline_PD_Init(&Servo_pd, 0.035, 0.040, 0.0395, 0.075, 0.022, 0.020);
@@ -206,7 +206,7 @@ int main(void)
             DMA_RX_DONE = 0;
             input_seq=Diag_input_seq;input_ms=Diag_input_ms;input_us=Diag_input_us;
             __set_PRIMASK(irq_state);
-            Diag_Begin(input_ms,input_us);
+            Diag_Begin(input_ms,input_us);Diag_detail_u[3]=input_seq;
             telemetry_mode = BLE_MODE_HOLD;
 
             CONTROL_TRACE("DMA_RX_DONE\r\n");
@@ -215,7 +215,7 @@ int main(void)
             parsed_points = LEIDA_DATA_HANDLE1(LEIDA_DATA, DMA_USART2_RX_BUF_r, DMA_USART2_RX_BUF_LEN);
 
             /* ===== 第2步: 筛选有效点 (距离>=100mm) ===== */
-            if(input_seq!=Diag_input_seq){parsed_points=0;Diag_input_drop++;}
+            if(input_seq!=Diag_input_seq){parsed_points=0;Diag_input_drop++;Diag_detail_u[4]|=32;}
             valid_couter = parsed_points ? LEIDA_DATA_HANDLE3_2(LEIDA_DATA2, LEIDA_DATA, LEIDA_DATA_COUNTER) : 0;
 
             /* 有效点太少 -> 数据异常，跳过此帧 */
@@ -430,6 +430,7 @@ int main(void)
 
                 /* 计算中线点 */
                 CENTER_cnt = LEIDA_DATA_HANDLE4(LEIDA_DATA_CENTER, LEIDA_DATA2, valid_couter);
+                Diag_detail_u[10]=CENTER_cnt;Diag_detail_u[4]|=128;
 
                 /* 如果前两帧都是大转弯，强制在之后的直道中再补一帧同向转弯 */
                 if ((pid_select_last == 3) && (pid_select_last_last == 3)) state_left_cnt = 2;
@@ -501,6 +502,7 @@ int main(void)
             }
 
             /* 本帧雷达处理完: 回传8通道波形给手机/VOFA+ (未连接时内部直接返回, 零开销) */
+            Diag_detail_f[15]=paodao_distance_r;
             Diag_Field(9,RIGHT_duandian,1);Diag_Field(10,LEFT_duandian,1);
             if(paodao_distance_r>600 && paodao_distance_r<900)Diag_Field(11,paodao_distance,1);
             else Diag_HeldField(11,paodao_distance,1);

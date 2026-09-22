@@ -1,0 +1,77 @@
+{
+  "run_uuid": "ad3a0418-9565-4c9a-be65-6b5671262e60",
+  "started_utc": "2026-09-22T11:41:43.235407+00:00",
+  "host_version": "v2.1",
+  "host_sha256": "3aff05d4604fecc9d7e9dee51e4a45e9e317c15753f8cc9c5c23416b2d18490c",
+  "protocol": 2,
+  "port": "COM4",
+  "baud": 115200,
+  "requested_rate": 1,
+  "pre_roll_s": 1.0779999999999745,
+  "session": 1097883296,
+  "info": "INFO proto=1,2 layout=rc26-mask31-v2.1 fw=sha256-24b028a60325ecd3 lidar=1 algorithm=1 input=0 atomic=0",
+  "version": 1,
+  "clock": "host_monotonic",
+  "duration_s": 31.1099999999999,
+  "bytes": 33185,
+  "sha256": "44462934d8d6c4a4aeff12fabe51a4d452b964faa6c4529ca8e7e6e49ebd48e7",
+  "ended_utc": "2026-09-22T11:42:14.354090+00:00",
+  "end_reason": "complete",
+  "error": null,
+  "commands": [
+    {
+      "t": 0.0,
+      "command": "info"
+    },
+    {
+      "t": 0.10999999999989996,
+      "command": "session 1097883296"
+    },
+    {
+      "t": 0.23499999999989996,
+      "command": "tele 3"
+    },
+    {
+      "t": 0.45299999999997453,
+      "command": "rate 1"
+    },
+    {
+      "t": 0.6099999999999,
+      "command": "getcfg"
+    }
+  ],
+  "configs": {
+    "1097883296:1": {
+      "layout": "rc26-mask31-v2.1",
+      "build": "sha256-24b028a60325ecd3",
+      "lidar": 1,
+      "algorithm": 1,
+      "input_kind": 0,
+      "baud": 115200,
+      "rate": 1,
+      "timeout_ms": 500,
+      "health_ms": 1000,
+      "units": "mm;CCR;encoder_units;slope;hold=control_count;PD=raw_difference",
+      "dma_bytes": 1798,
+      "point_capacity": 800,
+      "geometry": "break=550/600mm;width=600..900mm;PWM=1170/1445/1720;PDmid=uint16(144.5)*10;fit=legacy",
+      "lidar_config": "LD14P nominal4000pts/s@6Hz;PWM97;raw_crc=unchecked;input=DMA",
+      "kp": 0.03500000014901161,
+      "kp2": 0.03999999910593033,
+      "kp3": 0.039500001817941666,
+      "kd": 0.07500000298023224,
+      "kd2": 0.02199999988079071,
+      "kd3": 0.019999999552965164,
+      "sp_kp": 8.5,
+      "sp_ki": 0.5049999952316284,
+      "spd": 10.0,
+      "disr": 27.0,
+      "disl": 50.0,
+      "yr": 1200.0,
+      "yl": 1350.0,
+      "ystra": 750.0,
+      "ysel": 0.0,
+      "angle": 90.0
+    }
+  }
+}

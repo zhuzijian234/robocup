@@ -564,6 +564,7 @@ def analyze(p: StreamParser) -> dict:
 
 def write_csv(p: StreamParser, path: str):
     if p.v2.messages:
+        v2.write_extensions(p,path)
         with open(path,"w",newline="",encoding="utf-8-sig") as f:
             writer=csv.DictWriter(f,fieldnames=["t"]+FIELD_NAMES+v2.EXTRA,extrasaction="ignore")
             writer.writeheader();writer.writerows(r for r in p.records if r.get("version")==2)
