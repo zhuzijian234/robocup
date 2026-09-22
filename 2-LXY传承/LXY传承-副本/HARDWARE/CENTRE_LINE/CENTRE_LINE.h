@@ -62,6 +62,8 @@ typedef struct
 } pid_type;
 
 extern pid_type Servo_pd;
+extern uint8_t Servo_PD_valid;
+void Midline_PD_Reset(void);
 extern pid_type Speed_pid;
 extern Midline_type Midline;
 extern Midline_type Midline2;
@@ -87,7 +89,7 @@ extern float BLUE_Y_STRA_SEL;
 #define SERVO_PWM_MID 1445   /* 中位 */
 
 uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midline_type *midline,
-                    uint16_t servo_midpwm, uint16_t CENTER_cnt_start, uint16_t CENTER_cnt_end, uint16_t flag);
+                    float servo_midpwm, uint16_t CENTER_cnt_start, uint16_t CENTER_cnt_end, uint16_t flag);
 uint16_t Speed_PID(float speed_now, float speed_mubiao, pid_type *speed_pid, uint16_t moto_pwm_now);
 
 void Midline_PD_Init(pid_type *midline_pid, float kp, float kp_2, float kp_3, float kd, float kd_2, float kd_3);
@@ -95,7 +97,7 @@ void Speed_PID_Init(pid_type *midline_pid, float kp, float ki, float kd);
 float PID_realize(float speed_now, float speed_mubiao, pid_type *speed_pid);
 
 /* 最小二乘法直线拟合：对 centerline[startline..endline] 拟合 y = k*x + b */
-void Midline_fit(_LEIDA_DATA_plane *centerline, int startline, int endline, Midline_type *midline);
+uint8_t Midline_fit(_LEIDA_DATA_plane *centerline, int startline, int endline, Midline_type *midline);
 
 /* 三点法（Menger）曲率计算 */
 float curvity_cal(_LEIDA_DATA_plane LEIDA_DATA_CENTER[], uint16_t counter);

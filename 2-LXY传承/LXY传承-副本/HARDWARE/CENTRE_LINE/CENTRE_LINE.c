@@ -27,6 +27,7 @@
 #include "centre_line.h"
 #define CONTROL_TRACE(...) ((void)0)
 #include "moto.h"
+#include <float.h>
 
 Midline_type Midline;
 Midline_type Midline2;
@@ -54,45 +55,22 @@ extern float Speed_mubiao;
  *   k = Σ[(xi - x̄)(yi - ȳ)] / Σ[(xi - x̄)²]
  *   b = ȳ - k * x̄
  */
-void Midline_fit(_LEIDA_DATA_plane *centerline, int startline, int endline, Midline_type *midline)
+uint8_t Midline_fit(_LEIDA_DATA_plane *points,int start,int end,Midline_type *line)
 {
-    int i = 0;
-    float sumlines = endline - startline;  /* 参与拟合的点数 */
-
-    float sumX     = 0;
-    float sumY     = 0;
-    float averageX = 0;
-    float averageY = 0;
-    float sumUp    = 0;  /* 分子: Σ(xi - x̄)(yi - ȳ) */
-    float sumDown  = 0;  /* 分母: Σ(xi - x̄)² */
-
-    /* 第一遍: 累加XY求均值 */
-    for (i = startline; i < endline; i++) {
-        sumX += centerline[i]._x;
-        sumY += centerline[i]._y;
+    int i,n=end-start;float sx=0,sy=0,xx=0,xy=0,x,y;
+    line->k=line->b=0;
+    if(start<0 || n<2 || end>LEIDA_DATA_COUNTER/2){Diag_Fit(line,0);return 0;}
+    for(i=start;i<end;i++){
+        x=points[i]._x;y=points[i]._y;
+        if(!(x<=FLT_MAX && x>=-FLT_MAX && y<=FLT_MAX && y>=-FLT_MAX)){Diag_Fit(line,0);return 0;}
+        sx+=x;sy+=y;
     }
-
-    if (sumlines != 0) {
-        averageX = sumX / sumlines;
-        averageY = sumY / sumlines;
-    } else {
-        averageX = 0;
-        averageY = 0;
-    }
-
-    /* 第二遍: 累加分子分母 */
-    for (i = startline; i < endline; i++) {
-        sumUp   += (centerline[i]._y - averageY) * (centerline[i]._x - averageX);
-        sumDown += (centerline[i]._x - averageX) * (centerline[i]._x - averageX);
-    }
-
-    if (sumDown == 0)
-        midline->k = 0;
-    else
-        midline->k = sumUp / sumDown;
-
-    midline->b = averageY - midline->k * averageX;
-    Diag_Fit(midline,(sumlines>=2 && sumDown>0));
+    sx/=n;sy/=n;
+    for(i=start;i<end;i++){x=points[i]._x-sx;xx+=x*x;xy+=x*(points[i]._y-sy);}
+    if(xx<=1e-6f){line->b=sy;Diag_Fit(line,0);return 0;}
+    line->k=xy/xx;line->b=sy-line->k*sx;
+    if(!(line->k<=FLT_MAX && line->k>=-FLT_MAX && line->b<=FLT_MAX && line->b>=-FLT_MAX)){line->k=line->b=0;Diag_Fit(line,0);return 0;}
+    Diag_Fit(line,1);return 1;
 }
 
 /* ======================== 曲率计算 ======================== */
@@ -193,6 +171,7 @@ float curvity_cal(_LEIDA_DATA_plane LEIDA_DATA_CENTER[], uint16_t counter)
 void Midline_PD_Init(pid_type *midline_pid, float kp, float kp_2, float kp_3,
                      float kd, float kd_2, float kd_3)
 {
+    Midline_PD_Reset();
     midline_pid->err   = 0;
     midline_pid->err_l = 0;
 
@@ -254,159 +233,79 @@ float err[5]          = {0};  /* 误差历史缓冲区（FIR滤波用，当前�
  *   5. 限幅到 [SERVO_PWM_MIN, SERVO_PWM_MAX]
  *   6. 输出到舵机
  */
-uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midline_type *midline,
-                    uint16_t servo_midpwm, uint16_t CENTER_cnt_start, uint16_t CENTER_cnt_end, uint16_t flag)
+uint8_t Servo_PD_valid;
+static uint8_t pd_history_valid;
+static uint16_t pd_previous_mode;
+static uint32_t pd_previous_us;
+void Midline_PD_Reset(void){pd_history_valid=0;Servo_PD_valid=0;}
+static uint16_t pd_reject(void){
+    Diag_detail_u[4]&=~1u;Diag_detail_u[4]|=512u;
+    Midline_PD_Reset();return (uint16_t)TIM3->CCR1;
+}
+uint16_t Midline_PD(_LEIDA_DATA_plane points[],pid_type *pid,Midline_type *line,
+                    float mid,uint16_t start,uint16_t end,uint16_t mode)
 {
-    float servo_pwm    = 0;
-    static int flag_r  = 0;  /* 上一帧的flag */
-    static int y_r     = 0;
-    float sum_y;
-    Diag_detail_u[4]|=1;Diag_detail_u[6]=(uint32_t)flag_r;
-    Diag_detail_u[7]=CENTER_cnt_start;Diag_detail_u[8]=CENTER_cnt_end;
-    Diag_detail_u[9]=CENTER_cnt_end>CENTER_cnt_start?CENTER_cnt_end-CENTER_cnt_start:0;
-    Diag_detail_f[13]=midline_pid->err_l;
-    Diag_detail_f[11]=midline->k;Diag_detail_f[12]=midline->b;
-
-    /* 从转弯模式切换到直道/垂线模式时，清零上次误差（避免D项跳变）
-     * 2026-09-07扩展: 原只清1/2→0/5; 弯道模式3/4/8/9出弯切回直道时
-     * err从±500骤降到~50, err_l不归零 -> D项≈0.075×450×10≈±337大反踢,
-     * 出弯猛摆, 看起来像摆错方向 */
-    if (((flag_r == 1) || (flag_r == 2) || (flag_r == 3) || (flag_r == 4)
-         || (flag_r == 8) || (flag_r == 9)) && ((flag == 0) || (flag == 5)))
-        {midline_pid->err_l = 0;Diag_detail_u[4]|=4;}
-
-    /* ===== 根据控制模式计算偏差 ===== */
-
-    /* 模式0: 普通中线循迹（直道/微弯）
-     * 偏差 = 中线末点对应的x坐标偏离中心(50mm)的量 */
-    if (flag == 0) {
-        if (BLUE_Y_STRA_SEL == 1) { /*把y=kx+b反解为x,看中线往哪偏*/
-            midline_pid->err = -((BLUE_Y_STRA - midline->b) / midline->k - 50);
-        } else {
-            midline_pid->err = -((centerline[CENTER_cnt_end - 1]._y - midline->b) / midline->k - 50);
-            /* 限幅 [-200, 200] */
-            if (midline_pid->err > 200)  midline_pid->err = 200;
-            if (midline_pid->err < -200) midline_pid->err = -200;
+    uint16_t i;uint32_t now=Diag_TimeUs(),dt=now-pd_previous_us;
+    float e=0,kp,kd,p,d,original_d,output,mag,x=0,best=FLT_MAX,target;
+    Servo_PD_valid=0;
+    Diag_detail_u[6]=pd_previous_mode;Diag_detail_u[7]=start;Diag_detail_u[8]=end;
+    Diag_detail_u[9]=end>start?end-start:0;Diag_detail_f[13]=pid->err_l;
+    Diag_detail_f[11]=line->k;Diag_detail_f[12]=line->b;
+    if(mode>9 || end<=start || end>LEIDA_DATA_COUNTER/2){
+        if(mode==1 || mode==2)Diag_detail_u[4]|=8;
+        return pd_reject();
+    }
+    if(mode==0){
+        if(!(fabs(line->k)>0.1f && fabs(line->k)<=FLT_MAX && fabs(line->b)<=FLT_MAX))return pd_reject();
+        target=BLUE_Y_STRA_SEL==1?BLUE_Y_STRA:points[end-1]._y;
+        e=-((target-line->b)/line->k-50);
+        if(BLUE_Y_STRA_SEL!=1){if(e>200)e=200;if(e< -200)e=-200;}
+    }else if(mode==1 || mode==2){
+        target=mode==1?BLUE_Y_RIGHT:BLUE_Y_LEFT;
+        for(i=start;i<end;i++){
+            float dy=fabs(points[i]._y-target);
+            if(dy<best && fabs(points[i]._x)<=FLT_MAX){best=dy;x=points[i]._x;
+                Diag_detail_u[4]|=2;Diag_detail_f[8]=x;Diag_detail_f[9]=points[i]._y;Diag_detail_f[10]=dy;}
         }
+        if(!(Diag_detail_u[4]&2)){Diag_detail_u[4]|=8;return pd_reject();}
+        e=mode==1?-(x+paodao_distance*BLUE_DIS_RIGHT/100):-(x-paodao_distance*BLUE_DIS_LEFT/100);
+    }else if(mode==3 || mode==4 || mode==8 || mode==9){
+        if(!(fabs(line->k)<=FLT_MAX))return pd_reject();
+        mag=fabs(line->k)<0.35f?500.0f:175.0f/fabs(line->k);
+        /* Direction is the selected branch, never the sign of a degenerate fit. */
+        e=(mode==3 || mode==8)?-mag:mag;
+    }else if(mode==5){
+        if(!LEIDA_vertical_valid)return pd_reject();
+        e=50-zhongxian_chuizhi;
+    }else{
+        if(end-start<2)return pd_reject();
+        for(i=start;i<end;i++){if(!(fabs(points[i]._x)<=FLT_MAX))return pd_reject();x+=points[i]._x;}
+        x/=end-start;e=50-x;Diag_detail_f[14]=x;Diag_detail_u[4]|=256;
     }
-
-    /* 模式1: 小角度右转 — 沿左边界走，加宽度补偿
-     * 2026-09-07修复: 原 (BLUE_Y-b)/k 反解"墙在y=BLUE_Y处的x", |k|∈[0.3,3]
-     * 时b与k强共变, 量化噪声被1/k放大 -> err符号随机翻转、方向随机错
-     * (2026-09-06补丁只盖了|k|<0.3)。改为: 在拟合段(后75%-95%)里找
-     * y最接近BLUE_Y的点直接取其x。无除法、有界、符号稳定; 语义与原式一致,
-     * 补偿项不变。注意: 入弯初期墙还直着时 x≈-350, err=+(350-补偿)偏左,
-     * 若实车仍见入弯先左打, 蓝牙 disr 27→50 左右即可抵消 */
-    if (flag == 1) {
-        float x_closest = 0;
-        float best_dy   = 1e6f;
-        uint16_t i;
-        for (i = CENTER_cnt_start; i < CENTER_cnt_end; i++) {
-            float dy = fabs(centerline[i]._y - BLUE_Y_RIGHT);
-            if (dy < best_dy) { best_dy = dy; x_closest = centerline[i]._x;
-                Diag_detail_u[4]|=2;Diag_detail_f[8]=x_closest;Diag_detail_f[9]=centerline[i]._y;Diag_detail_f[10]=dy; }
-        }
-        midline_pid->err = -(x_closest + paodao_distance / 100 * BLUE_DIS_RIGHT);
-    }
-
-    /* 模式2: 小角度左转 — 沿右边界走，减宽度补偿 (修复同模式1) */
-    if (flag == 2) {
-        float x_closest = 0;
-        float best_dy   = 1e6f;
-        uint16_t i;
-        for (i = CENTER_cnt_start; i < CENTER_cnt_end; i++) {
-            float dy = fabs(centerline[i]._y - BLUE_Y_LEFT);
-            if (dy < best_dy) { best_dy = dy; x_closest = centerline[i]._x;
-                Diag_detail_u[4]|=2;Diag_detail_f[8]=x_closest;Diag_detail_f[9]=centerline[i]._y;Diag_detail_f[10]=dy; }
-        }
-        midline_pid->err = -(x_closest - paodao_distance / 100 * BLUE_DIS_LEFT);
-    }
-
-    /* 模式3,4,8,9: 大/中等角度转弯 — 偏差用"前墙跨过车道的程度"
-     * err = -方向·min(175/|k|, 500), 方向由main.c强制的k符号定:
-     *   |k|<0.35(模式3/4) -> ≥500 被限幅打满(和原来一样);
-     *   0.35≤|k|<0.7(模式8/9) -> 250~500, 有比例, 8/9与3/4从此区分开;
-     *   k==0(拟合退化) -> 按flag定方向(3/8右, 4/9左), 打满。
-     * 2026-09-07修复: 原 -fabs(Δy)/k_safe 用弧扫数据窗口Δy(70-110°, 可达
-     * 1500mm)除k, 在模式自身的|k|<0.35触发域内结果恒超500 -> 每帧钉死±500,
-     * 弯道变成"打满+噪声D项乱踢", 且8/9与3/4输出完全相同(名存实亡) */
-    if ((flag == 3) || (flag == 4) || (flag == 8) || (flag == 9)) {
-        float dir = 1.0f;
-        float mag;
-        if (midline->k < 0)      dir = -1.0f;
-        else if (midline->k == 0) dir = ((flag == 4) || (flag == 9)) ? -1.0f : 1.0f;
-        mag = 175.0f / fabs(midline->k);   /* k==0 -> +inf, 下面钳到500 */
-        if (mag > 500.0f) mag = 500.0f;
-        midline_pid->err = -dir * mag;
-    }
-
-    /* 模式5: 中线垂直 — 让车保持在x=50mm（跑道中心） */
-    if (flag == 5) midline_pid->err = -(zhongxian_chuizhi - 50);
-
-    /* 模式6,7: 中线均值控制 */
-    if (flag == 6) midline_pid->err = -(zhongxian_junzhi);
-    if (flag == 7) midline_pid->err = -(zhongxian_junzhi);
-
-    CONTROL_TRACE("ERROR:%f\r\n", midline_pid->err);
-
-    /* 偏差限幅 [-500, 500] */
-    if (midline_pid->err > 500)  midline_pid->err = 500;
-    if (midline_pid->err < -500) midline_pid->err = -500;
-
-    /* ===== 根据模式组选择PID参数，计算PD输出 ===== */
-
-    /* 直道/垂线模式: kp, kd */
-    if ((flag == 0) || (flag == 5) || (flag == 6) || (flag == 7))
-        servo_pwm += servo_midpwm * 1.0f
-                     + (midline_pid->kp * midline_pid->err)
-                     + (midline_pid->kd * (midline_pid->err - midline_pid->err_l));
-
-    /* 小转弯模式: kp_3, kd_3 */
-    else if ((flag == 1) || (flag == 2))
-        servo_pwm += servo_midpwm * 1.0f
-                     + (midline_pid->kp_3 * midline_pid->err)
-                     + (midline_pid->kd_3 * (midline_pid->err - midline_pid->err_l));
-
-    /* 大/中等转弯模式: kp_2, kd_2 */
-    else
-        servo_pwm += servo_midpwm * 1.0f
-                     + (midline_pid->kp_2 * midline_pid->err)
-                     + (midline_pid->kd_2 * (midline_pid->err - midline_pid->err_l));
-
-    /* 缩放到实际舵机PWM范围 (servo_midpwm已除10) */
-    servo_pwm = servo_pwm * 10;
-
-    /* Record the actual operands before err_l is overwritten; PWM units. */
-    if(flag==6 || flag==7){Diag_detail_f[14]=zhongxian_junzhi;Diag_detail_u[4]|=256;}
-    Diag_detail_f[0]=midline_pid->err_l;Diag_detail_f[1]=midline_pid->err;
-    Diag_detail_f[4]=(flag==1 || flag==2)?midline_pid->kp_3:(flag==0 || flag>=5 && flag<=7)?midline_pid->kp:midline_pid->kp_2;
-    Diag_detail_f[5]=(flag==1 || flag==2)?midline_pid->kd_3:(flag==0 || flag>=5 && flag<=7)?midline_pid->kd:midline_pid->kd_2;
-    Diag_detail_f[2]=10*Diag_detail_f[4]*midline_pid->err;
-    Diag_detail_f[3]=10*Diag_detail_f[5]*(midline_pid->err-midline_pid->err_l);
-    Diag_detail_f[6]=servo_pwm;Diag_detail_f[7]=10.0f*servo_midpwm;
-    if((flag==1 || flag==2) && !(Diag_detail_u[4]&2))Diag_detail_u[4]|=8;
-    if(servo_pwm<SERVO_PWM_MIN || servo_pwm>SERVO_PWM_MAX)Diag_detail_u[4]|=16;
-    /* 保存当前误差，供下一帧D项使用 */
-    midline_pid->err_l = midline_pid->err;
-
-    CONTROL_TRACE("flag:%d\r\n", flag);
-    CONTROL_TRACE("speed_now:%f,speed_mubiao:%f\r\r\n", Speed_now, Speed_mubiao);
-    CONTROL_TRACE("PWM_Before:%f\r\n", servo_pwm);
-
-    /* 舵机PWM限幅 (行程参数见centre_line.h的SERVO_PWM_MIN/MAX) */
-    if (servo_pwm > SERVO_PWM_MAX) servo_pwm = SERVO_PWM_MAX;
-    if (servo_pwm < SERVO_PWM_MIN) servo_pwm = SERVO_PWM_MIN;
-
-    /* 应用到舵机 */
-    Servo_ChangePwm((uint16_t)servo_pwm);
-
-    /* 保存flag供下一帧检测模式切换 */
-    flag_r = flag;
-
-    CONTROL_TRACE("PWM_After:%lf\r\n", (double)servo_pwm);
-    CONTROL_TRACE("\r\n");
-    CONTROL_TRACE("\r\n");
-    return (uint16_t)servo_pwm;
+    if(!(fabs(e)<=FLT_MAX))return pd_reject();
+    if(e>500)e=500;if(e< -500)e=-500;
+    kp=(mode==1 || mode==2)?pid->kp_3:(mode==0 || (mode>=5 && mode<=7))?pid->kp:pid->kp_2;
+    kd=(mode==1 || mode==2)?pid->kd_3:(mode==0 || (mode>=5 && mode<=7))?pid->kd:pid->kd_2;
+    if(!pd_history_valid || mode!=pd_previous_mode || !dt || dt>250000u){
+        pid->err_l=e;Diag_detail_u[4]|=4;
+    }else kd*=115000.0f/dt;
+    p=10*kp*e;d=10*kd*(e-pid->err_l);original_d=d;
+    if(d>60)d=60;if(d< -60)d=-60;
+    /* D may damp P toward neutral, but cannot reverse the correction sign. */
+    if((p>=0 && p+d<0) || (p<=0 && p+d>0))d=-p;
+    if(d!=original_d)Diag_detail_u[4]|=2048;
+    output=10*mid+p+d;
+    /* Explicit turn branches cannot command the opposite side of neutral. */
+    if((mode==1 || mode==3 || mode==8) && output>10*mid){output=10*mid;Diag_detail_u[4]|=1024;}
+    if((mode==2 || mode==4 || mode==9) && output<10*mid){output=10*mid;Diag_detail_u[4]|=1024;}
+    if(!(fabs(output)<=FLT_MAX))return pd_reject();
+    Diag_detail_u[4]|=1;
+    Diag_detail_f[0]=pid->err_l;Diag_detail_f[1]=e;Diag_detail_f[2]=p;Diag_detail_f[3]=d;
+    Diag_detail_f[4]=kp;Diag_detail_f[5]=kd;Diag_detail_f[6]=output;Diag_detail_f[7]=10*mid;
+    if(output<SERVO_PWM_MIN || output>SERVO_PWM_MAX)Diag_detail_u[4]|=16;
+    if(output<SERVO_PWM_MIN)output=SERVO_PWM_MIN;if(output>SERVO_PWM_MAX)output=SERVO_PWM_MAX;
+    pid->err=pid->err_l=e;pd_previous_us=now;pd_previous_mode=mode;pd_history_valid=1;Servo_PD_valid=1;
+    Servo_ChangePwm((uint16_t)output);return (uint16_t)output;
 }
 
 /* ======================== 速度控制 ======================== */

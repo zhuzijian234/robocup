@@ -34,6 +34,8 @@
 
 #include "LEIDA_DATA.h"
 #include "ble_diag.h"
+#include <string.h>
+#include <float.h>
 #include "centre_line.h"
 
 _LEIDA_DATA LEIDA_DATA[LEIDA_DATA_COUNTER];
@@ -77,126 +79,47 @@ volatile uint16_t LEIDA_raw_count = 0;
  *
  * @return 成功=本次成功解析出的数据点数(每个命中帧头+12), 0=未找到有效帧头
  */
+static uint8_t lidar_packet[47];
+static uint16_t lidar_pending;
+void LEIDA_ParserReset(void){lidar_pending=0;}
 uint16_t LEIDA_DATA_HANDLE1(_LEIDA_DATA data[], u8 arr[], u16 size)
 {
-    int i, j, k;
-    int parsed = 0;   /* 本次真正解析写出的数据点数(每命中一个帧头 +12)。bit26"原始点数"用它, 与"47字节步进遍历槽数"区分 */
-    float start_angle;
-    float end_angle;
-
+    uint16_t i,j=0,k,skip;float start,end,angle;
+    LEIDA_parse_calls++;LEIDA_raw_count=0;
     Diag_detail_u[4]|=64;Diag_detail_u[17]=0xffffffffu;
-    LEIDA_parse_calls++;
-    LEIDA_raw_count = 0;
-    /* Three header bytes at offsets 0, 47, 94 need at least 95 bytes.
-     * Clear on every unsuccessful return; caller owns COUNTER output slots. */
-    if (size < 95) {
-        LEIDA_short_inputs++;
-        for (k = 0; k < LEIDA_DATA_COUNTER; k++) {
-            data[k].angle = 0.0f;
-            data[k].distance = 0.0f;
-        }
-        return 0;
-    }
-
-    /* 寻找同步模式: 间隔47字节的三个连续0x54帧头 */
-    for (i = 0; i + 94 < size; i++) {
-        if (arr[i] == 0x54) {
-            if (arr[i + 47] == 0x54) {
-                if (arr[i + 94] == 0x54) {
-                    break;
-                }
+    memset(data,0,LEIDA_DATA_COUNTER*sizeof(*data));
+    if(!size){LEIDA_short_inputs++;return 0;}
+    for(i=0;i<size;i++){
+        if(!lidar_pending && arr[i]!=0x54)continue;
+        lidar_packet[lidar_pending++]=arr[i];
+        if(lidar_pending<47)continue;
+        if(Diag_RadarPacket(lidar_packet)){
+            if(Diag_detail_u[17]==0xffffffffu)Diag_detail_u[17]=i>=46?i-46:0;
+            LEIDA_speed_dps=(uint16_t)(lidar_packet[2]|lidar_packet[3]<<8);
+            start=(lidar_packet[4]|lidar_packet[5]<<8)/100.0f;
+            end=(lidar_packet[42]|lidar_packet[43]<<8)/100.0f;
+            if(end<start)end+=360.0f;
+            for(k=0;k<12 && j<LEIDA_DATA_COUNTER;k++,j++){
+                data[j].distance=(float)(lidar_packet[6+3*k]|lidar_packet[7+3*k]<<8);
+                /* Twelve measurements include both endpoints: divisor is 11. */
+                angle=start+(end-start)*k/11.0f;
+                angle=360.0f-angle+LEIDA_ANGLE_CENTER;
+                while(angle>=360.0f)angle-=360.0f;
+                while(angle<0)angle+=360.0f;
+                data[j].angle=angle;
+                if(data[j].distance>0)Diag_detail_u[18]|=1u<<(uint16_t)(angle/30.0f);
             }
-        }
-    }
-    if (i + 94 >= size) {
-        LEIDA_sync_failures++;
-        for (k = 0; k < LEIDA_DATA_COUNTER; k++) {
-            data[k].angle = 0.0f;
-            data[k].distance = 0.0f;
-        }
-        return 0;
-    }
-
-    Diag_detail_u[17]=(uint32_t)i;
-    /* 解析数据包: 每包47字节 -> 12个数据点 */
-    for (j = 0; i + 47 <= size && j + 12 <= LEIDA_DATA_COUNTER; i += 47, j += 12) {
-        if (arr[i] == 0x54) {
-            Diag_RadarPacket(arr+i);
-            start_angle = (((u16)arr[i + 5] << 8) + (u16)arr[i + 4]) / 100.0f;
-            end_angle   = (((u16)arr[i + 43] << 8) + (u16)arr[i + 42]) / 100.0f;
-            /* 转速: Byte2~3 (低字节在前), 单位 度/秒。只读不影响任何算法 */
-            LEIDA_speed_dps = (((u16)arr[i + 3] << 8) + (u16)arr[i + 2]);
-            parsed += 12;   /* 只统计真正写出数据的点: 帧头缺失时 47 字节步进跳过的整包不计入 */
-
-            /* 处理角度回绕: 结束角度<起始角度，说明扫描跨过了0度 */
-            if (start_angle > end_angle)
-                end_angle += 360;
- /*数据是怎么存的
-
-arr[i+7+3*k]              arr[i+6+3*k]
-  u8 (1字节)                u8 (1字节)
-  例: 0x02                 例: 0x64
-     │                        │
-     ▼ 强转 (u16)             ▼ 强转 (u16)
-  0x0002                   0x0064
-  (2字节)                  (2字节)
-     │                        │
-     ▼ << 8                   │
-  0x0200                      │
-  (512)                       │
-     │                        │
-     └───────── + ────────────┘
-                 │
-                 ▼
-          u16: 0x0264 = 612
-          (2字节, 最大值 65535)
-                 │
-                 ▼ × 1.0f
-          float: 612.0f
-          (4字节, IEEE 754)
-                 │
-                 ▼
-    data[j+k].distance = 612.0f*/
-            for (k = 0; k < 12; k++) {
-                /* 距离: byte 6+3k, 7+3k (低字节在前) 转为16字节->左移八位,不然溢出,低字节直接转为16字节 */
-                data[j + k].distance = 1.0f * (((u16)arr[i + 7 + 3 * k] << 8) + (u16)arr[i + 6 + 3 * k]);
-                /*i:包的帧头数组下标,每次+47;j:data数组/包索引,每个包12个数据点;size:字节总数 ,k:,data数组/数据点索引,每3字节一个数据点*/
-                /* 角度: 起始和结束之间线性插值 */
-                data[j + k].angle = start_angle + (end_angle - start_angle) / 12 * k;
-
-                /* 角度归一化到 [0, 360) */
-                if (data[j + k].angle > 360.0f) data[j + k].angle -= 360.0f;
-                if (data[j + k].angle < 0.0f)   data[j + k].angle += 360.0f;
-
-                /* 坐标系旋转: 0°->右侧(x+), 90°->前方(y+) ,原本:0°->正前,90°->右侧*/
-                data[j + k].angle = -1.0f * data[j + k].angle + 360.0f + LEIDA_ANGLE_CENTER;
-
-                if (data[j + k].angle > 360.0f) data[j + k].angle -= 360.0f;
-                if (data[j + k].angle < 0.0f)   data[j + k].angle += 360.0f;
-            }
-        } else {
+            lidar_pending=0;
+        }else{
             LEIDA_missing_packets++;Diag_detail_u[16]++;
-            /* 帧头缺失: 这 12 个槽位本帧没有写入, 清零。
-             * 不清零的话它们会保留上一帧的旧点, 被 HANDLE3_2 当作有效点计入 valid_couter。 */
-            for (k = 0; k < 12; k++) {
-                data[j + k].angle    = 0.0f;
-                data[j + k].distance = 0.0f;
-            }
+            /* Resynchronize bytewise; preserve a potential header inside a bad packet. */
+            for(skip=1;skip<47 && lidar_packet[skip]!=0x54;skip++){}
+            lidar_pending=(uint16_t)(47-skip);
+            if(lidar_pending)memmove(lidar_packet,lidar_packet+skip,lidar_pending);
         }
     }
-
-    /* 块尾未覆盖到的槽位同样清零: 每块的整包数随块相位变化(当前 1798B/47B 时是 37 或 38),
-     * 上一帧写过的尾部槽位本帧可能不再被写到, 残留旧点会混进 HANDLE3_2 的筛选结果。
-     * 上界用输出容量 LEIDA_DATA_COUNTER；本函数仍仅适用于47字节/12点协议，换雷达必须更换解析器。 */
-    for (k = j; k < LEIDA_DATA_COUNTER; k++) {
-        data[k].angle    = 0.0f;
-        data[k].distance = 0.0f;
-    }
-
-    for(k=0;k<j;k++)if(data[k].distance>0 && data[k].angle>=0 && data[k].angle<360)
-        Diag_detail_u[18]|=1u<<(uint16_t)(data[k].angle/30);
-    LEIDA_raw_count = (uint16_t)parsed;
-    return (uint16_t)parsed;   /* 成功=本次解析出的点数; 未找到有效帧头已在上面返回 0 */
+    if(!j && size>=47)LEIDA_sync_failures++;
+    LEIDA_raw_count=j;return j;
 }
 
 /* ======================== HANDLE2: 极坐标转笛卡尔坐标 ======================== */
@@ -228,7 +151,7 @@ uint16_t LEIDA_DATA_HANDLE3(_LEIDA_DATA data[], _LEIDA_DATA arr[], u16 size)
 {
     int i, j;
     j = 0;
-    for (i = 10; i < size - 10; i++) {/*掐头去尾10个噪点*/
+    for (i = 0; i < size; i++) {/*掐头去尾10个噪点*/
         if (arr[i].distance != 0) {
             if ((arr[i].angle >= LEIDA_ANGLE_RIGHT) && (arr[i].angle <= LEIDA_ANGLE_LEFT)) {
                 data[j].angle    = arr[i].angle;
@@ -248,7 +171,7 @@ uint16_t LEIDA_DATA_HANDLE3_2(_LEIDA_DATA data[], _LEIDA_DATA arr[], u16 size)
 {
     int i, j;
     j = 0;
-    for (i = 10; i < size - 10; i++) {
+    for (i = 0; i < size; i++) {
         if ((arr[i].distance >= 100)) {
             data[j].angle    = arr[i].angle;
             data[j].distance = arr[i].distance;
@@ -295,98 +218,28 @@ float zhongxian_junzhi;
  */
 uint16_t LEIDA_DATA_HANDLE4(_LEIDA_DATA_plane data_center[], _LEIDA_DATA arr[], u16 size)
 {
-    int i            = 0;
-    uint16_t j       = 0;
-    int center_cnt   = 0;
-    int center_cnt_r = 0;
-    float angle_right, angle_left;
-    int angle_right_cnt = 0;
-    int angle_left_cnt  = 0;
-    int flag            = 0;
-    _LEIDA_DATA_plane temp;
-
-    float x_max     = -4000;
-    float x_max_r   = -4000;
-    float x_max_r_r = -4000;
-    float x_min     = 4000;
-    float x_min_r   = 4000;
-    float x_min_r_r = 4000;
-    float jiange    = 0;
-
-    /* 角度扫描: 左右对称角度配对 */
-    for (angle_right = LEIDA_ANGLE_RIGHT, angle_left = LEIDA_ANGLE_LEFT;
-         angle_right <= LEIDA_ANGLE_RIGHT + LEIDA_ANGLE_yuliang; /*各扫 75°（覆盖 0°~75°左 + 105°~180°右）*/
-         angle_right += 0.6, angle_left -= 0.6) {
-/*匹配左右对称角度点*/
-        for (i = 0; i < size; i++) {
-            /* 匹配右侧点: 角度容差0.5°内, 距离50-2000mm */
-            if ((fabs(arr[i].angle - angle_right) <= LEIDA_ANGLE_piancha)
-                && (arr[i].distance <= 2000) && (arr[i].distance >= 50)) {
-                angle_right_cnt = i;
-            }
-
-            /* 匹配左侧点: 角度容差0.5°内, 距离50-2000mm */
-            if ((fabs(arr[i].angle - angle_left) <= LEIDA_ANGLE_piancha)
-                && (arr[i].distance <= 2000) && (arr[i].distance >= 50)) {
-                angle_left_cnt = i;
-            }
-
-            /* 左右都匹配到 -> 计算中点 */
-            if ((angle_left_cnt != 0) && (angle_right_cnt != 0)) {
-                center_cnt++;
-                flag = 1;
-                break;
-            }
+    uint16_t i,n=0;int right,left;float a,b,dr,dl,diff,x,y;
+    zhongxian_junzhi=0;
+    for(a=LEIDA_ANGLE_RIGHT,b=LEIDA_ANGLE_LEFT;
+        a<=LEIDA_ANGLE_RIGHT+LEIDA_ANGLE_yuliang;a+=0.6f,b-=0.6f){
+        /* Each angular pair owns fresh indices; array index zero is valid. */
+        right=left=-1;dr=dl=2001.0f;
+        for(i=0;i<size;i++){
+            if(arr[i].distance<100 || arr[i].distance>2000)continue;
+            diff=fabs(arr[i].angle-a);if(diff>180)diff=360-diff;
+            if(diff<=LEIDA_ANGLE_piancha && arr[i].distance<dr){right=i;dr=arr[i].distance;}
+            diff=fabs(arr[i].angle-b);if(diff>180)diff=360-diff;
+            if(diff<=LEIDA_ANGLE_piancha && arr[i].distance<dl){left=i;dl=arr[i].distance;}
         }
-
-        if (flag == 1) {
-            /* 中点 = 左右笛卡尔坐标的平均值 */
-            data_center[center_cnt - 1]._x =
-                (arr[angle_right_cnt].distance * arm_cos_f32(arr[angle_right_cnt].angle * PI / 180)
-                 + arr[angle_left_cnt].distance * arm_cos_f32(arr[angle_left_cnt].angle * PI / 180)) / 2;
-            data_center[center_cnt - 1]._y =
-                (arr[angle_right_cnt].distance * arm_sin_f32(arr[angle_right_cnt].angle * PI / 180)
-                 + arr[angle_left_cnt].distance * arm_sin_f32(arr[angle_left_cnt].angle * PI / 180)) / 2;
-            angle_right_cnt = 0;
-            angle_left_cnt  = 0;
-            flag            = 0;
-        }
+        if(right<0 || left<0)continue;
+        x=(arr[right].distance*arm_cos_f32(arr[right].angle*PI/180)+arr[left].distance*arm_cos_f32(arr[left].angle*PI/180))/2;
+        y=(arr[right].distance*arm_sin_f32(arr[right].angle*PI/180)+arr[left].distance*arm_sin_f32(arr[left].angle*PI/180))/2;
+        if(y>=0 && y<=800 && n<LEIDA_DATA_COUNTER/2){data_center[n]._x=x;data_center[n++]._y=y;}
     }
-
-    /* 寻找x的最大、次大、次次大 和 最小、次小、次次小（排除极端离群点） */
-    for (i = 0; i < center_cnt; i++) {
-        if (data_center[i]._x > x_max) x_max = data_center[i]._x;
-        if (data_center[i]._x < x_min) x_min = data_center[i]._x;
-    }
-    for (i = 0; i < center_cnt; i++) {
-        if ((data_center[i]._x != x_max) && (data_center[i]._x > x_max_r)) x_max_r = data_center[i]._x;
-        if ((data_center[i]._x != x_min) && (data_center[i]._x < x_min_r)) x_min_r = data_center[i]._x;
-    }
-    for (i = 0; i < center_cnt; i++) {
-        if ((data_center[i]._x != x_max) && (data_center[i]._x != x_max_r) && (data_center[i]._x > x_max_r_r))
-            x_max_r_r = data_center[i]._x;
-        if ((data_center[i]._x != x_min) && (data_center[i]._x != x_min_r) && (data_center[i]._x < x_min_r_r))
-            x_min_r_r = data_center[i]._x;
-    }
-
-    /* 平均间距（使用第3级极值，排除顶部各2个离群点） */
-    jiange           = (x_max_r_r - x_min_r_r) / center_cnt;
-    zhongxian_junzhi = (x_max_r_r + x_min_r_r) / 2;
-
-    /* 滤除x坐标与相邻点不一致的点 + 只保留y<=800mm的近点 */
-    for (i = 0, j = 0; i < center_cnt - 3; i++) {
-        if ((fabs(data_center[i]._x - data_center[i + 1]._x) <= 5 * jiange)
-            && (fabs(data_center[i]._x - data_center[i + 2]._x) <= 10 * jiange)
-            && (fabs(data_center[i]._x - data_center[i + 3]._x) <= 15 * jiange)) {
-            if (data_center[i]._y <= 800) {
-                data_center[j]._x = data_center[i]._x;
-                data_center[j]._y = data_center[i]._y;
-                j++;
-            }
-        }
-    }
-
-    return j; /*返回新索引,后面的不用了*/
+    n=LEIDA_DATA_HANDLE10(data_center,n);
+    for(i=0;i<n;i++)zhongxian_junzhi+=data_center[i]._x;
+    if(n)zhongxian_junzhi/=n;
+    return n;
 }
 
 /* ======================== HANDLE6/7: 左右边界提取 ======================== */
@@ -876,42 +729,21 @@ float LEIDA_ANGLE_jiuzheng(_LEIDA_DATA data[], u16 size)
  */
 uint16_t LEIDA_DATA_HANDLE10(_LEIDA_DATA_plane arr[], u16 size)
 {
-    uint16_t i, j;
-
-    float x_max     = -4000;
-    float x_max_r   = -4000;
-    float x_max_r_r = -4000;
-    float x_min     = 4000;
-    float x_min_r   = 4000;
-    float x_min_r_r = 4000;
-    float jiange    = 0;
-
-    /* 找x极值 */
-    for (i = 0; i < size; i++) {
-        if (arr[i]._x > x_max) x_max = arr[i]._x;
-        if (arr[i]._x < x_min) x_min = arr[i]._x;
+    uint16_t i,n=0;float lo=FLT_MAX,hi=-FLT_MAX,threshold,previous=0,x;
+    for(i=0;i<size;i++){
+        if(!(arr[i]._x<=FLT_MAX && arr[i]._x>=-FLT_MAX && arr[i]._y<=FLT_MAX && arr[i]._y>=-FLT_MAX))continue;
+        arr[n++]=arr[i];
     }
-    for (i = 0; i < size; i++) {
-        if ((arr[i]._x != x_max) && (arr[i]._x > x_max_r)) x_max_r = arr[i]._x;
-        if ((arr[i]._x != x_min) && (arr[i]._x < x_min_r)) x_min_r = arr[i]._x;
+    size=n;if(size<3)return size;
+    for(i=0;i<size;i++){if(arr[i]._x<lo)lo=arr[i]._x;if(arr[i]._x>hi)hi=arr[i]._x;}
+    threshold=5*(hi-lo)/size;if(threshold<20)threshold=20;
+    /* Remove isolated jumps, preserve constant-x walls and endpoints. */
+    for(i=0,n=0;i<size;i++){
+        x=arr[i]._x;
+        if(i==0 || i+1==size || fabs(x-previous)<=threshold || fabs(x-arr[i+1]._x)<=threshold)arr[n++]=arr[i];
+        previous=x;
     }
-    for (i = 0; i < size; i++) {
-        if ((arr[i]._x != x_max) && (arr[i]._x != x_max_r) && (arr[i]._x > x_max_r_r)) x_max_r_r = arr[i]._x;
-        if ((arr[i]._x != x_min) && (arr[i]._x != x_min_r) && (arr[i]._x < x_min_r_r)) x_min_r_r = arr[i]._x;
-    }
-
-    jiange = (x_max_r_r - x_min_r_r) / size;
-
-    /* 按间距一致性滤除 */
-    for (i = 0, j = 0; i < size - 1; i++) {
-        if (fabs(arr[i]._x - arr[i + 1]._x) <= 5 * jiange) {
-            arr[j]._x = arr[i]._x;
-            arr[j]._y = arr[i]._y;
-            j++;
-        }
-    }
-
-    return j;
+    return n;
 }
 
 /* ======================== HANDLE11: 中线垂直度判断 ======================== */
@@ -926,38 +758,18 @@ float zhongxian_chuizhi;
  *
  * @return 垂直中线的x坐标, 不垂直返回0
  */
-float LEIDA_DATA_HANDLE11(_LEIDA_DATA_plane arr[], u16 size_start, u16 size_end)
+uint8_t LEIDA_vertical_valid;
+float LEIDA_DATA_HANDLE11(_LEIDA_DATA_plane arr[], u16 start, u16 end)
 {
-    uint16_t i;
-    float x_max     = -4000;
-    float x_max_r   = -4000;
-    float x_max_r_r = -4000;
-    float x_min     = 4000;
-    float x_min_r   = 4000;
-    float x_min_r_r = 4000;   /* 修复: 原为-4000, 导致"第3级最小值"永远取不到, jiange恒>10, 垂线判定永远失败 */
-    float jiange    = 0;
-
-    /* 在指定区域内找x极值 */
-    for (i = size_start; i < size_end; i++) {
-        if (arr[i]._x > x_max) x_max = arr[i]._x;
-        if (arr[i]._x < x_min) x_min = arr[i]._x;
+    uint16_t i;float lo=FLT_MAX,hi=-FLT_MAX,sum=0,x;
+    LEIDA_vertical_valid=0;
+    if(end<=start || end-start<2 || end>LEIDA_DATA_COUNTER/2)return 0;
+    for(i=start;i<end;i++){
+        x=arr[i]._x;if(!(x<=FLT_MAX && x>=-FLT_MAX))return 0;
+        if(x<lo)lo=x;if(x>hi)hi=x;sum+=x;
     }
-    for (i = size_start; i < size_end; i++) {
-        if ((arr[i]._x != x_max) && (arr[i]._x > x_max_r)) x_max_r = arr[i]._x;
-        if ((arr[i]._x != x_min) && (arr[i]._x < x_min_r)) x_min_r = arr[i]._x;
-    }
-    for (i = size_start; i < size_end; i++) {
-        if ((arr[i]._x != x_max) && (arr[i]._x != x_max_r) && (arr[i]._x > x_max_r_r)) x_max_r_r = arr[i]._x;
-        if ((arr[i]._x != x_min) && (arr[i]._x != x_min_r) && (arr[i]._x < x_min_r_r)) x_min_r_r = arr[i]._x;
-    }
-
-    jiange = (x_max_r_r - x_min_r_r); /*x几乎不变,理解为直道*/
-
-    /* x跨度<10mm -> 垂直，返回中点x */
-    if (jiange < 10)
-        return (x_max_r_r + x_min_r_r) / 2;
-    else
-        return 0;
+    if(hi-lo<10){LEIDA_vertical_valid=1;return sum/(end-start);}
+    return 0;
 }
 
 /* ======================== HANDLE12: 占位 ======================= */

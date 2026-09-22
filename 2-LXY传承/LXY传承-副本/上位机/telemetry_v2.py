@@ -116,7 +116,7 @@ class Decoder:
             if n!=176:raise ValueError("DETAIL length")
             msg.update(zip(DETAIL_U,struct.unpack_from('<24I',payload)))
             msg.update(zip(DETAIL_F,struct.unpack_from('<16f',payload,96)))
-            if msg['schema']!=1 or msg['detail_flags']&~511:raise ValueError("DETAIL schema/flags")
+            if msg['schema']!=1 or msg['detail_flags']&~4095:raise ValueError("DETAIL schema/flags")
         elif kind==6:
             if len(payload)<16:raise ValueError("MOTOR prefix")
             schema,count,first,rev,dropped=struct.unpack_from('<HHIII',payload)

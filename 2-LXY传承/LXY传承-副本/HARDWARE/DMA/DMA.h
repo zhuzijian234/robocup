@@ -19,7 +19,7 @@ void DMA_Initializes(void);
 #define DMA1_Stream5_IQ_ENABLE 1     /* DMA传输完成中断使能 */
 #define DMA_USART2_RX_BUF_LEN  1798  /* DMA接收缓冲区大小（字节），匹配谢露版 */
 
-extern u8 DMA_RX_DONE;
+extern volatile u8 DMA_RX_DONE;
 extern u8 LEIDA_HANDLE_DONE;
 extern u8 DMA_USART2_RX_BUF[];
 extern u8 DMA_USART2_RX_BUF_r[];

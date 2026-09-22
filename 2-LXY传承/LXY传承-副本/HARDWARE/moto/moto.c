@@ -65,7 +65,7 @@ float Speed_now    = 0;
 float Speed_mubiao = 0;
 
 float Encoder_cnt          = 0;
-uint16_t Encoder_cnt_arr[5];      /* 5采样滑动平均缓冲区 */
+int16_t Encoder_cnt_arr[5];      /* 5采样滑动平均缓冲区 */
 uint16_t Encoder_cnt_temp = 0;
 
 uint16_t moto_pwm = 0;
@@ -82,16 +82,18 @@ uint16_t moto_pwm = 0;
  */
 void Get_Encoder(void)
 {
-    uint16_t i;
-    Encoder_cnt_temp = TIM_GetCounter(TIM4);
-    TIM_SetCounter(TIM4, 0);
-    Encoder_cnt = Encoder_cnt_temp; /*清除计数器*/
+    uint16_t i,counter;static uint16_t previous_counter;
+    int16_t signed_count;
+    counter=TIM_GetCounter(TIM4);
+    Encoder_cnt_temp=(uint16_t)(counter-previous_counter);previous_counter=counter;
+    signed_count=(int16_t)(Encoder_cnt_temp<32768?(int32_t)Encoder_cnt_temp:(int32_t)Encoder_cnt_temp-65536);
+    Encoder_cnt = signed_count;
 
     for (i = 0; i < 5 - 1; i++) {
         Encoder_cnt_arr[i] = Encoder_cnt_arr[i + 1];
         Encoder_cnt += Encoder_cnt_arr[i];
     }
-    Encoder_cnt_arr[i] = Encoder_cnt_temp;
+    Encoder_cnt_arr[i] = signed_count;
     Encoder_cnt /= 5;
     Speed_now = (Encoder_cnt * 100) / (4 * 11 * 6.25);
 }

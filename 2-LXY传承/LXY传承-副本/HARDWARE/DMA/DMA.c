@@ -22,7 +22,7 @@
 
 u8 DMA_USART2_RX_BUF[DMA_USART2_RX_BUF_LEN];
 u8 DMA_USART2_RX_BUF_r[DMA_USART2_RX_BUF_LEN];
-u8 DMA_RX_DONE       = 0;
+volatile u8 DMA_RX_DONE       = 0;
 u8 LEIDA_HANDLE_DONE = 1;
 
 void DMA_Initializes(void)

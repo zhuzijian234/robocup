@@ -41,14 +41,15 @@ void Diag_MotorTick(uint16_t raw,uint8_t fresh,uint8_t pi){
     __DMB();motor_head++;
 }
 /* CRC8 matches the LD14P development manual table (poly 0x4d, init 0).
- * Observation only: these checks do not change parser acceptance/control. */
-void Diag_RadarPacket(const uint8_t *a){
+ * Required acceptance checks; also counts rejected candidate packets. */
+uint8_t Diag_RadarPacket(const uint8_t *a){
     uint8_t crc=0,b;uint16_t i,start=(uint16_t)(a[4]|a[5]<<8),end=(uint16_t)(a[42]|a[43]<<8);
     Diag_detail_u[12]++;
     for(i=0;i<46;i++){crc^=a[i];for(b=0;b<8;b++)crc=(uint8_t)((crc<<1)^((crc&0x80)?0x4d:0));}
     if(crc!=a[46])Diag_detail_u[13]++;
     if(a[1]!=0x2c)Diag_detail_u[14]++;
     if(start>=36000 || end>=36000)Diag_detail_u[15]++;
+    return a[0]==0x54 && a[1]==0x2c && start<36000 && end<36000 && crc==a[46];
 }
 
 static const uint16_t scales[26]={10,1,1,1000,1,1000,1,1000,1000,1,1,1,1,1,1,1,1,1,10,1,1,1,1,1,1,1};
@@ -165,7 +166,7 @@ void Diag_Submit(uint16_t mode,uint16_t raw,uint16_t speed,uint8_t ok){
     }
     if(Diag_mode==2){uint8_t sum=0;memmove(frame+4,frame+14,52);frame[2]=1;frame[3]=(uint8_t)control_seq;for(i=4;i<56;i++)sum+=frame[i];frame[56]=sum;BLE_Queue(frame,57,0);return;}
     put32(frame+66,control_seq);put32(frame+70,in_ms);put32(frame+74,ms);put32(frame+78,dt);
-    put32(frame+82,v);put32(frame+86,u);put32(frame+90,clip);frame[94]=action;frame[95]=motor;frame[96]=DIAG_LIDAR_ID;frame[97]=1;
+    put32(frame+82,v);put32(frame+86,u);put32(frame+90,clip);frame[94]=action;frame[95]=motor;frame[96]=DIAG_LIDAR_ID;frame[97]=2;
     put32(frame+98,Diag_revision);put16(frame+102,raw);put16(frame+104,raw?speed:0);BLE_Queue(frame,108,0);
     detail_submit(now-begin_us,action,ok);
 }
@@ -180,12 +181,12 @@ static void config_poll(void){
     if(config_index>=14){key=100+config_index-14;type=3;val=config_params[config_index-14];}
     else switch(key){
       case 1:text=DIAG_LAYOUT;break;case 2:text=DIAG_BUILD_ID;break;
-      case 3:number=DIAG_LIDAR_ID;break;case 4:number=1;break;case 5:number=DIAG_INPUT_KIND;break;
+      case 3:number=DIAG_LIDAR_ID;break;case 4:number=2;break;case 5:number=DIAG_INPUT_KIND;break;
       case 6:number=BLE_UART_BAUD;break;case 7:number=Diag_rate;break;case 8:number=RADAR_TIMEOUT_TICKS*10;break;
-      case 9:number=1000;break;case 10:text="mm;CCR;encoder_units;slope;hold=control_count;PD=raw_difference";break;
+      case 9:number=1000;break;case 10:text="mm;CCR;encoder_units;slope;hold=control_count;PD=dt115ms-Dcap60-dirguard";break;
       case 11:number=DMA_USART2_RX_BUF_LEN;break;case 12:number=LEIDA_DATA_COUNTER;break;
-      case 13:text="break=550/600mm;width=600..900mm;PWM=1170/1445/1720;PDmid=uint16(144.5)*10;fit=legacy";break;
-      case 14:text="LD14P nominal4000pts/s@6Hz;PWM97;raw_crc=unchecked;input=DMA";break;
+      case 13:text="break=550/600mm;width=600..900mm;PWM=1170/1445/1720;PDmid=1445;fit=checked;center=paired";break;
+      case 14:text="LD14P nominal4000pts/s@6Hz;PWM97;raw_crc=required;input=DMA-stream";break;
     }
     if(text){type=4;n=(uint16_t)strlen(text);}
     header(3,33+n);put32(frame+14,config_id);put32(frame+18,Diag_revision);put16(frame+22,config_index);put16(frame+24,CFG_COUNT);
@@ -199,7 +200,7 @@ void Diag_Reject(const char*reason){if(Diag_mode==3 && BLE_FreeCritical()>=2)tex
 uint8_t Diag_Parameter(uint16_t key,float*ptr,float value){uint32_t p;if(config_pending || BLE_FreeCritical()<2)return 0;if(Diag_mode==3)event(key,*ptr,value);p=__get_PRIMASK();__disable_irq();*ptr=value;Diag_revision++;__set_PRIMASK(p);return 1;}
 static uint8_t number(const char*s,uint32_t*value){uint32_t n=0;uint8_t digits=0;while(*s){if(*s<'0'||*s>'9'||n>429496729u||(n==429496729u && *s>'5'))return 0;n=n*10+(*s++-'0');digits=1;}*value=n;return digits;}
 uint8_t Diag_Command(char*line){uint32_t n;char ack[180];
-    if(!strcmp(line,"info")){sprintf(ack,"INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=1 input=%u atomic=0 detail=1 motor=1\r\n",DIAG_LAYOUT,DIAG_BUILD_ID,(unsigned)DIAG_LIDAR_ID,(unsigned)DIAG_INPUT_KIND);Send_Bluetooth_Data(ack);return 1;}
+    if(!strcmp(line,"info")){sprintf(ack,"INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=2 input=%u atomic=0 detail=1 motor=1\r\n",DIAG_LAYOUT,DIAG_BUILD_ID,(unsigned)DIAG_LIDAR_ID,(unsigned)DIAG_INPUT_KIND);Send_Bluetooth_Data(ack);return 1;}
     if(!strcmp(line,"getcfg")){if(Diag_mode!=3){Diag_Reject("ERR mode\r\n");return 1;}Diag_ConfigStart();Send_Bluetooth_Data("OK getcfg\r\n");return 1;}
     if(!strncmp(line,"session ",8)){
         if(!number(line+8,&n)||!n){Diag_Reject("ERR session\r\n");return 1;}

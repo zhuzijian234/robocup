@@ -42,6 +42,8 @@ typedef struct {
 
 #define LEIDA_DATA_COUNTER 800   /* 每帧最大数据点数 */
 extern uint16_t valid_couter;
+extern uint8_t LEIDA_vertical_valid;
+void LEIDA_ParserReset(void);
 extern volatile uint32_t LEIDA_parse_calls;
 extern volatile uint32_t LEIDA_sync_failures;
 extern volatile uint32_t LEIDA_short_inputs;
