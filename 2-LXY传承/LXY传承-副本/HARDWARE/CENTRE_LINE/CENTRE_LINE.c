@@ -286,11 +286,16 @@ uint16_t Midline_PD(_LEIDA_DATA_plane points[],pid_type *pid,Midline_type *line,
     if(e>500)e=500;if(e< -500)e=-500;
     kp=(mode==1 || mode==2)?pid->kp_3:(mode==0 || (mode>=5 && mode<=7))?pid->kp:pid->kp_2;
     kd=(mode==1 || mode==2)?pid->kd_3:(mode==0 || (mode>=5 && mode<=7))?pid->kd:pid->kd_2;
-    if(!pd_history_valid || mode!=pd_previous_mode || !dt || dt>250000u){
+    /* Zero err_l on every change of measurement target, EXCEPT when entering a turn
+     * branch: there the error step is real car motion and its D kick is wanted. */
+    if(!pd_history_valid || !dt || dt>250000u ||
+       (mode!=pd_previous_mode && !((mode==1)||(mode==2)||(mode==3)||(mode==4)||(mode==8)||(mode==9)))){
         pid->err_l=e;Diag_detail_u[4]|=4;
     }else kd*=115000.0f/dt;
     p=10*kp*e;d=10*kd*(e-pid->err_l);original_d=d;
-    if(d>60)d=60;if(d< -60)d=-60;
+    /* 150 = about half of the one-sided servo travel (275), so the turn-entry
+     * kick is not clipped away before it reaches the rudder. */
+    if(d>150)d=150;if(d< -150)d=-150;
     /* D may damp P toward neutral, but cannot reverse the correction sign. */
     if((p>=0 && p+d<0) || (p<=0 && p+d>0))d=-p;
     if(d!=original_d)Diag_detail_u[4]|=2048;

@@ -24,6 +24,33 @@ int16_t Diag_Encode(uint8_t i,float v,uint8_t*valid,uint8_t*clipped){
     return (int16_t)(int32_t)rounded;
 }
 void Diag_Finalize(uint8_t*p,uint16_t n){if(n>=16 && p[0]==0xaa && p[1]==0x55 && p[2]==2){put32(p+6,tx_seq++);put16(p+n-2,Diag_CRC(p+2,n-4));}}
+static void motor_poll(void){
+    uint32_t tail=motor_tail,head=motor_head,seq,rev;uint8_t n=0;uint16_t off;MotorSample *s;
+    if(Diag_mode!=3 || !Diag_session || tail==head || !BLE_NormalSpace())return;
+    if(head-tail<8 && (uint32_t)(Diag_TimeUs()-motor_ring[tail&63].us)<80000u)return;
+    seq=motor_ring[tail&63].seq;rev=motor_ring[tail&63].rev;
+    while(n<8 && tail+n!=head && motor_ring[(tail+n)&63].rev==rev && motor_ring[(tail+n)&63].seq==seq+n)n++;
+    header(6,(uint16_t)(32+28*n));put16(frame+14,1);put16(frame+16,n);put32(frame+18,seq);put32(frame+22,rev);put32(frame+26,motor_dropped);
+    for(n=0,off=30;tail+n!=head && n<8;n++,off+=28){
+        s=&motor_ring[(tail+n)&63];if(s->rev!=rev || s->seq!=seq+n)break;
+        put32(frame+off,s->us);put16(frame+off+4,s->raw);put16(frame+off+6,s->pwm);
+        memcpy(frame+off+8,&s->speed,4);memcpy(frame+off+12,&s->target,4);
+        memcpy(frame+off+16,&s->integral,4);memcpy(frame+off+20,&s->prelimit,4);put32(frame+off+24,s->flags);
+    }
+    if(BLE_Queue(frame,(uint16_t)(32+28*n),0)){__DMB();motor_tail=tail+n;}
+}
+static void detail_submit(uint32_t elapsed,uint8_t action,uint8_t ok){
+    uint8_t i;
+    (void)action;
+    Diag_detail_u[0]=1;Diag_detail_u[1]=control_seq;Diag_detail_u[2]=Diag_revision;
+    Diag_detail_u[5]=elapsed;Diag_detail_u[11]=hold_count;
+    (void)ok;
+    Diag_detail_u[19]=LEIDA_sync_failures;Diag_detail_u[20]=LEIDA_missing_packets;
+    Diag_detail_u[21]=Diag_input_drop;Diag_detail_u[22]=Diag_tx_drop;Diag_detail_u[23]=motor_dropped;
+    header(5,176);for(i=0;i<24;i++)put32(frame+14+4*i,Diag_detail_u[i]);
+    for(i=0;i<16;i++)memcpy(frame+110+4*i,&Diag_detail_f[i],4);
+    BLE_Queue(frame,176,0);
+}
 
 volatile int codec_test_result=-1;
 static int run(void){
