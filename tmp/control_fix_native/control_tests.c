@@ -42,201 +42,385 @@ void Diag_Fit(const void *line,uint8_t valid){}
 void Servo_ChangePwm(uint16_t value){timer3.CCR1=value;}
 float Encoder_cnt,Speed_now;int16_t Encoder_cnt_arr[5];uint16_t Encoder_cnt_temp;
 uint16_t LEIDA_DATA_HANDLE10(_LEIDA_DATA_plane *,u16);
-uint8_t Diag_RadarPacket(const uint8_t *a){
-    uint8_t crc=0,b;uint16_t i,start=(uint16_t)(a[4]|a[5]<<8),end=(uint16_t)(a[42]|a[43]<<8);
+uint8_t Diag_RadarPacket(const uint8_t *a)
+{
+    uint8_t crc = 0, b;
+    uint16_t i, start = (uint16_t)(a[4] | a[5] << 8), end = (uint16_t)(a[42] | a[43] << 8);
     Diag_detail_u[12]++;
-    for(i=0;i<46;i++){crc^=a[i];for(b=0;b<8;b++)crc=(uint8_t)((crc<<1)^((crc&0x80)?0x4d:0));}
-    if(crc!=a[46])Diag_detail_u[13]++;
-    if(a[1]!=0x2c)Diag_detail_u[14]++;
-    if(start>=36000 || end>=36000)Diag_detail_u[15]++;
-    return a[0]==0x54 && a[1]==0x2c && start<36000 && end<36000 && crc==a[46];
+    for (i = 0; i < 46; i++) {
+        crc ^= a[i];
+        for (b = 0; b < 8; b++)
+            crc = (uint8_t)((crc << 1) ^ ((crc & 0x80) ? 0x4d : 0));
+    }
+    if (crc != a[46])
+        Diag_detail_u[13]++;
+    if (a[1] != 0x2c)
+        Diag_detail_u[14]++;
+    if (start >= 36000 || end >= 36000)
+        Diag_detail_u[15]++;
+    return a[0] == 0x54 && a[1] == 0x2c && start < 36000 && end < 36000 && crc == a[46];
 }
-void LEIDA_ParserReset(void){lidar_pending=0;}
+void LEIDA_ParserReset(void)
+{
+    lidar_pending = 0;
+}
 uint16_t LEIDA_DATA_HANDLE1(_LEIDA_DATA data[], u8 arr[], u16 size)
 {
-    uint16_t i,j=0,k,skip;float start,end,angle;
-    LEIDA_parse_calls++;LEIDA_raw_count=0;
-    Diag_detail_u[4]|=64;Diag_detail_u[17]=0xffffffffu;
-    memset(data,0,LEIDA_DATA_COUNTER*sizeof(*data));
-    if(!size){LEIDA_short_inputs++;return 0;}
-    for(i=0;i<size;i++){
-        if(!lidar_pending && arr[i]!=0x54)continue;
-        lidar_packet[lidar_pending++]=arr[i];
-        if(lidar_pending<47)continue;
-        if(Diag_RadarPacket(lidar_packet)){
-            if(Diag_detail_u[17]==0xffffffffu)Diag_detail_u[17]=i>=46?i-46:0;
-            LEIDA_speed_dps=(uint16_t)(lidar_packet[2]|lidar_packet[3]<<8);
-            start=(lidar_packet[4]|lidar_packet[5]<<8)/100.0f;
-            end=(lidar_packet[42]|lidar_packet[43]<<8)/100.0f;
-            if(end<start)end+=360.0f;
-            for(k=0;k<12 && j<LEIDA_DATA_COUNTER;k++,j++){
-                data[j].distance=(float)(lidar_packet[6+3*k]|lidar_packet[7+3*k]<<8);
-                /* Twelve measurements include both endpoints: divisor is 11. */
-                angle=start+(end-start)*k/11.0f;
-                angle=360.0f-angle+LEIDA_ANGLE_CENTER;
-                while(angle>=360.0f)angle-=360.0f;
-                while(angle<0)angle+=360.0f;
-                data[j].angle=angle;
-                if(data[j].distance>0)Diag_detail_u[18]|=1u<<(uint16_t)(angle/30.0f);
+    uint16_t i, j = 0, k, skip;
+    float start, end, angle;
+    LEIDA_parse_calls++;
+    LEIDA_raw_count = 0;
+    Diag_detail_u[4] |= 64;
+    Diag_detail_u[17] = 0xffffffffu;
+    /* 先全清: 同一个 800 槽数组被前后两块数据复用, 上一块写过的槽位这一块可能不再
+     * 被写到, 残留旧点会被 HANDLE3_2 当成有效点混进 valid_couter。 */
+    memset(data, 0, LEIDA_DATA_COUNTER * sizeof(*data));
+    if (!size) {
+        LEIDA_short_inputs++;
+        return 0;
+    }
+    for (i = 0; i < size; i++) {
+        if (!lidar_pending && arr[i] != 0x54)
+            continue;
+        lidar_packet[lidar_pending++] = arr[i];
+        if (lidar_pending < 47)
+            continue;
+        if (Diag_RadarPacket(lidar_packet)) {
+            if (Diag_detail_u[17] == 0xffffffffu)
+                Diag_detail_u[17] = i >= 46 ? i - 46 : 0;
+            LEIDA_speed_dps = (uint16_t)(lidar_packet[2] | lidar_packet[3] << 8);
+            start = (lidar_packet[4] | lidar_packet[5] << 8) / 100.0f;
+            end = (lidar_packet[42] | lidar_packet[43] << 8) / 100.0f;
+            if (end < start)
+                end += 360.0f;
+            for (k = 0; k < 12 && j < LEIDA_DATA_COUNTER; k++, j++) {
+                data[j].distance = (float)(lidar_packet[6 + 3 * k] | lidar_packet[7 + 3 * k] << 8);
+                /* LD14P 一包 47 字节: [0]0x54 [1]0x2C [2..3]转速 [4..5]起始角
+                 * [6..41]12 个点, 每点 3 字节(前 2 字节=距离, 小端; 第 3 字节本代码不用)
+                 * [42..43]结束角 [44..45]时间戳 [46]CRC8。点角度不读包内的, 用起止角插值:
+                 * 12 个点把首尾两端都算进去了, 所以除 11 而不是 12。 */
+                angle = start + (end - start) * k / 11.0f;
+                angle = 360.0f - angle + LEIDA_ANGLE_CENTER;
+                while (angle >= 360.0f)
+                    angle -= 360.0f;
+                while (angle < 0)
+                    angle += 360.0f;
+                data[j].angle = angle;
+                if (data[j].distance > 0)
+                    Diag_detail_u[18] |= 1u << (uint16_t)(angle / 30.0f);
             }
-            lidar_pending=0;
-        }else{
-            LEIDA_missing_packets++;Diag_detail_u[16]++;
+            lidar_pending = 0;
+        } else {
+            LEIDA_missing_packets++;
+            Diag_detail_u[16]++;
             /* Resynchronize bytewise; preserve a potential header inside a bad packet. */
-            for(skip=1;skip<47 && lidar_packet[skip]!=0x54;skip++){}
-            lidar_pending=(uint16_t)(47-skip);
-            if(lidar_pending)memmove(lidar_packet,lidar_packet+skip,lidar_pending);
+            for (skip = 1; skip < 47 && lidar_packet[skip] != 0x54; skip++) {
+            }
+            lidar_pending = (uint16_t)(47 - skip);
+            if (lidar_pending)
+                memmove(lidar_packet, lidar_packet + skip, lidar_pending);
         }
     }
-    if(!j && size>=47)LEIDA_sync_failures++;
-    LEIDA_raw_count=j;return j;
+    if (!j && size >= 47)
+        LEIDA_sync_failures++;
+    LEIDA_raw_count = j;
+    return j;
 }
 uint16_t LEIDA_DATA_HANDLE10(_LEIDA_DATA_plane arr[], u16 size)
 {
-    uint16_t i,n=0;float lo=FLT_MAX,hi=-FLT_MAX,threshold,previous=0,x;
-    for(i=0;i<size;i++){
-        if(!(arr[i]._x<=FLT_MAX && arr[i]._x>=-FLT_MAX && arr[i]._y<=FLT_MAX && arr[i]._y>=-FLT_MAX))continue;
-        arr[n++]=arr[i];
+    uint16_t i, n = 0;
+    float lo = FLT_MAX, hi = -FLT_MAX, threshold, previous = 0, x;
+    for (i = 0; i < size; i++) {
+        if (!(arr[i]._x <= FLT_MAX && arr[i]._x >= -FLT_MAX && arr[i]._y <= FLT_MAX && arr[i]._y >= -FLT_MAX))
+            continue;
+        arr[n++] = arr[i];
     }
-    size=n;if(size<3)return size;
-    for(i=0;i<size;i++){if(arr[i]._x<lo)lo=arr[i]._x;if(arr[i]._x>hi)hi=arr[i]._x;}
-    threshold=5*(hi-lo)/size;if(threshold<20)threshold=20;
+    size = n;
+    if (size < 3)
+        return size;
+    for (i = 0; i < size; i++) {
+        if (arr[i]._x < lo)
+            lo = arr[i]._x;
+        if (arr[i]._x > hi)
+            hi = arr[i]._x;
+    }
+    threshold = 5 * (hi - lo) / size;
+    if (threshold < 20)
+        threshold = 20;
     /* Remove isolated jumps, preserve constant-x walls and endpoints. */
-    for(i=0,n=0;i<size;i++){
-        x=arr[i]._x;
-        if(i==0 || i+1==size || fabs(x-previous)<=threshold || fabs(x-arr[i+1]._x)<=threshold)arr[n++]=arr[i];
-        previous=x;
+    for (i = 0, n = 0; i < size; i++) {
+        x = arr[i]._x;
+        if (i == 0 || i + 1 == size || fabs(x - previous) <= threshold || fabs(x - arr[i + 1]._x) <= threshold)
+            arr[n++] = arr[i];
+        previous = x;
     }
     return n;
 }
 uint16_t LEIDA_DATA_HANDLE4(_LEIDA_DATA_plane data_center[], _LEIDA_DATA arr[], u16 size)
 {
-    uint16_t i,n=0;int right,left;float a,b,dr,dl,diff,x,y;
-    zhongxian_junzhi=0;
-    for(a=LEIDA_ANGLE_RIGHT,b=LEIDA_ANGLE_LEFT;
-        a<=LEIDA_ANGLE_RIGHT+LEIDA_ANGLE_yuliang;a+=0.6f,b-=0.6f){
+    uint16_t i, n = 0;
+    int right, left;
+    float a, b, dr, dl, diff, x, y;
+    zhongxian_junzhi = 0;
+    for (a = LEIDA_ANGLE_RIGHT, b = LEIDA_ANGLE_LEFT;
+         a <= LEIDA_ANGLE_RIGHT + LEIDA_ANGLE_yuliang; a += 0.6f, b -= 0.6f) {
         /* Each angular pair owns fresh indices; array index zero is valid. */
-        right=left=-1;dr=dl=2001.0f;
-        for(i=0;i<size;i++){
-            if(arr[i].distance<100 || arr[i].distance>2000)continue;
-            diff=fabs(arr[i].angle-a);if(diff>180)diff=360-diff;
-            if(diff<=LEIDA_ANGLE_piancha && arr[i].distance<dr){right=i;dr=arr[i].distance;}
-            diff=fabs(arr[i].angle-b);if(diff>180)diff=360-diff;
-            if(diff<=LEIDA_ANGLE_piancha && arr[i].distance<dl){left=i;dl=arr[i].distance;}
+        right = left = -1;
+        dr = dl = 2001.0f;
+        for (i = 0; i < size; i++) {
+            if (arr[i].distance < 100 || arr[i].distance > 2000)
+                continue;
+            diff = fabs(arr[i].angle - a);
+            if (diff > 180)
+                diff = 360 - diff;
+            if (diff <= LEIDA_ANGLE_piancha && arr[i].distance < dr) {
+                right = i;
+                dr = arr[i].distance;
+            }
+            diff = fabs(arr[i].angle - b);
+            if (diff > 180)
+                diff = 360 - diff;
+            if (diff <= LEIDA_ANGLE_piancha && arr[i].distance < dl) {
+                left = i;
+                dl = arr[i].distance;
+            }
         }
-        if(right<0 || left<0)continue;
-        x=(arr[right].distance*arm_cos_f32(arr[right].angle*PI/180)+arr[left].distance*arm_cos_f32(arr[left].angle*PI/180))/2;
-        y=(arr[right].distance*arm_sin_f32(arr[right].angle*PI/180)+arr[left].distance*arm_sin_f32(arr[left].angle*PI/180))/2;
-        if(y>=0 && y<=800 && n<LEIDA_DATA_COUNTER/2){data_center[n]._x=x;data_center[n++]._y=y;}
+        if (right < 0 || left < 0)
+            continue;
+        x = (arr[right].distance * arm_cos_f32(arr[right].angle * PI / 180) + arr[left].distance * arm_cos_f32(arr[left].angle * PI / 180)) / 2;
+        y = (arr[right].distance * arm_sin_f32(arr[right].angle * PI / 180) + arr[left].distance * arm_sin_f32(arr[left].angle * PI / 180)) / 2;
+        if (y >= 0 && y <= 800 && n < LEIDA_DATA_COUNTER / 2) {
+            data_center[n]._x = x;
+            data_center[n++]._y = y;
+        }
     }
-    n=LEIDA_DATA_HANDLE10(data_center,n);
-    for(i=0;i<n;i++)zhongxian_junzhi+=data_center[i]._x;
-    if(n)zhongxian_junzhi/=n;
+    n = LEIDA_DATA_HANDLE10(data_center, n);
+    for (i = 0; i < n; i++)
+        zhongxian_junzhi += data_center[i]._x;
+    if (n)
+        zhongxian_junzhi /= n;
     return n;
 }
 float LEIDA_DATA_HANDLE11(_LEIDA_DATA_plane arr[], u16 start, u16 end)
 {
-    uint16_t i;float lo=FLT_MAX,hi=-FLT_MAX,sum=0,x;
-    LEIDA_vertical_valid=0;
-    if(end<=start || end-start<2 || end>LEIDA_DATA_COUNTER/2)return 0;
-    for(i=start;i<end;i++){
-        x=arr[i]._x;if(!(x<=FLT_MAX && x>=-FLT_MAX))return 0;
-        if(x<lo)lo=x;if(x>hi)hi=x;sum+=x;
+    uint16_t i;
+    float lo = FLT_MAX, hi = -FLT_MAX, sum = 0, x;
+    LEIDA_vertical_valid = 0;
+    if (end <= start || end - start < 2 || end > LEIDA_DATA_COUNTER / 2)
+        return 0;
+    for (i = start; i < end; i++) {
+        x = arr[i]._x;
+        if (!(x <= FLT_MAX && x >= -FLT_MAX))
+            return 0;
+        if (x < lo)
+            lo = x;
+        if (x > hi)
+            hi = x;
+        sum += x;
     }
-    if(hi-lo<10){LEIDA_vertical_valid=1;return sum/(end-start);}
+    if (hi - lo < 10) {
+        LEIDA_vertical_valid = 1;
+        return sum / (end - start);
+    }
     return 0;
 }
-uint8_t Midline_fit(_LEIDA_DATA_plane *points,int start,int end,Midline_type *line)
+uint8_t Midline_fit(_LEIDA_DATA_plane *points, int start, int end, Midline_type *line)
 {
-    int i,n=end-start;float sx=0,sy=0,xx=0,xy=0,x,y;
-    line->k=line->b=0;
-    if(start<0 || n<2 || end>LEIDA_DATA_COUNTER/2){Diag_Fit(line,0);return 0;}
-    for(i=start;i<end;i++){
-        x=points[i]._x;y=points[i]._y;
-        if(!(x<=FLT_MAX && x>=-FLT_MAX && y<=FLT_MAX && y>=-FLT_MAX)){Diag_Fit(line,0);return 0;}
-        sx+=x;sy+=y;
+    int i, n = end - start;
+    float sx = 0, sy = 0, xx = 0, xy = 0, x, y;
+    line->k = line->b = 0;
+    if (start < 0 || n < 2 || end > LEIDA_DATA_COUNTER / 2) {
+        Diag_Fit(line, 0);
+        return 0;
     }
-    sx/=n;sy/=n;
-    for(i=start;i<end;i++){x=points[i]._x-sx;xx+=x*x;xy+=x*(points[i]._y-sy);}
-    if(xx<=1e-6f){line->b=sy;Diag_Fit(line,0);return 0;}
-    line->k=xy/xx;line->b=sy-line->k*sx;
-    if(!(line->k<=FLT_MAX && line->k>=-FLT_MAX && line->b<=FLT_MAX && line->b>=-FLT_MAX)){line->k=line->b=0;Diag_Fit(line,0);return 0;}
-    Diag_Fit(line,1);return 1;
+    for (i = start; i < end; i++) {
+        x = points[i]._x;
+        y = points[i]._y;
+        if (!(x <= FLT_MAX && x >= -FLT_MAX && y <= FLT_MAX && y >= -FLT_MAX)) {
+            Diag_Fit(line, 0);
+            return 0;
+        }
+        sx += x;
+        sy += y;
+    }
+    sx /= n;
+    sy /= n;
+    for (i = start; i < end; i++) {
+        x = points[i]._x - sx;
+        xx += x * x;
+        xy += x * (points[i]._y - sy);
+    }
+    if (xx <= 1e-6f) {
+        line->b = sy;
+        Diag_Fit(line, 0);
+        return 0;
+    }
+    line->k = xy / xx;
+    line->b = sy - line->k * sx;
+    if (!(line->k <= FLT_MAX && line->k >= -FLT_MAX && line->b <= FLT_MAX && line->b >= -FLT_MAX)) {
+        line->k = line->b = 0;
+        Diag_Fit(line, 0);
+        return 0;
+    }
+    Diag_Fit(line, 1);
+    return 1;
 }
-void Midline_PD_Reset(void){pd_history_valid=0;Servo_PD_valid=0;}
-static uint16_t pd_reject(void){
-    Diag_detail_u[4]&=~1u;Diag_detail_u[4]|=512u;
-    Midline_PD_Reset();return (uint16_t)TIM3->CCR1;
-}
-uint16_t Midline_PD(_LEIDA_DATA_plane points[],pid_type *pid,Midline_type *line,
-                    float mid,uint16_t start,uint16_t end,uint16_t mode)
+void Midline_PD_Reset(void)
 {
-    uint16_t i;uint32_t now=Diag_TimeUs(),dt=now-pd_previous_us;
-    float e=0,kp,kd,p,d,original_d,output,mag,x=0,best=FLT_MAX,target;
-    Servo_PD_valid=0;
-    Diag_detail_u[6]=pd_previous_mode;Diag_detail_u[7]=start;Diag_detail_u[8]=end;
-    Diag_detail_u[9]=end>start?end-start:0;Diag_detail_f[13]=pid->err_l;
-    Diag_detail_f[11]=line->k;Diag_detail_f[12]=line->b;
-    if(mode>9 || end<=start || end>LEIDA_DATA_COUNTER/2){
-        if(mode==1 || mode==2)Diag_detail_u[4]|=8;
+    pd_history_valid = 0;
+    Servo_PD_valid = 0;
+}
+static uint16_t pd_reject(void)
+{
+    Diag_detail_u[4] &= ~1u;
+    Diag_detail_u[4] |= 512u;
+    Midline_PD_Reset();
+    return (uint16_t)TIM3->CCR1;
+}
+uint16_t Midline_PD(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *line,
+                    float mid, uint16_t start, uint16_t end, uint16_t mode)
+{
+    uint16_t i;
+    uint32_t now = Diag_TimeUs(), dt = now - pd_previous_us;
+    float e = 0, kp, kd, p, d, original_d, output, mag, x = 0, best = FLT_MAX, target;
+    Servo_PD_valid = 0;
+    Diag_detail_u[6] = pd_previous_mode;
+    Diag_detail_u[7] = start;
+    Diag_detail_u[8] = end;
+    Diag_detail_u[9] = end > start ? end - start : 0;
+    Diag_detail_f[13] = pid->err_l;
+    Diag_detail_f[11] = line->k;
+    Diag_detail_f[12] = line->b;
+    if (mode > 9 || end <= start || end > LEIDA_DATA_COUNTER / 2) {
+        if (mode == 1 || mode == 2)
+            Diag_detail_u[4] |= 8;
         return pd_reject();
     }
-    if(mode==0){
-        if(!(fabs(line->k)>0.1f && fabs(line->k)<=FLT_MAX && fabs(line->b)<=FLT_MAX))return pd_reject();
-        target=BLUE_Y_STRA_SEL==1?BLUE_Y_STRA:points[end-1]._y;
-        e=-((target-line->b)/line->k-50);
-        if(BLUE_Y_STRA_SEL!=1){if(e>200)e=200;if(e< -200)e=-200;}
-    }else if(mode==1 || mode==2){
-        target=mode==1?BLUE_Y_RIGHT:BLUE_Y_LEFT;
-        for(i=start;i<end;i++){
-            float dy=fabs(points[i]._y-target);
-            if(dy<best && fabs(points[i]._x)<=FLT_MAX){best=dy;x=points[i]._x;
-                Diag_detail_u[4]|=2;Diag_detail_f[8]=x;Diag_detail_f[9]=points[i]._y;Diag_detail_f[10]=dy;}
+    if (mode == 0) {
+        if (!(fabs(line->k) > 0.1f && fabs(line->k) <= FLT_MAX && fabs(line->b) <= FLT_MAX))
+            return pd_reject();
+        target = BLUE_Y_STRA_SEL == 1 ? BLUE_Y_STRA : points[end - 1]._y;
+        e = -((target - line->b) / line->k - 50);
+        if (BLUE_Y_STRA_SEL != 1) {
+            if (e > 200)
+                e = 200;
+            if (e < -200)
+                e = -200;
         }
-        if(!(Diag_detail_u[4]&2)){Diag_detail_u[4]|=8;return pd_reject();}
-        e=mode==1?-(x+paodao_distance*BLUE_DIS_RIGHT/100):-(x-paodao_distance*BLUE_DIS_LEFT/100);
-    }else if(mode==3 || mode==4 || mode==8 || mode==9){
-        if(!(fabs(line->k)<=FLT_MAX))return pd_reject();
-        mag=fabs(line->k)<0.35f?500.0f:175.0f/fabs(line->k);
-        /* Direction is the selected branch, never the sign of a degenerate fit. */
-        e=(mode==3 || mode==8)?-mag:mag;
-    }else if(mode==5){
-        if(!LEIDA_vertical_valid)return pd_reject();
-        e=50-zhongxian_chuizhi;
-    }else{
-        if(end-start<2)return pd_reject();
-        for(i=start;i<end;i++){if(!(fabs(points[i]._x)<=FLT_MAX))return pd_reject();x+=points[i]._x;}
-        x/=end-start;e=50-x;Diag_detail_f[14]=x;Diag_detail_u[4]|=256;
+    } else if (mode == 1 || mode == 2) {
+        target = mode == 1 ? BLUE_Y_RIGHT : BLUE_Y_LEFT;
+        for (i = start; i < end; i++) {
+            float dy = fabs(points[i]._y - target);
+            if (dy < best && fabs(points[i]._x) <= FLT_MAX) {
+                best = dy;
+                x = points[i]._x;
+                Diag_detail_u[4] |= 2;
+                Diag_detail_f[8] = x;
+                Diag_detail_f[9] = points[i]._y;
+                Diag_detail_f[10] = dy;
+            }
+        }
+        if (!(Diag_detail_u[4] & 2)) {
+            Diag_detail_u[4] |= 8;
+            return pd_reject();
+        }
+        /* 期望: 墙保持在车侧 paodao*BLUE_DIS/100 mm 处。x 是"离该墙的点"的横向坐标,
+         * e<0 = 车离墙太远, 该往右打 (mode1); e>0 = 该往左打 (mode2)。 */
+        e = mode == 1 ? -(x + paodao_distance * BLUE_DIS_RIGHT / 100) : -(x - paodao_distance * BLUE_DIS_LEFT / 100);
+    } else if (mode == 3 || mode == 4 || mode == 8 || mode == 9) {
+        if (!(fabs(line->k) <= FLT_MAX))
+            return pd_reject();
+        /* 转弯力度: 线越斜(弯越急)|k| 越小, 给的固定误差越大; |k|<0.35 直接顶到 500。
+         * 方向由模式决定, 不看 k 的符号 —— 拟合退化时也不给反向指令。 */
+        mag = fabs(line->k) < 0.35f ? 500.0f : 175.0f / fabs(line->k);
+        e = (mode == 3 || mode == 8) ? -mag : mag;
+    } else if (mode == 5) {
+        if (!LEIDA_vertical_valid)
+            return pd_reject();
+        e = 50 - zhongxian_chuizhi;
+    } else {
+        if (end - start < 2)
+            return pd_reject();
+        for (i = start; i < end; i++) {
+            if (!(fabs(points[i]._x) <= FLT_MAX))
+                return pd_reject();
+            x += points[i]._x;
+        }
+        x /= end - start;
+        e = 50 - x;
+        Diag_detail_f[14] = x;
+        Diag_detail_u[4] |= 256;
     }
-    if(!(fabs(e)<=FLT_MAX))return pd_reject();
-    if(e>500)e=500;if(e< -500)e=-500;
-    kp=(mode==1 || mode==2)?pid->kp_3:(mode==0 || (mode>=5 && mode<=7))?pid->kp:pid->kp_2;
-    kd=(mode==1 || mode==2)?pid->kd_3:(mode==0 || (mode>=5 && mode<=7))?pid->kd:pid->kd_2;
-    /* Zero err_l on every change of measurement target, EXCEPT when entering a turn
-     * branch: there the error step is real car motion and its D kick is wanted. */
-    if(!pd_history_valid || !dt || dt>250000u ||
-       (mode!=pd_previous_mode && !((mode==1)||(mode==2)||(mode==3)||(mode==4)||(mode==8)||(mode==9)))){
-        pid->err_l=e;Diag_detail_u[4]|=4;
-    }else kd*=115000.0f/dt;
-    p=10*kp*e;d=10*kd*(e-pid->err_l);original_d=d;
-    /* 150 = about half of the one-sided servo travel (275), so the turn-entry
-     * kick is not clipped away before it reaches the rudder. */
-    if(d>150)d=150;if(d< -150)d=-150;
-    /* D may damp P toward neutral, but cannot reverse the correction sign. */
-    if((p>=0 && p+d<0) || (p<=0 && p+d>0))d=-p;
-    if(d!=original_d)Diag_detail_u[4]|=2048;
-    output=10*mid+p+d;
-    /* Explicit turn branches cannot command the opposite side of neutral. */
-    if((mode==1 || mode==3 || mode==8) && output>10*mid){output=10*mid;Diag_detail_u[4]|=1024;}
-    if((mode==2 || mode==4 || mode==9) && output<10*mid){output=10*mid;Diag_detail_u[4]|=1024;}
-    if(!(fabs(output)<=FLT_MAX))return pd_reject();
-    Diag_detail_u[4]|=1;
-    Diag_detail_f[0]=pid->err_l;Diag_detail_f[1]=e;Diag_detail_f[2]=p;Diag_detail_f[3]=d;
-    Diag_detail_f[4]=kp;Diag_detail_f[5]=kd;Diag_detail_f[6]=output;Diag_detail_f[7]=10*mid;
-    if(output<SERVO_PWM_MIN || output>SERVO_PWM_MAX)Diag_detail_u[4]|=16;
-    if(output<SERVO_PWM_MIN)output=SERVO_PWM_MIN;if(output>SERVO_PWM_MAX)output=SERVO_PWM_MAX;
-    pid->err=pid->err_l=e;pd_previous_us=now;pd_previous_mode=mode;pd_history_valid=1;Servo_PD_valid=1;
-    Servo_ChangePwm((uint16_t)output);return (uint16_t)output;
+    if (!(fabs(e) <= FLT_MAX))
+        return pd_reject();
+    if (e > 500)
+        e = 500;
+    if (e < -500)
+        e = -500;
+    kp = (mode == 1 || mode == 2) ? pid->kp_3 : (mode == 0 || (mode >= 5 && mode <= 7)) ? pid->kp
+                                                                                        : pid->kp_2;
+    kd = (mode == 1 || mode == 2) ? pid->kd_3 : (mode == 0 || (mode >= 5 && mode <= 7)) ? pid->kd
+                                                                                        : pid->kd_2;
+    /* 换测量目标那一帧要不要清 err_l? 清 —— 否则 D 会把"上一帧的旧误差"当成
+     * 跳变, 打一记假踢腿。但有一类例外: 进入转弯模式(1/2/3/4/8/9)时 err_l 保留,
+     * 因为那一帧的误差跳变是车真的在拐, D 踢腿正是入弯要的力度。
+     * 2026-09-22 实测: 原来无脑清, 入弯第一帧从打满(≈-324)掉到 -200, 表现为
+     * "转弯力度小、反应迟钝"。
+     * !dt / dt>250ms: 中间隔了太久(掉帧、切过测试模式), 旧误差没有参考意义, 重学。 */
+    if (!pd_history_valid || !dt || dt > 250000u ||
+        (mode != pd_previous_mode && !((mode == 1) || (mode == 2) || (mode == 3) || (mode == 4) || (mode == 8) || (mode == 9)))) {
+        pid->err_l = e;
+        Diag_detail_u[4] |= 4;
+    } else
+        kd *= 115000.0f / dt;
+    p = 10 * kp * e;
+    d = 10 * kd * (e - pid->err_l);
+    original_d = d;
+    /* D 限幅 ±150: 舵机单边行程 275 (SERVO_PWM_MID 1445 → MIN 1170), 150 约半程,
+     * 再小就会把入弯那记踢腿削掉。实测 mode 3 入弯 D ≈ -124, 原来的 ±60 砍掉一半。 */
+    if (d > 150)
+        d = 150;
+    if (d < -150)
+        d = -150;
+    /* D 只能把 P 往中位拉, 不许把修正方向拽反 */
+    if ((p >= 0 && p + d < 0) || (p <= 0 && p + d > 0))
+        d = -p;
+    if (d != original_d)
+        Diag_detail_u[4] |= 2048;
+    output = 10 * mid + p + d;
+    /* 打方向的模式(1/3/8 往右, 2/4/9 往左)不许把舵机指到中位的另一边, 防反打 */
+    if ((mode == 1 || mode == 3 || mode == 8) && output > 10 * mid) {
+        output = 10 * mid;
+        Diag_detail_u[4] |= 1024;
+    }
+    if ((mode == 2 || mode == 4 || mode == 9) && output < 10 * mid) {
+        output = 10 * mid;
+        Diag_detail_u[4] |= 1024;
+    }
+    if (!(fabs(output) <= FLT_MAX))
+        return pd_reject();
+    Diag_detail_u[4] |= 1;
+    Diag_detail_f[0] = pid->err_l;
+    Diag_detail_f[1] = e;
+    Diag_detail_f[2] = p;
+    Diag_detail_f[3] = d;
+    Diag_detail_f[4] = kp;
+    Diag_detail_f[5] = kd;
+    Diag_detail_f[6] = output;
+    Diag_detail_f[7] = 10 * mid;
+    if (output < SERVO_PWM_MIN || output > SERVO_PWM_MAX)
+        Diag_detail_u[4] |= 16;
+    if (output < SERVO_PWM_MIN)
+        output = SERVO_PWM_MIN;
+    if (output > SERVO_PWM_MAX)
+        output = SERVO_PWM_MAX;
+    pid->err = pid->err_l = e;
+    pd_previous_us = now;
+    pd_previous_mode = mode;
+    pd_history_valid = 1;
+    Servo_PD_valid = 1;
+    Servo_ChangePwm((uint16_t)output);
+    return (uint16_t)output;
 }
 void Get_Encoder(void)
 {

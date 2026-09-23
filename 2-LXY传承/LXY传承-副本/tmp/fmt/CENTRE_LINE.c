@@ -11,27 +11,17 @@
  *   3. 转向控制:  多模式PD控制器 -> 舵机PWM
  *   4. 速度控制:  位置式PI控制器 -> 电机PWM
  *
- * PID控制模式说明 (Midline_PD 的 mode 参数, 只允许 0~9; 与 main.c 第8步的选法对应):
- *   0  = 普通中线循迹（直道/微弯）      误差: -((y_target - b)/k - 50)                    kp,   kd
- *        y_target = 拟合线末点 points[end-1]._y（BLUE_Y_STRA_SEL=1 时改用 BLUE_Y_STRA）
- *        |k| <= 0.1 视为"线太横"退化, 直接拒绝本帧
- *   1  = 小角度右转                    误差: -(x + paodao*BLUE_DIS_RIGHT/100)             kp_3, kd_3
- *        在窗口里找 y 最接近 BLUE_Y_RIGHT 的点, 用它的 x 算偏差, 即"把右墙保持在车右
- *        paodao*BLUE_DIS_RIGHT/100 mm 处"; 窗口里一个点都没有则拒绝本帧
- *   2  = 小角度左转                    误差: -(x - paodao*BLUE_DIS_LEFT/100)              kp_3, kd_3
- *        同上, 目标高度 BLUE_Y_LEFT
- *   3  = 大角度右转（右断点+前方拟合, |k|<0.35）    误差: -mag          kp_2, kd_2
- *   4  = 大角度左转                               误差: +mag          kp_2, kd_2
- *   8  = 中等角度右转（0.35<=|k|<0.7 且单边拟合）   误差: -mag          kp_2, kd_2
- *   9  = 中等角度左转                             误差: +mag          kp_2, kd_2
- *        mag = |k| < 0.35 ? 500 : 175/|k| —— 线越斜给的固定误差越大(上限 500);
- *        方向只由模式决定, 不看 k 的符号（k 退化时不给反向指令）
- *   5  = 中线垂直直道                  误差: 50 - zhongxian_chuizhi    kp, kd  (需 LEIDA_vertical_valid)
- *   7  = 中线均值兜底                  误差: 50 - mean(points[]._x)    kp, kd  (拟合失败时用)
- *   6  = 保留未使用                    公式同 7; 当前 main.c 不会选它
- *
- * 注意: 10=BLE_MODE_HOLD / 11=BLE_MODE_INVALID / 12=BLE_MODE_FORCED 是遥测伪模式,
- *       只出现在 main.c 的 telemetry_mode 里, 绝不能传进 Midline_PD (mode>9 会被直接拒绝)。
+ * PID控制模式说明 (flag参数):
+ *   0  = 普通中线循迹（直道/微弯）          误差: -(x_target - 50)               kp, kd
+ *   1  = 小角度右转                         误差: -(x_right_ref + width_comp)     kp_3, kd_3
+ *   2  = 小角度左转                         误差: -(x_left_ref - width_comp)      kp_3, kd_3
+ *   3  = 大角度右转（右断点 + 前方数据）     误差: -Δy/k                           kp_2, kd_2
+ *   4  = 大角度左转                         误差: -Δy/k                           kp_2, kd_2
+ *   5  = 中线垂直直道模式                    误差: -(center_vertical - 50)         kp, kd
+ *   6  = 中线均值控制A                       误差: -zhongxian_junzhi               kp, kd
+ *   7  = 中线均值控制B                       误差: -zhongxian_junzhi               kp, kd
+ *   8  = 中等角度右转                        误差: -Δy/k                           kp_2, kd_2
+ *   9  = 中等角度左转                        误差: -Δy/k                           kp_2, kd_2
  */
 
 #include "centre_line.h"
@@ -264,11 +254,6 @@ void Midline_PD_Reset(void)
     pd_history_valid = 0;
     Servo_PD_valid = 0;
 }
-/* 本帧数据不可用时统一的出口: 记诊断位、清历史(下次重新学 err_l)、
- * 舵机保持原位(返回当前 CCR, 不写 PWM)。
- * 代价: 它会留下 Servo_PD_valid = 0 —— main.c 里只有 Servo_PD_valid=1 才会调
- * Radar_ControlCompleted(), 而 TIM5 里 500ms 等不到该调用就会永久锁电机,
- * 所以"拒绝"只能偶发, 不能变成常态。 */
 static uint16_t pd_reject(void)
 {
     Diag_detail_u[4] &= ~1u;
@@ -323,15 +308,12 @@ uint16_t Midline_PD(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *lin
             Diag_detail_u[4] |= 8;
             return pd_reject();
         }
-        /* 期望: 墙保持在车侧 paodao*BLUE_DIS/100 mm 处。x 是"离该墙的点"的横向坐标,
-         * e<0 = 车离墙太远, 该往右打 (mode1); e>0 = 该往左打 (mode2)。 */
         e = mode == 1 ? -(x + paodao_distance * BLUE_DIS_RIGHT / 100) : -(x - paodao_distance * BLUE_DIS_LEFT / 100);
     } else if (mode == 3 || mode == 4 || mode == 8 || mode == 9) {
         if (!(fabs(line->k) <= FLT_MAX))
             return pd_reject();
-        /* 转弯力度: 线越斜(弯越急)|k| 越小, 给的固定误差越大; |k|<0.35 直接顶到 500。
-         * 方向由模式决定, 不看 k 的符号 —— 拟合退化时也不给反向指令。 */
         mag = fabs(line->k) < 0.35f ? 500.0f : 175.0f / fabs(line->k);
+        /* Direction is the selected branch, never the sign of a degenerate fit. */
         e = (mode == 3 || mode == 8) ? -mag : mag;
     } else if (mode == 5) {
         if (!LEIDA_vertical_valid)
@@ -360,12 +342,8 @@ uint16_t Midline_PD(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *lin
                                                                                         : pid->kp_2;
     kd = (mode == 1 || mode == 2) ? pid->kd_3 : (mode == 0 || (mode >= 5 && mode <= 7)) ? pid->kd
                                                                                         : pid->kd_2;
-    /* 换测量目标那一帧要不要清 err_l? 清 —— 否则 D 会把"上一帧的旧误差"当成
-     * 跳变, 打一记假踢腿。但有一类例外: 进入转弯模式(1/2/3/4/8/9)时 err_l 保留,
-     * 因为那一帧的误差跳变是车真的在拐, D 踢腿正是入弯要的力度。
-     * 2026-09-22 实测: 原来无脑清, 入弯第一帧从打满(≈-324)掉到 -200, 表现为
-     * "转弯力度小、反应迟钝"。
-     * !dt / dt>250ms: 中间隔了太久(掉帧、切过测试模式), 旧误差没有参考意义, 重学。 */
+    /* Zero err_l on every change of measurement target, EXCEPT when entering a turn
+     * branch: there the error step is real car motion and its D kick is wanted. */
     if (!pd_history_valid || !dt || dt > 250000u ||
         (mode != pd_previous_mode && !((mode == 1) || (mode == 2) || (mode == 3) || (mode == 4) || (mode == 8) || (mode == 9)))) {
         pid->err_l = e;
@@ -375,19 +353,19 @@ uint16_t Midline_PD(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *lin
     p = 10 * kp * e;
     d = 10 * kd * (e - pid->err_l);
     original_d = d;
-    /* D 限幅 ±150: 舵机单边行程 275 (SERVO_PWM_MID 1445 → MIN 1170), 150 约半程,
-     * 再小就会把入弯那记踢腿削掉。实测 mode 3 入弯 D ≈ -124, 原来的 ±60 砍掉一半。 */
+    /* 150 = about half of the one-sided servo travel (275), so the turn-entry
+     * kick is not clipped away before it reaches the rudder. */
     if (d > 150)
         d = 150;
     if (d < -150)
         d = -150;
-    /* D 只能把 P 往中位拉, 不许把修正方向拽反 */
+    /* D may damp P toward neutral, but cannot reverse the correction sign. */
     if ((p >= 0 && p + d < 0) || (p <= 0 && p + d > 0))
         d = -p;
     if (d != original_d)
         Diag_detail_u[4] |= 2048;
     output = 10 * mid + p + d;
-    /* 打方向的模式(1/3/8 往右, 2/4/9 往左)不许把舵机指到中位的另一边, 防反打 */
+    /* Explicit turn branches cannot command the opposite side of neutral. */
     if ((mode == 1 || mode == 3 || mode == 8) && output > 10 * mid) {
         output = 10 * mid;
         Diag_detail_u[4] |= 1024;

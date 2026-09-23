@@ -53,7 +53,7 @@
 #include "leida_pwm.h"
 #include "LEIDA_DATA.h"
 #include "bsp_bluetooth.h"
-#include "ble_tune.h"           /* 蓝牙实时调参 (HARDWARE/hc-05/ble_tune.c) */
+#include "ble_tune.h" /* 蓝牙实时调参 (HARDWARE/hc-05/ble_tune.c) */
 #include "centre_line.h"
 #include "timer.h"
 #include "moto.h"
@@ -71,63 +71,72 @@
  */
 #define HW_TEST_SELECT 0
 /* 全局变量 */
-uint16_t RIGHT_duandian;           /* 右边界断点y坐标 */
-uint16_t LEFT_duandian;            /* 左边界断点y坐标 */
-float paodao_distance       = 700; /* 跑道宽度 (mm) */
-float paodao_distance_r     = 700; /* 当前帧跑道宽度 (mm) */
-float paodao_distance_r_r   = 0;
+uint16_t RIGHT_duandian;       /* 右边界断点y坐标 */
+uint16_t LEFT_duandian;        /* 左边界断点y坐标 */
+float paodao_distance = 700;   /* 跑道宽度 (mm) */
+float paodao_distance_r = 700; /* 当前帧跑道宽度 (mm) */
+float paodao_distance_r_r = 0;
 float paodao_distance_r_r_r = 0;
-uint16_t state_left_cnt     = 0;   /* 左转持续计数 (大角度强制) */
-uint16_t state_right_cnt    = 0;   /* 右转持续计数 (大角度强制) */
-uint16_t state_left_cnt_2   = 0;   /* 左转二级计数 (连续大左转后强制) */
-uint16_t state_right_cnt_2  = 0;   /* 右转二级计数 (连续大右转后强制) */
+/* 下面四个都是"还欠几帧强制动作"的倒计时, 不是累计计数 (帧率≈8.7fps, 1帧≈115ms):
+ *   state_*_cnt   : 连续两帧大转弯后, 回到直道还要补打满的帧数 —— 把弯转完
+ *   state_*_cnt_2 : 转弯途中前方拟合突然失效时, 只保舵机、不重算边界的帧数
+ * 命名看的是"用哪面墙": state_left_cnt 对应 mode 3 = 右转(参考左墙, 打满右/
+ * SERVO_PWM_MIN); state_right_cnt 对应 mode 4 = 左转(打满左/SERVO_PWM_MAX)。 */
+uint16_t state_left_cnt = 0;    /* mode 3(右转) 补打满剩余帧数 */
+uint16_t state_right_cnt = 0;   /* mode 4(左转) 补打满剩余帧数 */
+uint16_t state_left_cnt_2 = 0;  /* mode 3 途中前方拟合丢失, 保舵机剩余帧数 */
+uint16_t state_right_cnt_2 = 0; /* mode 4 途中前方拟合丢失, 保舵机剩余帧数 */
 
 extern float Speed_now;
 
-#define duandian_distance 600       /* 断点判断距离阈值 */
+#define duandian_distance 600 /* 断点判断距离阈值 */
 uint16_t state_sta = 1;
 
-float duandian_DIStance = 600;     /* 断点有效距离阈值 (mm) */
+float duandian_DIStance = 600; /* 断点有效距离阈值 (mm) */
 
 int main(void)
 {
     /* 初始化调试串口: USART1(PA9/PA10, 保留备用) + USART3(PC10/PC11, printf已重定向) */
     uart_init(115200);
-    uart3_init(115200);                              /* 调试串口2 (PC10=TX, PC11=RX) */
+    uart3_init(115200); /* 调试串口2 (PC10=TX, PC11=RX) */
 
-    u32 t                 = 0;
+    u32 t = 0;
     uint16_t parsed_points = 0;
-    uint32_t input_seq, input_ms, input_us, irq_state,last_input_seq=0;
+    uint32_t input_seq, input_ms, input_us, irq_state, last_input_seq = 0;
     static uint8_t lidar_snapshot[DMA_USART2_RX_BUF_LEN];
-    uint8_t forward_fit_ok,side_fit_ok;uint16_t ref_start,ref_end;
-    uint16_t ceshi_cnt    = 0;
-    uint16_t break_flag   = 0;     /* 数据异常标志 */
-    uint16_t danbian_flag = 0;     /* 单边标志 (用于S弯检测) */
+    uint8_t forward_fit_ok, side_fit_ok;
+    uint16_t ref_start, ref_end;
+    uint16_t ceshi_cnt = 0;
+    uint16_t break_flag = 0;   /* 数据异常标志 */
+    uint16_t danbian_flag = 0; /* 单边标志 (用于S弯检测) */
     float jiaodu_piancha;
     uint16_t telemetry_mode = BLE_MODE_HOLD;
-    float servo_midpwm = SERVO_PWM_MID / 10.0f;    /* 舵机中位PWM/10 (行程参数见centre_line.h) */
+    float servo_midpwm = SERVO_PWM_MID / 10.0f; /* 舵机中位PWM/10 (行程参数见centre_line.h) */
     float qulu_forward;
     float qulu_jinduan;
-    uint16_t pid_select           = 0;  /* 当前PID模式 */
-    uint16_t pid_select_last      = 0;  /* 上一帧PID模式 */
-    uint16_t pid_select_last_last = 0;  /* 上上帧PID模式 */
-    uint16_t tubian               = 0;
+    /* pid_select 取 0~9, 含义见 CENTRE_LINE.c 文件头的模式表; 10/11/12 是遥测伪模式
+     * (HOLD/INVALID/FORCED), 只进 telemetry_mode, 不进 pid_select。
+     * _last/_last_last 用来判断"前两帧是不是同一个转弯模式"(见第8步)。 */
+    uint16_t pid_select = 0;           /* 当前PID模式 */
+    uint16_t pid_select_last = 0;      /* 上一帧PID模式 */
+    uint16_t pid_select_last_last = 0; /* 上上帧PID模式 */
+    uint16_t tubian = 0;
 
     /* ===== 系统初始化 ===== */
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);  /* 2位抢占，2位子优先级 */
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2); /* 2位抢占，2位子优先级 */
     Diag_Init();
-    delay_init(168);                                 /* 延时函数初始化 (参数=主频MHz, 本工程168MHz) */
+    delay_init(168); /* 延时函数初始化 (参数=主频MHz, 本工程168MHz) */
 
     /* 注意初始化顺序: USART2先初始化(PA2=USART2 AF),
      * PWM_Init_leida后初始化(PA2=TIM9 CH1 AF, 覆盖USART2_TX)。
      * 雷达用PA3(RX)+DMA接收数据, USART2_TX不需要 */
-    uart2_init(230400);                               /* 雷达串口USART2初始化 (先于TIM9) */
-    DMA_Initializes();                                /* DMA初始化 (USART2雷达接收) */
-    Bluetooth_Init();                                 /* 蓝牙初始化 (USART6, PC6/PC7) */
-    PWM_Init_leida();                                 /* 雷达电机PWM初始化 (TIM9 CH1, PA2, 覆盖USART2_TX) */
-    PWM_SetCompare_leida(97);                         /* 雷达电机初始占空比 */
+    uart2_init(230400);       /* 雷达串口USART2初始化 (先于TIM9) */
+    DMA_Initializes();        /* DMA初始化 (USART2雷达接收) */
+    Bluetooth_Init();         /* 蓝牙初始化 (USART6, PC6/PC7) */
+    PWM_Init_leida();         /* 雷达电机PWM初始化 (TIM9 CH1, PA2, 覆盖USART2_TX) */
+    PWM_SetCompare_leida(97); /* 雷达电机初始占空比 */
 
-    Servo_Init(84, 20000, SERVO_PWM_MID);              /* 舵机初始化 (50Hz) */
+    Servo_Init(84, 20000, SERVO_PWM_MID); /* 舵机初始化 (50Hz) */
 
     /* 舵机PID初始化: kp, kp_2, kp_3, kd, kd_2, kd_3
      * 参数含义: kp/kd=直道, kp_2/kd_2=大转弯, kp_3/kd_3=小转弯 */
@@ -139,12 +148,12 @@ int main(void)
     /* 电机初始化: 预分频42, 周期100 */
     moto_pwm = 0;
 #if HW_TEST_SELECT == 0
-    Moto_Init(42, 100, moto_pwm);   /* 等首个有效输入处理完成后才允许速度环驱动 */
+    Moto_Init(42, 100, moto_pwm); /* 等首个有效输入处理完成后才允许速度环驱动 */
 #else
-    Moto_Init(42, 100, 0);          /* 测试模式: 初始0%, 防止上电轮子就转 */
+    Moto_Init(42, 100, 0); /* 测试模式: 初始0%, 防止上电轮子就转 */
 #endif
 
-    Encoder_Init();                                   /* 编码器初始化 (TIM4) */
+    Encoder_Init(); /* 编码器初始化 (TIM4) */
 
     /* 速度定时器初始化: 84MHz/8400=10kHz, 周期100=10ms */
     TIM5_Int_Init(100 - 1, 8400 - 1);
@@ -158,7 +167,7 @@ int main(void)
 #endif
 
     /* ===== 运行参数配置 ===== */
-    Speed_mubiao = 10;                   /* 目标速度 */
+    Speed_mubiao = 10; /* 目标速度 */
 
     /* 最终舵机PID参数 (覆盖初始值) */
     Midline_PD_Init(&Servo_pd, 0.035, 0.040, 0.0395, 0.035, 0.022, 0.020);
@@ -174,7 +183,7 @@ int main(void)
 
     /* 小转弯模式下目标Y坐标: 越小越直 */
     BLUE_Y_RIGHT = 1200;
-    BLUE_Y_LEFT  = 1350;
+    BLUE_Y_LEFT = 1350;
 
     /* 直道模式选择: 0=用中线末点, 1=用固定BLUE_Y_STRA */
     BLUE_Y_STRA_SEL = 0;
@@ -186,7 +195,6 @@ int main(void)
 
     /* ======================== 主循环 ======================== */
     while (1) {
-
 #if HW_TEST_SELECT == 1
         /* 测试① 舵机往复扫描 (函数自带死循环, 不会返回) */
         Test_Servo_Sweep();
@@ -200,19 +208,27 @@ int main(void)
         /* ======================== 正常循线模式 ======================== */
 
         Diag_Poll();
-        BLE_Tune_Process();     /* 蓝牙命令解析: 每圈必跑(含雷达帧等待圈), 命令响应<1ms */
+        BLE_Tune_Process(); /* 蓝牙命令解析: 每圈必跑(含雷达帧等待圈), 命令响应<1ms */
 
         /* 等待DMA接收完一帧雷达数据 */
         if (DMA_RX_DONE) {
-            irq_state=__get_PRIMASK();__disable_irq();
+            irq_state = __get_PRIMASK();
+            __disable_irq();
             DMA_RX_DONE = 0;
-            input_seq=Diag_input_seq;input_ms=Diag_input_ms;input_us=Diag_input_us;
-            memcpy(lidar_snapshot,DMA_USART2_RX_BUF_r,sizeof lidar_snapshot);
+            input_seq = Diag_input_seq;
+            input_ms = Diag_input_ms;
+            input_us = Diag_input_us;
+            memcpy(lidar_snapshot, DMA_USART2_RX_BUF_r, sizeof lidar_snapshot);
             __set_PRIMASK(irq_state);
-            Diag_Begin(input_ms,input_us);Diag_detail_u[3]=input_seq;
-            telemetry_mode = BLE_MODE_INVALID;Servo_PD_valid=0;
-            if(last_input_seq && input_seq-last_input_seq!=1u)LEIDA_ParserReset();
-            last_input_seq=input_seq;forward_fit_ok=side_fit_ok=0;danbian_flag=0;
+            Diag_Begin(input_ms, input_us);
+            Diag_detail_u[3] = input_seq;
+            telemetry_mode = BLE_MODE_INVALID;
+            Servo_PD_valid = 0;
+            if (last_input_seq && input_seq - last_input_seq != 1u)
+                LEIDA_ParserReset();
+            last_input_seq = input_seq;
+            forward_fit_ok = side_fit_ok = 0;
+            danbian_flag = 0;
 
             CONTROL_TRACE("DMA_RX_DONE\r\n");
 
@@ -227,12 +243,13 @@ int main(void)
             /* 注意: 不能写break — 这里最内层循环就是while(1)主循环,
              * break会直接跳出主循环, 整个控制程序当场死掉(只剩TIM5速度中断还在跑)。
              * 正确做法是continue: 跳过本帧剩余处理, 等下一帧雷达数据 */
-            Diag_Field(12,valid_couter,1);
+            Diag_Field(12, valid_couter, 1);
             if (valid_couter <= 20) {
-                Radar_invalid_inputs++;Midline_PD_Reset();
+                Radar_invalid_inputs++;
+                Midline_PD_Reset();
                 break_flag = 1;
-                CONTROL_TRACE("Data invalid, skip frame: %d\r\n", valid_couter);  /* 调试打印, 稳定后可删 */
-                Diag_Submit(BLE_MODE_INVALID,parsed_points,LEIDA_speed_dps,0);
+                CONTROL_TRACE("Data invalid, skip frame: %d\r\n", valid_couter); /* 调试打印, 稳定后可删 */
+                Diag_Submit(BLE_MODE_INVALID, parsed_points, LEIDA_speed_dps, 0);
                 BLE_Tune_Telemetry(Servo_pd.err, (float)TIM3->CCR1, BLE_MODE_INVALID);
                 continue;
             }
@@ -241,11 +258,12 @@ int main(void)
             /* ===== 第3步: 计算跑道宽度 ===== */
             /* 雷达测距，600-900mm之间才更新 (防止异常值) */
             paodao_distance_r = LEIDA_Distance(LEIDA_DATA2, valid_couter);
-            paodao_distance   = ((paodao_distance_r > 600) && (paodao_distance_r < 900))
-                                ? paodao_distance_r : paodao_distance;
+            paodao_distance = ((paodao_distance_r > 600) && (paodao_distance_r < 900))
+                                  ? paodao_distance_r
+                                  : paodao_distance;
 
             /* ===== 第4步: 提取左右边界点 ===== */
-            LEFT_cnt  = LEIDA_DATA_HANDLE6(LEIDA_DATA_LEFT, LEIDA_DATA2, valid_couter);
+            LEFT_cnt = LEIDA_DATA_HANDLE6(LEIDA_DATA_LEFT, LEIDA_DATA2, valid_couter);
             RIGHT_cnt = LEIDA_DATA_HANDLE7(LEIDA_DATA_RIGHT, LEIDA_DATA2, valid_couter);
 
             /* ===== 第5步: 前方路径扫描 ===== */
@@ -253,35 +271,34 @@ int main(void)
             Forward_cnt = LEIDA_DATA_HANDLE5(LEIDA_DATA_Forward, LEIDA_DATA2, valid_couter);
 
             /* 右侧(70°-90°)和左侧(90°-110°)分别扫描，用于S弯检测 */
-            Forward_cnt_2 = LEIDA_DATA_HANDLE5_2(LEIDA_DATA_Forward_2, LEIDA_DATA2, valid_couter, 70, 90);/*右边*/
-            Forward_cnt_3 = LEIDA_DATA_HANDLE5_2(LEIDA_DATA_Forward_3, LEIDA_DATA2, valid_couter, 90, 110);/*左边*/
+            Forward_cnt_2 = LEIDA_DATA_HANDLE5_2(LEIDA_DATA_Forward_2, LEIDA_DATA2, valid_couter, 70, 90);  /*右边*/
+            Forward_cnt_3 = LEIDA_DATA_HANDLE5_2(LEIDA_DATA_Forward_3, LEIDA_DATA2, valid_couter, 90, 110); /*左边*/
 
             /* ===== 第6步: 前方路径直线拟合 ===== */
             /*前方被堵的前提下*/
             if (Forward_cnt) {
                 /* 使用前10%-90%的点拟合，去除两端离群点 */
-                forward_fit_ok=Midline_fit(LEIDA_DATA_Forward,
-                            (uint16_t)(Forward_cnt * 1.0f / 20 * 2),
-                            (uint16_t)(Forward_cnt * 1.0f / 20 * 18),
-                            &Midline_forward);
+                forward_fit_ok = Midline_fit(LEIDA_DATA_Forward,
+                                             (uint16_t)(Forward_cnt * 1.0f / 20 * 2),
+                                             (uint16_t)(Forward_cnt * 1.0f / 20 * 18),
+                                             &Midline_forward);
 
                 danbian_flag = 0;
                 /* 两侧前方都有5个以上有效点 -> S弯特征 */
                 if ((Forward_cnt_2 > 5) && (Forward_cnt_3 > 5)) {
-                    side_fit_ok=Midline_fit(LEIDA_DATA_Forward_2, 1, (uint16_t)(Forward_cnt_2 - 1), &Midline_forward_2);
-                    side_fit_ok&=Midline_fit(LEIDA_DATA_Forward_3, 1, (uint16_t)(Forward_cnt_3 - 1), &Midline_forward_3);
+                    side_fit_ok = Midline_fit(LEIDA_DATA_Forward_2, 1, (uint16_t)(Forward_cnt_2 - 1), &Midline_forward_2);
+                    side_fit_ok &= Midline_fit(LEIDA_DATA_Forward_3, 1, (uint16_t)(Forward_cnt_3 - 1), &Midline_forward_3);
                     danbian_flag = side_fit_ok;
                 }
             }
 
             /* ===== 第7步: 检测左右边界突变点 (弯道入口) ===== */
             RIGHT_duandian = LEIDA_DATA_HANDLE9(LEIDA_DATA_RIGHT, RIGHT_cnt);
-            LEFT_duandian  = LEIDA_DATA_HANDLE8(LEIDA_DATA_LEFT, LEFT_cnt);
+            LEFT_duandian = LEIDA_DATA_HANDLE8(LEIDA_DATA_LEFT, LEFT_cnt);
 
             /* 如果左右两边同时检测到断点(都在100-550mm之间)，
              * 保留较近的一个，丢弃较远的那个（防止T字路口误判） */
-            if ((LEFT_duandian > 100) && (LEFT_duandian < duandian_DIStance)
-                && (RIGHT_duandian > 100) && (RIGHT_duandian < duandian_DIStance)) {
+            if ((LEFT_duandian > 100) && (LEFT_duandian < duandian_DIStance) && (RIGHT_duandian > 100) && (RIGHT_duandian < duandian_DIStance)) {
                 if (LEFT_duandian > RIGHT_duandian)
                     LEFT_duandian = 0;
                 else
@@ -289,96 +306,130 @@ int main(void)
             }
 
             /* ===== 第8步: PID模式历史记录 ===== */
+            /* 必须在选本帧模式之前移位: 下面判断的是"前两帧是否都是同一个转弯模式",
+             * 用来在弯中丢数据时补打满、进直道后把弯转完。 */
             pid_select_last_last = pid_select_last;
-            pid_select_last      = pid_select;
-            if((RIGHT_duandian>0 && RIGHT_duandian<duandian_DIStance) ||
-               (LEFT_duandian>0 && LEFT_duandian<duandian_DIStance)){
-                uint8_t right=(RIGHT_duandian>0 && RIGHT_duandian<duandian_DIStance);
-                uint16_t breakpoint=right?RIGHT_duandian:LEFT_duandian;
-                if(forward_fit_ok && breakpoint<duandian_distance && fabs(Midline_forward.k)<0.35f){
-                    pid_select=right?3:4;
-                    (void)Midline_PD(LEIDA_DATA_Forward,&Servo_pd,&Midline_forward,servo_midpwm,
-                        (uint16_t)(Forward_cnt*0.1f),(uint16_t)(Forward_cnt*0.9f),pid_select);
-                }else if(forward_fit_ok && breakpoint<duandian_distance && fabs(Midline_forward.k)<0.7f &&
-                         danbian_flag && (fabs(Midline_forward_2.k)<0.25f || fabs(Midline_forward_3.k)<0.25f)){
-                    pid_select=right?8:9;
-                    (void)Midline_PD(LEIDA_DATA_Forward,&Servo_pd,&Midline_forward,servo_midpwm,
-                        (uint16_t)(Forward_cnt*0.1f),(uint16_t)(Forward_cnt*0.9f),pid_select);
-                }else{
-                    _LEIDA_DATA_plane *boundary=right?LEIDA_DATA_LEFT_Plane:LEIDA_DATA_RIGHT_Plane;
-                    uint16_t count=right?LEFT_cnt:RIGHT_cnt;
-                    if((pid_select_last==3) && (pid_select_last_last==3))state_left_cnt_2=1;
-                    if((pid_select_last==4) && (pid_select_last_last==4))state_right_cnt_2=1;
-                    if(state_left_cnt_2>0 || state_right_cnt_2>0){
-                        /* 强制小角度转弯: 前方数据刚丢, 只保舵机不重算边界 */
-                        telemetry_mode=BLE_MODE_HOLD;
+            pid_select_last = pid_select;
+            if ((RIGHT_duandian > 0 && RIGHT_duandian < duandian_DIStance) ||
+                (LEFT_duandian > 0 && LEFT_duandian < duandian_DIStance)) {
+                uint8_t right = (RIGHT_duandian > 0 && RIGHT_duandian < duandian_DIStance);
+                uint16_t breakpoint = right ? RIGHT_duandian : LEFT_duandian;
+                if (forward_fit_ok && breakpoint < duandian_distance && fabs(Midline_forward.k) < 0.35f) {
+                    pid_select = right ? 3 : 4;
+                    (void)Midline_PD(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward, servo_midpwm,
+                                     (uint16_t)(Forward_cnt * 0.1f), (uint16_t)(Forward_cnt * 0.9f), pid_select);
+                } else if (forward_fit_ok && breakpoint < duandian_distance && fabs(Midline_forward.k) < 0.7f &&
+                           danbian_flag && (fabs(Midline_forward_2.k) < 0.25f || fabs(Midline_forward_3.k) < 0.25f)) {
+                    pid_select = right ? 8 : 9;
+                    (void)Midline_PD(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward, servo_midpwm,
+                                     (uint16_t)(Forward_cnt * 0.1f), (uint16_t)(Forward_cnt * 0.9f), pid_select);
+                } else {
+                    _LEIDA_DATA_plane *boundary = right ? LEIDA_DATA_LEFT_Plane : LEIDA_DATA_RIGHT_Plane;
+                    uint16_t count = right ? LEFT_cnt : RIGHT_cnt;
+                    if ((pid_select_last == 3) && (pid_select_last_last == 3))
+                        state_left_cnt_2 = 1;
+                    if ((pid_select_last == 4) && (pid_select_last_last == 4))
+                        state_right_cnt_2 = 1;
+                    if (state_left_cnt_2 > 0 || state_right_cnt_2 > 0) {
+                        /* 前方拟合刚丢(减速带/车头扫过弯心): 这一帧只保舵机不动,
+                         * 别拿一帧残缺的边界点去重算, 否则车头会抖一下。 */
+                        telemetry_mode = BLE_MODE_HOLD;
                         Servo_ChangePwm((uint16_t)TIM3->CCR1);
-                        Servo_PD_valid=1;
-                        if(state_left_cnt_2>0)state_left_cnt_2--;else state_right_cnt_2--;
-                    }else{
-                    LEIDA_DATA_HANDLE2(boundary,right?LEIDA_DATA_LEFT:LEIDA_DATA_RIGHT,count);
-                    count=LEIDA_DATA_HANDLE10(boundary,count);
-                    if(right)LEFT_cnt=count;else RIGHT_cnt=count;
-                    ref_start=count>=10?(uint16_t)(count*0.75f):0;
-                    ref_end=count>=10?(uint16_t)(count*0.95f):count;
-                    (void)Midline_fit(boundary,ref_start,ref_end,&Midline);
-                    pid_select=right?1:2;
-                    (void)Midline_PD(boundary,&Servo_pd,&Midline,servo_midpwm,ref_start,ref_end,pid_select);
+                        Servo_PD_valid = 1;
+                        if (state_left_cnt_2 > 0)
+                            state_left_cnt_2--;
+                        else
+                            state_right_cnt_2--;
+                    } else {
+                        LEIDA_DATA_HANDLE2(boundary, right ? LEIDA_DATA_LEFT : LEIDA_DATA_RIGHT, count);
+                        count = LEIDA_DATA_HANDLE10(boundary, count);
+                        if (right)
+                            LEFT_cnt = count;
+                        else
+                            RIGHT_cnt = count;
+                        ref_start = count >= 10 ? (uint16_t)(count * 0.75f) : 0;
+                        ref_end = count >= 10 ? (uint16_t)(count * 0.95f) : count;
+                        (void)Midline_fit(boundary, ref_start, ref_end, &Midline);
+                        pid_select = right ? 1 : 2;
+                        (void)Midline_PD(boundary, &Servo_pd, &Midline, servo_midpwm, ref_start, ref_end, pid_select);
                     }
                 }
-            }else{
-                CENTER_cnt=LEIDA_DATA_HANDLE4(LEIDA_DATA_CENTER,LEIDA_DATA2,valid_couter);
-                Diag_detail_u[10]=CENTER_cnt;Diag_detail_u[4]|=128;
-                ref_start=CENTER_cnt>=8?(uint16_t)(CENTER_cnt*0.4f):0;
-                ref_end=CENTER_cnt>=8?(uint16_t)(CENTER_cnt*0.9f):CENTER_cnt;
-                zhongxian_chuizhi=LEIDA_DATA_HANDLE11(LEIDA_DATA_CENTER,ref_start,ref_end);
-                Diag_Field(25,zhongxian_chuizhi,LEIDA_vertical_valid);
-                /* 前两帧都是大转弯 -> 直道里再补打满, 把弯转完 */
-                if((pid_select_last==3) && (pid_select_last_last==3))state_left_cnt=2;
-                if((pid_select_last==4) && (pid_select_last_last==4))state_right_cnt=2;
-                pid_select=0;
-                if(state_left_cnt>0){
-                    telemetry_mode=BLE_MODE_FORCED;
-                    Servo_ChangePwm(SERVO_PWM_MIN);  /* 舵机打满右 */
-                    Servo_PD_valid=1;state_left_cnt--;
-                }else if(state_right_cnt>0){
-                    telemetry_mode=BLE_MODE_FORCED;
-                    Servo_ChangePwm(SERVO_PWM_MAX);  /* 舵机打满左 */
-                    Servo_PD_valid=1;state_right_cnt--;
-                }else if(LEIDA_vertical_valid){
-                    pid_select=5;
-                    (void)Midline_PD(LEIDA_DATA_CENTER,&Servo_pd,&Midline,servo_midpwm,ref_start,ref_end,pid_select);
-                }else if(Midline_fit(LEIDA_DATA_CENTER,ref_start,ref_end,&Midline)){
-                    if(fabs(Midline.k)<=0.1f){
+            } else {
+                CENTER_cnt = LEIDA_DATA_HANDLE4(LEIDA_DATA_CENTER, LEIDA_DATA2, valid_couter);
+                Diag_detail_u[10] = CENTER_cnt;
+                Diag_detail_u[4] |= 128;
+                ref_start = CENTER_cnt >= 8 ? (uint16_t)(CENTER_cnt * 0.4f) : 0;
+                ref_end = CENTER_cnt >= 8 ? (uint16_t)(CENTER_cnt * 0.9f) : CENTER_cnt;
+                zhongxian_chuizhi = LEIDA_DATA_HANDLE11(LEIDA_DATA_CENTER, ref_start, ref_end);
+                Diag_Field(25, zhongxian_chuizhi, LEIDA_vertical_valid);
+                /* 前两帧都是大转弯 -> 直道里再补打满, 把弯转完。
+                 * 补 2 帧 ≈ 230ms: 一帧掰不过来, 再多就冲过头。 */
+                if ((pid_select_last == 3) && (pid_select_last_last == 3))
+                    state_left_cnt = 2;
+                if ((pid_select_last == 4) && (pid_select_last_last == 4))
+                    state_right_cnt = 2;
+                pid_select = 0;
+                if (state_left_cnt > 0) {
+                    telemetry_mode = BLE_MODE_FORCED;
+                    Servo_ChangePwm(SERVO_PWM_MIN); /* 舵机打满右 */
+                    Servo_PD_valid = 1;
+                    state_left_cnt--;
+                } else if (state_right_cnt > 0) {
+                    telemetry_mode = BLE_MODE_FORCED;
+                    Servo_ChangePwm(SERVO_PWM_MAX); /* 舵机打满左 */
+                    Servo_PD_valid = 1;
+                    state_right_cnt--;
+                } else if (LEIDA_vertical_valid) {
+                    pid_select = 5;
+                    (void)Midline_PD(LEIDA_DATA_CENTER, &Servo_pd, &Midline, servo_midpwm, ref_start, ref_end, pid_select);
+                } else if (Midline_fit(LEIDA_DATA_CENTER, ref_start, ref_end, &Midline)) {
+                    if (fabs(Midline.k) <= 0.1f) {
                         /* 中线接近垂直 -> 保持上次舵机位置(含强制打满), 不主动回中线 */
-                        telemetry_mode=BLE_MODE_HOLD;
+                        telemetry_mode = BLE_MODE_HOLD;
                         Servo_ChangePwm((uint16_t)TIM3->CCR1);
-                        Servo_PD_valid=1;
-                    }else{
-                        pid_select=(CENTER_cnt>=8)?0:7;
-                        (void)Midline_PD(LEIDA_DATA_CENTER,&Servo_pd,&Midline,servo_midpwm,ref_start,ref_end,pid_select);
+                        Servo_PD_valid = 1;
+                    } else {
+                        pid_select = (CENTER_cnt >= 8) ? 0 : 7;
+                        (void)Midline_PD(LEIDA_DATA_CENTER, &Servo_pd, &Midline, servo_midpwm, ref_start, ref_end, pid_select);
                     }
-                }else{
-                    pid_select=7;
-                    (void)Midline_PD(LEIDA_DATA_CENTER,&Servo_pd,&Midline,servo_midpwm,ref_start,ref_end,pid_select);
+                } else {
+                    pid_select = 7;
+                    (void)Midline_PD(LEIDA_DATA_CENTER, &Servo_pd, &Midline, servo_midpwm, ref_start, ref_end, pid_select);
                 }
             }
-            if(!Servo_PD_valid)telemetry_mode=BLE_MODE_INVALID;
-            else if(telemetry_mode!=BLE_MODE_FORCED && telemetry_mode!=BLE_MODE_HOLD)telemetry_mode=pid_select;
+            if (!Servo_PD_valid)
+                telemetry_mode = BLE_MODE_INVALID;
+            else if (telemetry_mode != BLE_MODE_FORCED && telemetry_mode != BLE_MODE_HOLD)
+                telemetry_mode = pid_select;
 
             /* 本帧雷达处理完: 回传8通道波形给手机/VOFA+ (未连接时内部直接返回, 零开销) */
-            Diag_detail_f[15]=paodao_distance_r;
-            Diag_Field(9,RIGHT_duandian,1);Diag_Field(10,LEFT_duandian,1);
-            if(paodao_distance_r>600 && paodao_distance_r<900)Diag_Field(11,paodao_distance,1);
-            else Diag_HeldField(11,paodao_distance,1);
-            Diag_Field(13,RIGHT_cnt,1);Diag_Field(14,LEFT_cnt,1);
-            Diag_Field(15,Forward_cnt,1);Diag_Field(16,Forward_cnt_2,1);Diag_Field(17,Forward_cnt_3,1);
-            Diag_Field(20,danbian_flag,1);
-            Diag_Field(21,state_left_cnt,1);Diag_Field(22,state_right_cnt,1);
-            Diag_Field(23,state_left_cnt_2,1);Diag_Field(24,state_right_cnt_2,1);
-            if(Servo_PD_valid)Radar_ControlCompleted();
-            else {Radar_invalid_inputs++;Midline_PD_Reset();}
-            Diag_Submit(telemetry_mode,parsed_points,LEIDA_speed_dps,Servo_PD_valid);
+            Diag_detail_f[15] = paodao_distance_r;
+            Diag_Field(9, RIGHT_duandian, 1);
+            Diag_Field(10, LEFT_duandian, 1);
+            if (paodao_distance_r > 600 && paodao_distance_r < 900)
+                Diag_Field(11, paodao_distance, 1);
+            else
+                Diag_HeldField(11, paodao_distance, 1);
+            Diag_Field(13, RIGHT_cnt, 1);
+            Diag_Field(14, LEFT_cnt, 1);
+            Diag_Field(15, Forward_cnt, 1);
+            Diag_Field(16, Forward_cnt_2, 1);
+            Diag_Field(17, Forward_cnt_3, 1);
+            Diag_Field(20, danbian_flag, 1);
+            Diag_Field(21, state_left_cnt, 1);
+            Diag_Field(22, state_right_cnt, 1);
+            Diag_Field(23, state_left_cnt_2, 1);
+            Diag_Field(24, state_right_cnt_2, 1);
+            /* 雷达看门狗: TIM5(10ms) 里 50 个 tick(500ms) 等不到这个调用, 就置
+             * Radar_stop_latched 永久清零电机(只能复位)。
+             * 所以不走 PD 的分支(HOLD/FORCED)也必须自己置 Servo_PD_valid=1。 */
+            if (Servo_PD_valid)
+                Radar_ControlCompleted();
+            else {
+                Radar_invalid_inputs++;
+                Midline_PD_Reset();
+            }
+            Diag_Submit(telemetry_mode, parsed_points, LEIDA_speed_dps, Servo_PD_valid);
             BLE_Tune_Telemetry(Servo_pd.err, (float)TIM3->CCR1, telemetry_mode);
 
         } else {
