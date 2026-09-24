@@ -13,8 +13,8 @@
  * 数据处理流水线：
  *   DMA缓冲区 -> HANDLE1解析 -> LEIDA_DATA[] (极坐标)
  *     -> HANDLE3_2筛选有效点 -> LEIDA_DATA2[]
- *     -> HANDLE2转笛卡尔 -> LEIDA_DATA_plane[]
  *     -> HANDLE6/7提取左右边界 -> LEIDA_DATA_LEFT[] / LEIDA_DATA_RIGHT[]
+ *        -> HANDLE2转笛卡尔 -> LEIDA_DATA_LEFT_Plane[] / LEIDA_DATA_RIGHT_Plane[]
  *     -> HANDLE4计算中线 -> LEIDA_DATA_CENTER[]
  *     -> HANDLE5扫描前方路径 -> LEIDA_DATA_Forward[]
  *     -> HANDLE8/9检测突变点 -> 断点距离
@@ -52,7 +52,6 @@ extern volatile uint16_t LEIDA_raw_count; /* slots read by header, NOT CRC verif
 extern uint16_t LEIDA_speed_dps;   /* 雷达实时转速(度/秒), 数据包Byte2~3; 6Hz=2160, 8Hz=2880 */
 extern _LEIDA_DATA LEIDA_DATA[];        /* 雷达原始极坐标数据 */
 extern _LEIDA_DATA LEIDA_DATA2[];       /* 筛选后的有效极坐标数据 */
-extern _LEIDA_DATA_plane LEIDA_DATA_plane[];  /* 笛卡尔平面坐标数据 */
 extern u8 tiaoshi;                      /* 调试标志 */
 
 /* 雷达角度配置
@@ -72,12 +71,8 @@ extern u8 tiaoshi;                      /* 调试标志 */
 /* 边界数据数组 */
 extern _LEIDA_DATA LEIDA_DATA_LEFT[];
 extern _LEIDA_DATA LEIDA_DATA_RIGHT[];
-extern _LEIDA_DATA LEIDA_DATA_LEFT_2[];
-extern _LEIDA_DATA LEIDA_DATA_RIGHT_2[];
 extern _LEIDA_DATA_plane LEIDA_DATA_LEFT_Plane[];
 extern _LEIDA_DATA_plane LEIDA_DATA_RIGHT_Plane[];
-extern _LEIDA_DATA_plane LEIDA_DATA_LEFT_Plane_2[];
-extern _LEIDA_DATA_plane LEIDA_DATA_RIGHT_Plane_2[];
 extern _LEIDA_DATA_plane LEIDA_DATA_CENTER[];       /* 中线点 */
 extern uint16_t LEFT_cnt;
 extern uint16_t RIGHT_cnt;
