@@ -276,7 +276,7 @@ static uint16_t pd_reject(void)
     Midline_PD_Reset();
     return (uint16_t)TIM3->CCR1;
 }
-uint16_t Midline_PD(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *line,
+uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *line,
                     float mid, uint16_t start, uint16_t end, uint16_t mode)
 {
     uint16_t i;
@@ -360,14 +360,10 @@ uint16_t Midline_PD(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *lin
                                                                                         : pid->kp_2;
     kd = (mode == 1 || mode == 2) ? pid->kd_3 : (mode == 0 || (mode >= 5 && mode <= 7)) ? pid->kd
                                                                                         : pid->kd_2;
-    /* 换测量目标那一帧要不要清 err_l? 清 —— 否则 D 会把"上一帧的旧误差"当成
-     * 跳变, 打一记假踢腿。但有一类例外: 进入转弯模式(1/2/3/4/8/9)时 err_l 保留,
-     * 因为那一帧的误差跳变是车真的在拐, D 踢腿正是入弯要的力度。
-     * 2026-09-22 实测: 原来无脑清, 入弯第一帧从打满(≈-324)掉到 -200, 表现为
-     * "转弯力度小、反应迟钝"。
-     * !dt / dt>250ms: 中间隔了太久(掉帧、切过测试模式), 旧误差没有参考意义, 重学。 */
-    if (!pd_history_valid || !dt || dt > 250000u ||
-        (mode != pd_previous_mode && !((mode == 1) || (mode == 2) || (mode == 3) || (mode == 4) || (mode == 8) || (mode == 9)))) {
+    /* 不同模式的误差来自不同测量目标，不能直接相减当作运动变化。
+     * 例如大左转500 -> 侧墙左转82，会产生假的负D并把舵机拉回中位。
+     * 切模式首帧只用P；弯道延续由主循环的有界TurnGuard负责。 */
+    if (!pd_history_valid || !dt || dt > 250000u || mode != pd_previous_mode) {
         pid->err_l = e;
         Diag_detail_u[4] |= 4;
     } else
@@ -418,8 +414,67 @@ uint16_t Midline_PD(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *lin
     pd_previous_mode = mode;
     pd_history_valid = 1;
     Servo_PD_valid = 1;
-    Servo_ChangePwm((uint16_t)output);
     return (uint16_t)output;
+}
+
+/* 保留直接驱动接口供测试/其他调用方使用。 */
+uint16_t Midline_PD(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *line,
+                    float mid, uint16_t start, uint16_t end, uint16_t mode)
+{
+    uint16_t pwm = Midline_PD_Calculate(points, pid, line, mid, start, end, mode);
+    if (Servo_PD_valid)
+        Servo_ChangePwm(pwm);
+    return pwm;
+}
+
+static uint8_t turn_direction(uint16_t mode)
+{
+    return (mode == 1 || mode == 3 || mode == 8) ? 1 :
+           (mode == 2 || mode == 4 || mode == 9) ? 2 : 0;
+}
+static uint8_t turn_rank(uint16_t mode)
+{
+    return (mode == 3 || mode == 4) ? 3 : (mode == 8 || mode == 9) ? 2 : 1;
+}
+uint16_t TurnGuard_Apply(TurnGuard *state, uint16_t mode, uint8_t valid,
+                        uint8_t straight, uint16_t pwm, uint32_t now, uint8_t *held)
+{
+    uint8_t direction = turn_direction(mode);
+    *held = 0;
+    /* unsigned差值允许微秒时钟回绕；HOLD/INVALID绝不刷新这个时刻。 */
+    if (state->active && (uint32_t)(now - state->observed_us) >= TURN_GUARD_US) {
+        state->active = 0;
+        state->straight_frames = 0;
+    }
+    if (!valid) {
+        state->straight_frames = 0;
+        return pwm;
+    }
+    if (direction) {
+        state->straight_frames = 0;
+        if (state->active && direction == turn_direction(state->mode) &&
+            turn_rank(mode) < turn_rank(state->mode) &&
+            ((direction == 1 && pwm > state->pwm) || (direction == 2 && pwm < state->pwm))) {
+            *held = 1;
+            return state->pwm;
+        }
+        /* 同向增强立即执行；反向观测立即替换旧状态，不锁死旧方向。 */
+        state->active = 1;
+        state->mode = mode;
+        state->pwm = pwm;
+        state->observed_us = now;
+        return pwm;
+    }
+    if (!state->active)
+        return pwm;
+    state->straight_frames = straight ? state->straight_frames + 1 : 0;
+    if (state->straight_frames >= TURN_EXIT_FRAMES) {
+        state->active = 0;
+        state->straight_frames = 0;
+        return pwm;
+    }
+    *held = 1;
+    return state->pwm;
 }
 
 /* ======================== 速度控制 ======================== */

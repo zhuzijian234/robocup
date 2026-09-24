@@ -1,0 +1,12 @@
+{
+  "firmware": "robocup_turn_guard_v1.hex",
+  "build_id": "sha256-fe98b1c451c2d1db",
+  "sha256": "1a6f175898afef254aeb6d492f2add2477a858f987cab24e39d48089f6fc749a",
+  "bytes_in_hex": 35520,
+  "control_checks": 267,
+  "turn_filter_checks": 101,
+  "diagnostic_tests": 6,
+  "arm_errors": 0,
+  "arm_warnings": 41,
+  "hardware_tested": false
+}

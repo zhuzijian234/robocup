@@ -478,7 +478,7 @@ static void config_poll(void)
             number = 1000;
             break;
         case 10:
-            text = "mm;CCR;encoder_units;slope;hold=control_count;PD=dt115ms-Dcap60-dirguard";
+            text = "mm;CCR;encoder_units;slope;PD=mode-reset-Dcap150;turn=350ms-exit2";
             break;
         case 11:
             number = DMA_USART2_RX_BUF_LEN;

@@ -90,6 +90,20 @@ extern float BLUE_Y_STRA_SEL;
 
 uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midline_type *midline,
                     float servo_midpwm, uint16_t CENTER_cnt_start, uint16_t CENTER_cnt_end, uint16_t flag);
+/* 主循环先计算候选，再由弯道状态仲裁，最后只写一次舵机。 */
+uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *line,
+                            float mid, uint16_t start, uint16_t end, uint16_t mode);
+
+#define TURN_GUARD_US 350000u
+#define TURN_EXIT_FRAMES 2u
+#define TURN_EXIT_ERROR_MM 100.0f
+typedef struct {
+    uint32_t observed_us;
+    uint16_t mode, pwm;
+    uint8_t active, straight_frames;
+} TurnGuard;
+uint16_t TurnGuard_Apply(TurnGuard *state, uint16_t mode, uint8_t valid,
+                        uint8_t straight, uint16_t pwm, uint32_t now, uint8_t *held);
 uint16_t Speed_PID(float speed_now, float speed_mubiao, pid_type *speed_pid, uint16_t moto_pwm_now);
 
 void Midline_PD_Init(pid_type *midline_pid, float kp, float kp_2, float kp_3, float kd, float kd_2, float kd_3);

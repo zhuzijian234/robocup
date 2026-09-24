@@ -62,6 +62,7 @@ static struct{uint16_t CCR1;} timer3={1445};
 #define TIM3 (&timer3)
 #define TIM4 4
 static uint16_t encoder_counter;
+static unsigned servo_writes;
 uint16_t TIM_GetCounter(int ignored){return encoder_counter;}
 void TIM_SetCounter(int ignored,uint16_t value){encoder_counter=value;}
 uint32_t Diag_detail_u[24];float Diag_detail_f[16];
@@ -76,14 +77,17 @@ float BLUE_DIS_RIGHT=50,BLUE_DIS_LEFT=50,paodao_distance=800;
 static uint32_t clock_us;
 uint32_t Diag_TimeUs(void){return clock_us;}
 void Diag_Fit(const void *line,uint8_t valid){}
-void Servo_ChangePwm(uint16_t value){timer3.CCR1=value;}
+void Servo_ChangePwm(uint16_t value){timer3.CCR1=value;servo_writes++;}
 float Encoder_cnt,Speed_now;int16_t Encoder_cnt_arr[5];uint16_t Encoder_cnt_temp;
 uint16_t LEIDA_DATA_HANDLE10(_LEIDA_DATA_plane *,u16);
 '''
+header = source('HARDWARE/CENTRE_LINE/CENTRE_LINE.h')
+prefix += header[header.index('#define TURN_GUARD_US'):header.index('uint16_t TurnGuard_Apply')]
 functions = [function(diag, 'Diag_RadarPacket')]
 functions += [function(radar, name) for name in ['LEIDA_ParserReset','LEIDA_DATA_HANDLE1',
     'LEIDA_DATA_HANDLE10','LEIDA_DATA_HANDLE4','LEIDA_DATA_HANDLE11']]
-functions += [function(steering, name) for name in ['Midline_fit','Midline_PD_Reset','pd_reject','Midline_PD']]
+functions += [function(steering, name) for name in ['Midline_fit','Midline_PD_Reset','pd_reject',
+    'Midline_PD_Calculate','Midline_PD','turn_direction','turn_rank','TurnGuard_Apply']]
 functions += [function(motor, 'Get_Encoder')]
 
 tests = r'''
@@ -156,6 +160,16 @@ static int run(void){
     before=timer3.CCR1;output=drive(4,0);CHECK(!Servo_PD_valid && output==before);
     /* A reset/invalid observation does not leave a stale D kick. */
     Midline_PD_Reset();output=drive(7,-20);CHECK(Diag_detail_f[3]==0);
+    /* Real telemetry: large-left e=500 -> side-wall e=82.391 is not a derivative. */
+    drive(4,500);output=drive(2,82.391f);
+    CHECK(output>=1477 && output<=1478 && Diag_detail_f[3]==0);
+    drive(3,-500);output=drive(1,-82.391f);
+    CHECK(output>=1412 && output<=1413 && Diag_detail_f[3]==0);
+    output=drive(1,-182.391f);CHECK(Diag_detail_f[3]<-19.9f); /* same-mode D retained */
+    output=drive(2,200);CHECK(Diag_detail_f[3]==0); /* opposite direction */
+    line.k=1;line.b=650;before=timer3.CCR1;
+    begin();Midline_PD_Calculate(plane,&pid,&line,144.5f,0,2,0);
+    CHECK(Servo_PD_valid && timer3.CCR1==before); /* candidate must not write hardware */
     /* Encoder forward, reverse and modulo wrap: no huge unsigned speed. */
     for(k=0;k<5;k++){encoder_counter+=28;Get_Encoder();}
     CHECK(fabs(Speed_now-10.181818f)<.001f);
