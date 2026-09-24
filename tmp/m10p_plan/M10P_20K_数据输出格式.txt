@@ -1,0 +1,133 @@
+=== PDF PAGE 1 ===
+   M10                   
+M10 20K 串口协议文档说明 
+ 
+ 
+ 
+ 
+          部门:   研发部 
+       版本:   V2.0 
+       日期:   2022.4.7 
+ 
+ 
+
+=== PDF PAGE 2 ===
+   M10                   
+修改记录： 
+版本号 
+修订日期 
+修订内容 
+修订人 
+备注 
+V1.0 
+2021.3.23 
+初始版本 
+李浩玮 
+ 
+V2.0 
+2022.4.7 
+1.增加每帧的数据量 
+2.修改串口波特率 
+3.增加高反识别 
+ 
+廖大俊 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+=== PDF PAGE 3 ===
+   M10                   
+一、概述 
+M10 机器的点云数据输出和校准参数的写入和查询以及各种状态的配置都是通过串口
+来进行的。点云输出的协议为160 个字节，包含了角度，转速和距离和GPS 时间信息（需要
+硬件支持）；校准协议里面包含脉宽校准参数，距离校准参数和一些功能参数；往雷达里面
+写入的参数包含了雷达停转和启动等不同命令。 
+二、M10 串口协议 
+2.1 串口配置 
+波特率：512000 bps 
+校验位：NONE 
+数据位：8 
+停止位：1 
+数据格式：HEX 格式，H 表示高字节 
+2.2 正常输出点云协议 
+Byte_0 
+Byte_1 
+Byte_2 
+Byte_3 
+Byte_4 
+A5 
+5A 
+Len_H 
+Len_L 
+Angle_H 
+Byte_5 
+Byte_6 
+Byte_7 
+Byte_8 
+Byte_9 
+Angle_L 
+Speed_H 
+Speed_L 
+Distance_1_H 
+Distance_1_L 
+Byte_10 
+Byte_11 
+...... 
+Byte_146 
+Byte_147 
+Distance_2_H 
+Distance_2_L 
+...... 
+Distance_70_H 
+Distance_70_L 
+Byte_148 
+...... 
+Byte_157 
+Byte_158 
+Byte_159 
+TIME 
+TIME 
+TIME 
+0xFA 
+0xFB 
+1. Byte_0- Byte_1 :帧头，固定为A5 5A 
+2. Byte_2- Byte_3 : Len_H/ Len_L 数据帧长度，从第一个字节到最后一个字节 
+3. Byte_4- Byte_5 : Angle _H/ Angle _L 当前数据段开始角度，例如：0x8C 0xA0 即十进
+制36000 表示角度为360 度，也就是0 度； 
+4. Byte_6- Byte_7 : Speed _H/ Speed _L 当前电机转速，表示雷达从一个齿转到下一个齿所
+需要的时间计数值，它和转速的计算公式为：转速=2500000/speed。例如：0xD 0x90 即十进
+制3472 则转速为每分钟720 转，也就是12HZ； 
+5. Byte_8- Byte_147 : Distance_x _H/ Distance_x_L 距离值，单位是毫米,且高位字节的最
+高位表示是否为高反。例如：Distance_x _H =0x13， Distance_x_L =0x88 ，高字节0x13
+的最高位为0 表示不是高反，距离值对应十进制5000，就是5 米。 
+例如：Distance_x _H =0x93， Distance_x_L =0x88 ，高字节0x93 的最高位为1 表示当前
+
+=== PDF PAGE 4 ===
+   M10                   
+这个点为高反，距离值要清除最高位，清除高位后对应十进制5000，距离值就是5 米。 
+如果距离参数为0XFFFF，则表示此数据点为无效的点，数据帧中的点云个数需要减一，
+此时实际点云个数变成69 个点（正常点云个数为70 个）。同理如果现出两个0xffff，则实
+际点云数只有68 个。 
+每两个点云之间的角度差计算方法：15 除以实际收到的点云个数（m）。则数据帧每个
+数据点的角度为： 
+第N 个点的水平角度为 = angle_CodedDisc + 15 / m * N （N = 0,1 … m-1）。 
+6. Byte:148- Byte_157：GPS 时间信息，暂时保留无作用（需要硬件支持）。 
+7. Byte:158- Byte_159：帧尾，固定为 0XFA 0XFB。 
+ 
+三、PC 端控制 
+通过PC 端可控制雷达电机的停转与启动，具体命令如下： 
+1. ROS 驱动： 
+rostopic pub -1 /lslidar_difop_switch std_msgs/Int8 "data: 1"                (open radar) 
+rostopic pub -1 /lslidar_difop_switch std_msgs/Int8 "data: 0"                (close radar) 
+ 
+ 

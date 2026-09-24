@@ -1,0 +1,111 @@
+{
+  "layout": "rc26-mask31-v2.1",
+  "crc_123456789": "29b1",
+  "encoding": [
+    {
+      "field": "err",
+      "index": 0,
+      "float32_bits": "43fa0000",
+      "stored": 5000,
+      "valid": 1,
+      "clipped": 0
+    },
+    {
+      "field": "err",
+      "index": 0,
+      "float32_bits": "44228000",
+      "stored": 6000,
+      "valid": 1,
+      "clipped": 1
+    },
+    {
+      "field": "err",
+      "index": 0,
+      "float32_bits": "c4228000",
+      "stored": -6000,
+      "valid": 1,
+      "clipped": 1
+    },
+    {
+      "field": "Midline.k",
+      "index": 3,
+      "float32_bits": "3d0d4fdf",
+      "stored": 35,
+      "valid": 1,
+      "clipped": 0
+    },
+    {
+      "field": "Midline.k",
+      "index": 3,
+      "float32_bits": "bd0d4fdf",
+      "stored": -35,
+      "valid": 1,
+      "clipped": 0
+    },
+    {
+      "field": "Midline.k",
+      "index": 3,
+      "float32_bits": "42200000",
+      "stored": 30000,
+      "valid": 1,
+      "clipped": 1
+    },
+    {
+      "field": "Midline.k",
+      "index": 3,
+      "float32_bits": "bf000000",
+      "stored": -500,
+      "valid": 1,
+      "clipped": 0
+    },
+    {
+      "field": "servo_pwm",
+      "index": 1,
+      "float32_bits": "46fffe00",
+      "stored": 32767,
+      "valid": 1,
+      "clipped": 0
+    },
+    {
+      "field": "Speed_now",
+      "index": 18,
+      "float32_bits": "c54ccccd",
+      "stored": -32768,
+      "valid": 1,
+      "clipped": 0
+    },
+    {
+      "field": "err",
+      "index": 0,
+      "float32_bits": "7fc00000",
+      "stored": 0,
+      "valid": 0,
+      "clipped": 0
+    },
+    {
+      "field": "err",
+      "index": 0,
+      "float32_bits": "7f800000",
+      "stored": 0,
+      "valid": 0,
+      "clipped": 0
+    },
+    {
+      "field": "err",
+      "index": 0,
+      "float32_bits": "ff800000",
+      "stored": 0,
+      "valid": 0,
+      "clipped": 0
+    },
+    {
+      "field": "pid_select",
+      "index": 2,
+      "float32_bits": "41200000",
+      "stored": 0,
+      "valid": 0,
+      "clipped": 0
+    }
+  ],
+  "control_hex": "aa5502016c0000000000010000008813a5050700f401000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000640000006e00000000000000ffffff3fffffff3f000000000102010100000000bc0170087a51"
+}

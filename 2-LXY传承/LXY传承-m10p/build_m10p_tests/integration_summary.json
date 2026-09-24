@@ -1,0 +1,12 @@
+[
+  {
+    "build_exit": 0,
+    "run_exit": 0,
+    "output": "PASS 33 adapter/guard/PI checks\r\n"
+  },
+  {
+    "build_exit": 0,
+    "run_exit": 0,
+    "output": "PASS 156 DMA ISR/FIFO checks\r\n"
+  }
+]

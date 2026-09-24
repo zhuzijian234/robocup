@@ -1,0 +1,64 @@
+{
+  "scope": "planning calculations and baseline source consistency; not M10P implementation tests",
+  "firmware_files_changed_since_baseline_build": [],
+  "baseline": {
+    "source_count": 57,
+    "failures": [],
+    "warnings": 41,
+    "settings": "AC5 Cortex-M4.fp.sp C99 O0 MicroLIB split_sections; current uvproj source/include/defines; existing EIDE scatter",
+    "ram_bytes": 48616,
+    "rom_bytes": 35836
+  },
+  "budget_bytes": 101736,
+  "ordinary_sram_remaining_bytes": 29336,
+  "baud_actual": 512195.1219512195,
+  "baud_error_percent": 0.038109756097570724,
+  "rpm_for_3472": 720.0460829493088,
+  "hz_for_3472": 12.000768049155146,
+  "dps_for_3472": 4320.276497695852,
+  "nominal_bytes_per_sec": 46080,
+  "max_bytes_per_sec": 51200.0,
+  "coordinates": [
+    {
+      "alpha": 0,
+      "theta": 90,
+      "x_mm": 0.0,
+      "y_mm": 1000.0
+    },
+    {
+      "alpha": 90,
+      "theta": 0,
+      "x_mm": 1000.0,
+      "y_mm": 0.0
+    },
+    {
+      "alpha": 180,
+      "theta": 270,
+      "x_mm": 0.0,
+      "y_mm": -1000.0
+    },
+    {
+      "alpha": 270,
+      "theta": 180,
+      "x_mm": -1000.0,
+      "y_mm": -0.0
+    },
+    {
+      "alpha": 45,
+      "theta": 45,
+      "x_mm": 707.1068,
+      "y_mm": 707.1068
+    },
+    {
+      "alpha": 315,
+      "theta": 135,
+      "x_mm": -707.1068,
+      "y_mm": 707.1068
+    }
+  ],
+  "manual_sha256": {
+    "m10p\\M10P_20KHz_用户手册.pdf": "54972628c13ddc280e24a18a1c55a8028be4a4d564331588b766abb15e9ede0a",
+    "m10p\\M10P_20K_数据输出格式.pdf": "fe3c979b6abe18e216c253a76e3802ac8792161fd1c744a27ff2fe7e36f3f56a",
+    "m10p\\STM32读取M10P雷达数据说明.pdf": "cbbc470c39f13f2bdb0647a68c23ea67cde325cc9450eb80e9467cc2844a104e"
+  }
+}
