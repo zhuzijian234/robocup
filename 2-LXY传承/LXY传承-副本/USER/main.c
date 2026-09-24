@@ -314,6 +314,9 @@ int main(void)
                 (LEFT_duandian > 0 && LEFT_duandian < duandian_DIStance)) {
                 uint8_t right = (RIGHT_duandian > 0 && RIGHT_duandian < duandian_DIStance);
                 uint16_t breakpoint = right ? RIGHT_duandian : LEFT_duandian;
+                /* 新弯道观测优先，取消上一弯尚未执行的出弯补打。 */
+                state_left_cnt = state_right_cnt = 0;
+                state_left_cnt_2 = state_right_cnt_2 = 0;
                 if (forward_fit_ok && breakpoint < duandian_distance && fabs(Midline_forward.k) < 0.35f) {
                     pid_select = right ? 3 : 4;
                     (void)Midline_PD(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward, servo_midpwm,
@@ -326,10 +329,13 @@ int main(void)
                 } else {
                     _LEIDA_DATA_plane *boundary = right ? LEIDA_DATA_LEFT_Plane : LEIDA_DATA_RIGHT_Plane;
                     uint16_t count = right ? LEFT_cnt : RIGHT_cnt;
-                    if ((pid_select_last == 3) && (pid_select_last_last == 3))
+                    if (right && (pid_select_last == 3) && (pid_select_last_last == 3))
                         state_left_cnt_2 = 1;
-                    if ((pid_select_last == 4) && (pid_select_last_last == 4))
+                    if (!right && (pid_select_last == 4) && (pid_select_last_last == 4))
                         state_right_cnt_2 = 1;
+                    /* 即使本帧 HOLD，也消耗掉“大弯连续两帧”的历史。
+                     * 否则 pid_select 留在 3/4，下一帧会重新触发 HOLD。 */
+                    pid_select = right ? 1 : 2;
                     if (state_left_cnt_2 > 0 || state_right_cnt_2 > 0) {
                         /* 前方拟合刚丢(减速带/车头扫过弯心): 这一帧只保舵机不动,
                          * 别拿一帧残缺的边界点去重算, 否则车头会抖一下。 */
@@ -384,7 +390,7 @@ int main(void)
                     (void)Midline_PD(LEIDA_DATA_CENTER, &Servo_pd, &Midline, servo_midpwm, ref_start, ref_end, pid_select);
                 } else if (Midline_fit(LEIDA_DATA_CENTER, ref_start, ref_end, &Midline)) {
                     if (fabs(Midline.k) <= 0.1f) {
-                        /* 中线接近垂直 -> 保持上次舵机位置(含强制打满), 不主动回中线 */
+                        /* y=kx+b 的 |k| 接近零表示中线接近水平，保持上次舵机位置。 */
                         telemetry_mode = BLE_MODE_HOLD;
                         Servo_ChangePwm((uint16_t)TIM3->CCR1);
                         Servo_PD_valid = 1;

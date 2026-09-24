@@ -11,7 +11,7 @@ import subprocess
 import sys
 
 PROJECT = Path(__file__).resolve().parents[1]
-OUT = PROJECT.parents[1] / 'tmp/control_fix_native'
+OUT = Path(os.environ.get('ROBOCUP_CONTROL_TEST_OUT', str(PROJECT.parents[1] / 'tmp/control_fix_native')))
 OUT.mkdir(parents=True, exist_ok=True)
 
 
@@ -194,4 +194,6 @@ ran = subprocess.run([str(exe)],capture_output=True)
 summary = dict(compiler='MSVC 14.44 /Od',build_exit=built.returncode,run_exit=ran.returncode,
                output=ran.stdout.decode(errors='replace'),note='Production function bodies; hardware mocked, not ARM execution.')
 (OUT/'summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2),encoding='utf-8')
-print(summary['output']);sys.exit(ran.returncode)
+print(summary['output'])
+if ran.returncode:
+    sys.exit(ran.returncode)

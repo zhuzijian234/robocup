@@ -586,6 +586,9 @@ uint16_t LEIDA_DATA_HANDLE5(_LEIDA_DATA_plane data[], _LEIDA_DATA arr[], u16 siz
         }
     }
     /*得到data[0,counter-1]从70°到110°逐个方向取到的点*/
+    /* 不足六点无法可靠地排除四个极值，保留观测交给调用方检查拟合。 */
+    if (counter < 6)
+        return counter;
     /* 拟合直线，若k>0则反转（确保近->远顺序） */
     Midline_fit(data, 1, counter - 1, &midline); /*掐头去尾(1-counter-2),去除边缘噪声*/
     if (midline.k > 0) {
@@ -612,6 +615,10 @@ uint16_t LEIDA_DATA_HANDLE5(_LEIDA_DATA_plane data[], _LEIDA_DATA arr[], u16 siz
             y_min_r_r = data[i]._y;
     }
 
+    /* 水平墙或重复高度可能没有三个不同的极值；不可用哨兵值计算阈值。
+     * 中间跨度为零时也保留点，避免把微小测量差全部判成离群点。 */
+    if (y_max_r_r <= y_min_r_r)
+        return counter;
     jiange = (y_max_r_r - y_min_r_r) / (counter - 4); /* 排除4个极值点 */
 
     /* 按y间距一致性滤除离群点 */
