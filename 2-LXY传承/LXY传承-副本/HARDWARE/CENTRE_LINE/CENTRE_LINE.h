@@ -97,6 +97,9 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
 #define TURN_GUARD_US 350000u
 #define TURN_EXIT_FRAMES 2u
 #define TURN_EXIT_ERROR_MM 100.0f
+#define TURN_ENTRY_PWM 75.0f /* 入弯附加量同时不超过本帧|P|，不放大小误差噪声 */
+#define TURN_MIN_OFFSET 20  /* 接近中位的候选不能成为弯道保持依据 */
+#define TURN_RETRACT_PWM 60 /* 同模式单次明显收舵，需要出弯确认或期限到达 */
 typedef struct {
     uint32_t observed_us;
     uint16_t mode, pwm;

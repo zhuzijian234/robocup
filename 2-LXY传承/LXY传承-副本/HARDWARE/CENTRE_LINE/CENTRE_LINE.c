@@ -276,12 +276,14 @@ static uint16_t pd_reject(void)
     Midline_PD_Reset();
     return (uint16_t)TIM3->CCR1;
 }
+static uint8_t turn_direction(uint16_t mode);
+static uint8_t turn_rank(uint16_t mode);
 uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *line,
                     float mid, uint16_t start, uint16_t end, uint16_t mode)
 {
     uint16_t i;
     uint32_t now = Diag_TimeUs(), dt = now - pd_previous_us;
-    float e = 0, kp, kd, p, d, original_d, output, mag, x = 0, best = FLT_MAX, target;
+    float e = 0, kp, kd, p, d, original_d, output, mag, x = 0, best = FLT_MAX, target, entry = 0;
     Servo_PD_valid = 0;
     Diag_detail_u[6] = pd_previous_mode;
     Diag_detail_u[7] = start;
@@ -382,7 +384,17 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
         d = -p;
     if (d != original_d)
         Diag_detail_u[4] |= 2048;
-    output = 10 * mid + p + d;
+    /* 入弯/换向/升级为更大弯时，单独给有界补偿，不使用跨测量目标的假D。
+     * 只增强P已经指向目标弯向的指令；降级、同模式、无效后同模式恢复不重复加。
+     * DETAIL中的P/D保持原义，补偿量=pwm_unclamped-pwm_mid-pd_p-pd_d。 */
+    if (turn_direction(mode) &&
+        (turn_direction(mode) != turn_direction(pd_previous_mode) || turn_rank(mode) > turn_rank(pd_previous_mode)) &&
+        ((turn_direction(mode) == 1 && p < 0) || (turn_direction(mode) == 2 && p > 0))) {
+        entry = fabs(p) < TURN_ENTRY_PWM ? fabs(p) : TURN_ENTRY_PWM;
+        if (p < 0)
+            entry = -entry;
+    }
+    output = 10 * mid + p + d + entry;
     /* 打方向的模式(1/3/8 往右, 2/4/9 往左)不许把舵机指到中位的另一边, 防反打 */
     if ((mode == 1 || mode == 3 || mode == 8) && output > 10 * mid) {
         output = 10 * mid;
@@ -440,6 +452,7 @@ uint16_t TurnGuard_Apply(TurnGuard *state, uint16_t mode, uint8_t valid,
                         uint8_t straight, uint16_t pwm, uint32_t now, uint8_t *held)
 {
     uint8_t direction = turn_direction(mode);
+    int offset, previous_offset;
     *held = 0;
     /* unsigned差值允许微秒时钟回绕；HOLD/INVALID绝不刷新这个时刻。 */
     if (state->active && (uint32_t)(now - state->observed_us) >= TURN_GUARD_US) {
@@ -452,9 +465,20 @@ uint16_t TurnGuard_Apply(TurnGuard *state, uint16_t mode, uint8_t valid,
     }
     if (direction) {
         state->straight_frames = 0;
+        offset = direction == 1 ? SERVO_PWM_MID - (int)pwm : (int)pwm - SERVO_PWM_MID;
+        previous_offset = direction == 1 ? SERVO_PWM_MID - (int)state->pwm : (int)state->pwm - SERVO_PWM_MID;
+        /* 回中/方向矛盾不能覆盖有效锚点，更不能用来刷新保持期限。 */
+        if (offset < TURN_MIN_OFFSET) {
+            if (state->active && direction == turn_direction(state->mode)) {
+                *held = 1;
+                return state->pwm;
+            }
+            state->active = 0;
+            return pwm;
+        }
         if (state->active && direction == turn_direction(state->mode) &&
-            turn_rank(mode) < turn_rank(state->mode) &&
-            ((direction == 1 && pwm > state->pwm) || (direction == 2 && pwm < state->pwm))) {
+            ((turn_rank(mode) < turn_rank(state->mode) && offset < previous_offset) ||
+             previous_offset - offset > TURN_RETRACT_PWM)) {
             *held = 1;
             return state->pwm;
         }

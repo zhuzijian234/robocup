@@ -7,7 +7,7 @@ import subprocess
 HERE = Path(__file__).resolve().parent
 # Reuse the existing production-C harness and compiler setup, without overwriting
 # its tracked output artifacts.
-os.environ.setdefault('ROBOCUP_CONTROL_TEST_OUT', str(HERE.parents[2] / 'tmp/turn_guard_v1_tests'))
+os.environ.setdefault('ROBOCUP_CONTROL_TEST_OUT', str(HERE.parents[2] / 'tmp/turn_guard_v2_tests'))
 try:
     base = runpy.run_path(str(HERE / 'check_control_fixes.py'))
 except SystemExit as exc:
@@ -125,6 +125,14 @@ int main(void){
         CHECK(tick(large,1,strong,500,115000));mock_center_count=4;
         CHECK(tick(0,1,1462,50,115000));CHECK(turn_held && !turn_guard.straight_frames);
         mock_center_count=12;
+        /* Same-mode abrupt retraction and center cannot overwrite or renew anchor. */
+        memset(&turn_guard,0,sizeof turn_guard);
+        CHECK(tick(small,1,strong,300,115000));
+        CHECK(tick(small,1,1445,0,115000));CHECK(turn_held && turn_guard.pwm==strong);
+        CHECK(tick(small,1,weak,82,115000));CHECK(turn_held && turn_guard.pwm==strong);
+        CHECK(tick(small,1,1445,0,120000));CHECK(!turn_held && !turn_guard.active);
+        CHECK(tick(small,1,1445,0,115000));CHECK(!turn_guard.active);
+        CHECK(tick(0,1,1462,50,115000));CHECK(!turn_held && timer3.CCR1==1462);
     }
     memset(&turn_guard,0,sizeof turn_guard);clock_us=0xffff0000u;
     CHECK(tick(4,1,1645,500,0));

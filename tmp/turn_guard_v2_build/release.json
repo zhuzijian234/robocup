@@ -1,0 +1,10 @@
+{
+  "build_id": "sha256-60ef925c84403520",
+  "hex_sha256": "4905ed0fa644ff59cc4b65cd21c2a53475b5b5425f39d6dbeaf650a3d7ac427d",
+  "control_checks": 287,
+  "turn_checks": 123,
+  "diagnostic_tests": 6,
+  "arm_errors": 0,
+  "arm_warnings": 41,
+  "hardware_tested": false
+}

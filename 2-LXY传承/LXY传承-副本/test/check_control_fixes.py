@@ -87,7 +87,7 @@ functions = [function(diag, 'Diag_RadarPacket')]
 functions += [function(radar, name) for name in ['LEIDA_ParserReset','LEIDA_DATA_HANDLE1',
     'LEIDA_DATA_HANDLE10','LEIDA_DATA_HANDLE4','LEIDA_DATA_HANDLE11']]
 functions += [function(steering, name) for name in ['Midline_fit','Midline_PD_Reset','pd_reject',
-    'Midline_PD_Calculate','Midline_PD','turn_direction','turn_rank','TurnGuard_Apply']]
+    'turn_direction','turn_rank','Midline_PD_Calculate','Midline_PD','TurnGuard_Apply']]
 functions += [function(motor, 'Get_Encoder')]
 
 tests = r'''
@@ -97,6 +97,7 @@ static uint8_t packet[47]={0x54,0x2c,0x68,0x08,0xab,0x7e,0xe0,0x00,0xe4,0xdc,0x0
 static _LEIDA_DATA points[800];
 static _LEIDA_DATA_plane plane[400];
 static pid_type pid;
+static int deferred;
 static void begin(void){memset(Diag_detail_u,0,sizeof Diag_detail_u);memset(Diag_detail_f,0,sizeof Diag_detail_f);clock_us+=115000;}
 static uint16_t drive(uint16_t mode,float error){
     Midline_type line={1,650+error};
@@ -104,11 +105,13 @@ static uint16_t drive(uint16_t mode,float error){
     plane[0]._x=plane[1]._x=mode==1?-error-400:mode==2?400-error:50-error;
     if(mode==3 || mode==4 || mode==8 || mode==9)line.k=fabs(error)>0?175.0f/fabs(error):INFINITY;
     LEIDA_vertical_valid=1;zhongxian_chuizhi=50-error;
-    return Midline_PD(plane,&pid,&line,144.5f,0,2,mode);
+    return deferred ? Midline_PD_Calculate(plane,&pid,&line,144.5f,0,2,mode) :
+                      Midline_PD(plane,&pid,&line,144.5f,0,2,mode);
 }
 static int run(void){
     unsigned split,k,total;uint8_t stream[2000],bad[47];Midline_type line;
     uint16_t output;float before;
+    TurnGuard guard={0};uint8_t held;unsigned writes;
     pid.kp=.035f;pid.kd=.035f;pid.kp_2=.040f;pid.kd_2=.022f;pid.kp_3=.0395f;pid.kd_3=.020f;
     CHECK(Diag_RadarPacket(packet));
     for(split=1;split<47;split++){
@@ -170,6 +173,30 @@ static int run(void){
     line.k=1;line.b=650;before=timer3.CCR1;
     begin();Midline_PD_Calculate(plane,&pid,&line,144.5f,0,2,0);
     CHECK(Servo_PD_valid && timer3.CCR1==before); /* candidate must not write hardware */
+    /* Replay observed left-turn errors using real PD + real guard, not mocked PD. */
+    deferred=1;drive(0,0);writes=servo_writes;
+    output=drive(2,284.289f);CHECK(output==1632 && Diag_detail_f[3]==0);
+    CHECK(TurnGuard_Apply(&guard,2,1,0,output,clock_us,&held)==1632 && !held);
+    output=drive(2,-49.897f);CHECK(output==1445);
+    CHECK(TurnGuard_Apply(&guard,2,1,0,output,clock_us,&held)==1632 && held);
+    CHECK(guard.pwm==1632); /* 14:45:03 used to overwrite the anchor with 1445 */
+    output=drive(0,50);
+    CHECK(TurnGuard_Apply(&guard,0,1,1,output,clock_us,&held)==1632 && held);
+    output=drive(0,50);
+    CHECK(TurnGuard_Apply(&guard,0,1,1,output,clock_us,&held)==1462 && !held);
+    memset(&guard,0,sizeof guard);
+    output=drive(4,500);CHECK(output==1720 && Diag_detail_f[3]==0);
+    CHECK(TurnGuard_Apply(&guard,4,1,0,output,clock_us,&held)==1720 && !held);
+    for(k=0;k<3;k++){
+        output=drive(4,500);CHECK(output==1645); /* entry compensation not repeated */
+        CHECK(TurnGuard_Apply(&guard,4,1,0,output,clock_us,&held)==1720 && held);
+    }
+    output=drive(4,500);
+    CHECK(TurnGuard_Apply(&guard,4,1,0,output,clock_us,&held)==1645 && !held);
+    drive(0,0);output=drive(2,83.583f);CHECK(output==1511); /* small entry bounded by |P| */
+    drive(0,0);output=drive(2,-50);CHECK(output==1445); /* contradictory error never boosted */
+    drive(0,0);output=drive(3,-500);CHECK(output==1170);
+    CHECK(servo_writes==writes);deferred=0; /* whole candidate replay leaves hardware untouched */
     /* Encoder forward, reverse and modulo wrap: no huge unsigned speed. */
     for(k=0;k<5;k++){encoder_counter+=28;Get_Encoder();}
     CHECK(fabs(Speed_now-10.181818f)<.001f);
