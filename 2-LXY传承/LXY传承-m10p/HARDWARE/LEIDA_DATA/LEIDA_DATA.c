@@ -40,14 +40,14 @@
 #include <float.h>
 #include "centre_line.h"
 
+#if 0 /* LD14P原始点云；M10P紧凑双缓冲由m10p.c持有，不再重复分配6400字节。 */
 _LEIDA_DATA LEIDA_DATA[LEIDA_DATA_COUNTER];
+u8 tiaoshi = 0;
+#endif
 _LEIDA_DATA LEIDA_DATA2[LEIDA_DATA_COUNTER];
 
-u8 tiaoshi = 0; /* 调试标志 */
-
-/* 雷达实时转速 (度/秒), 每帧由HANDLE1从数据包Byte2~3读出
- * 6Hz → 2160, 8Hz → 2880 (手册示例帧: 68 08 → 0x0868 = 2152 ≈ 5.98Hz)
- * 手册提示: 电机个体差异, 占空比设典型值时实际转速有差异, 需依此字段闭环 */
+/* 共享的几何/遥测接口：main从M10P整圈复制转速及真实点数。
+ * 下列旧解析计数仍被V2遥测/调试命令引用，保留兼容；M10P健康度看M10P_stats。 */
 uint16_t LEIDA_speed_dps = 0;
 volatile uint32_t LEIDA_parse_calls = 0;
 volatile uint32_t LEIDA_sync_failures = 0;
@@ -82,13 +82,18 @@ volatile uint16_t LEIDA_raw_count = 0;
  */
 /* 流式收包: 一包 47 字节, 但 DMA 一块是 1798 字节(= 47*38+12), 包会跨块 —— 所以
  * 没凑满 47 的尾巴必须留到下一次调用, 不能每块都从头找。lidar_pending = 已缓冲字节数。 */
+#if 0 /* 旧协议的组包缓存也退出编译，避免和M10P的160字节组包缓存混淆。 */
 static uint8_t lidar_packet[47];
 static uint16_t lidar_pending;
+#endif
 /* 丢块(seq 不连续)后调用: 扔掉半包, 强制下次从帧头重新同步 */
+#if 0 /* 历史参考代码：M10P运行链路无调用，禁止参与固件编译 */
 void LEIDA_ParserReset(void)
 {
     lidar_pending = 0;
 }
+#endif /* M10P不编译上述历史实现 */
+#if 0 /* 历史参考代码：M10P运行链路无调用，禁止参与固件编译 */
 uint16_t LEIDA_DATA_HANDLE1(_LEIDA_DATA data[], u8 arr[], u16 size)
 {
     uint16_t i, j = 0, k, skip;
@@ -151,6 +156,7 @@ uint16_t LEIDA_DATA_HANDLE1(_LEIDA_DATA data[], u8 arr[], u16 size)
     LEIDA_raw_count = j;
     return j;
 }
+#endif /* M10P不编译上述历史实现 */
 
 /* ======================== HANDLE2: 极坐标转笛卡尔坐标 ======================== */
 
@@ -177,6 +183,7 @@ uint16_t valid_couter;
  * @brief  筛选[LEIDA_ANGLE_RIGHT, LEIDA_ANGLE_LEFT]范围内距离非零的点
  * @return 有效点个数
  */
+#if 0 /* 历史参考代码：M10P运行链路无调用，禁止参与固件编译 */
 uint16_t LEIDA_DATA_HANDLE3(_LEIDA_DATA data[], _LEIDA_DATA arr[], u16 size)
 {
     int i, j;
@@ -192,11 +199,13 @@ uint16_t LEIDA_DATA_HANDLE3(_LEIDA_DATA data[], _LEIDA_DATA arr[], u16 size)
     }
     return j;
 }
+#endif /* M10P不编译上述历史实现 */
 
 /**
  * @brief  筛选所有距离>=100mm的有效点
  * @return 有效点个数
  */
+#if 0 /* 历史参考代码：M10P运行链路无调用，禁止参与固件编译 */
 uint16_t LEIDA_DATA_HANDLE3_2(_LEIDA_DATA data[], _LEIDA_DATA arr[], u16 size)
 {
     int i, j;
@@ -210,6 +219,7 @@ uint16_t LEIDA_DATA_HANDLE3_2(_LEIDA_DATA data[], _LEIDA_DATA arr[], u16 size)
     }
     return j;
 }
+#endif /* M10P不编译上述历史实现 */
 
 /* ======================== 边界/中线数据处理数组 ======================== */
 
@@ -730,6 +740,7 @@ void reverse(_LEIDA_DATA_plane a[], int sz)
  *
  * @return 计算得到的角度修正量（度）
  */
+#if 0 /* 历史参考代码：M10P运行链路无调用，禁止参与固件编译 */
 float LEIDA_ANGLE_jiuzheng(_LEIDA_DATA data[], u16 size)
 {
     uint16_t i;
@@ -790,6 +801,7 @@ float LEIDA_ANGLE_jiuzheng(_LEIDA_DATA data[], u16 size)
 
     return angle_piancha;
 }
+#endif /* M10P不编译上述历史实现 */
 
 /* ======================== HANDLE10: 边界离群点滤除 ======================== */
 
@@ -871,6 +883,7 @@ float LEIDA_DATA_HANDLE11(_LEIDA_DATA_plane arr[], u16 start, u16 end)
 
 /* ======================== HANDLE12: 占位 ======================= */
 
+#if 0 /* 历史参考代码：M10P运行链路无调用，禁止参与固件编译 */
 uint16_t LEIDA_DATA_HANDLE12(_LEIDA_DATA arr[], u16 size)
 {
     uint16_t i;
@@ -879,6 +892,7 @@ uint16_t LEIDA_DATA_HANDLE12(_LEIDA_DATA arr[], u16 size)
     }
     return 0;
 }
+#endif /* M10P不编译上述历史实现 */
 
 /* ======================== HANDLE13: 边界直线度判断 ======================== */
 
@@ -890,6 +904,7 @@ uint16_t LEIDA_DATA_HANDLE12(_LEIDA_DATA arr[], u16 size)
  *
  * @return 1=直线(x跨度<100mm), 0=非直线
  */
+#if 0 /* 历史参考代码：M10P运行链路无调用，禁止参与固件编译 */
 uint16_t LEIDA_DATA_HANDLE13(_LEIDA_DATA arr[], u16 size, float start_angle, float end_angle)
 {
     uint16_t i = 0;
@@ -959,9 +974,11 @@ uint16_t LEIDA_DATA_HANDLE13(_LEIDA_DATA arr[], u16 size, float start_angle, flo
     /* 第5级x跨度<100mm -> 直线 */
     return fabs(x_max_r_r_r_r - x_min_r_r_r_r) < 100 ? 1 : 0;
 }
+#endif /* M10P不编译上述历史实现 */
 
 /* ======================== 调试打印工具函数 ======================== */
 
+#if 0 /* 历史参考代码：M10P运行链路无调用，禁止参与固件编译 */
 void LEIDA_PrintAll(const _LEIDA_DATA *pts, uint16_t count)
 {
     if (!pts || count == 0) {
@@ -973,7 +990,9 @@ void LEIDA_PrintAll(const _LEIDA_DATA *pts, uint16_t count)
         printf("%03u:(ang=%6.1f deg, dist=%6.1f mm)\r\n", i, pts[i].angle, pts[i].distance);
     }
 }
+#endif /* M10P不编译上述历史实现 */
 
+#if 0 /* 历史参考代码：M10P运行链路无调用，禁止参与固件编译 */
 void LEIDA_PrintSample(const _LEIDA_DATA *pts, uint16_t count, uint16_t step)
 {
     if (!pts || count == 0) {
@@ -987,7 +1006,9 @@ void LEIDA_PrintSample(const _LEIDA_DATA *pts, uint16_t count, uint16_t step)
         printf("%03u:(ang=%6.1f, dist=%6.1f)\r\n", i, pts[i].angle, pts[i].distance);
     }
 }
+#endif /* M10P不编译上述历史实现 */
 
+#if 0 /* 历史参考代码：M10P运行链路无调用，禁止参与固件编译 */
 void LEIDA_PrintHead(const _LEIDA_DATA *pts, uint16_t count, uint16_t n)
 {
     if (!pts || count == 0) {
@@ -1001,3 +1022,4 @@ void LEIDA_PrintHead(const _LEIDA_DATA *pts, uint16_t count, uint16_t n)
         printf("%03u:(ang=%6.1f, dist=%6.1f)\r\n", i, pts[i].angle, pts[i].distance);
     }
 }
+#endif /* M10P不编译上述历史实现 */

@@ -16,7 +16,7 @@ extern uint8_t TIM_IRQ_COUNTER;
 extern uint16_t moto_pwm;
 extern uint16_t daoche_flag;   /* 倒车标志 */
 
-/* TIM5 is configured for 10ms. Fault is latched until MCU reset. */
+/* TIM5每10ms仲裁一次电机输出；500ms无有效观测后锁存停机，复位才能清除。 */
 #define RADAR_TIMEOUT_TICKS 50u
 extern volatile uint16_t Radar_age_ticks;
 extern volatile uint8_t Radar_started;
@@ -30,6 +30,8 @@ extern volatile float Radar_effective_target;
 void Radar_GuardTick(void);
 
 void TIM5_Int_Init(u16 arr, u16 psc);
+#if 0 /* M10P未使用的预留定时器，禁止误调用 */
 void TIM14_Int_Init(u16 arr, u16 psc);
+#endif
 
 #endif

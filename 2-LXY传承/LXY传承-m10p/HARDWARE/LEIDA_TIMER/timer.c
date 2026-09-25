@@ -16,7 +16,8 @@
 #include "centre_line.h"
 #include "m10p.h"
 
-/* Shared by main and TIM5; TIM5 is the sole motor-output arbiter. */
+/* 控制许可由主循环提交，由TIM5最终仲裁；主循环不得直接绕过许可驱动电机。
+ * 共享观测的修改使用短临界区，保证帧号、接收时间和epoch属于同一次观测。 */
 volatile uint16_t Radar_age_ticks = 0;
 volatile uint8_t Radar_started = 0;
 volatile uint8_t Radar_stop_latched = 0;
@@ -35,12 +36,14 @@ uint8_t Radar_Permitted(void)
 }
 void Radar_Invalidate(void)
 {
+    /* 一次无效观测即撤销许可，同时清连续有效帧计数；恢复必须重新积累3帧。 */
     uint32_t p = __get_PRIMASK(); __disable_irq();
     observation_valid = 0; warmup = 0;
     __set_PRIMASK(p);
 }
 void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale)
 {
+    /* 只有已完成几何/控制计算的新鲜扫描才能提交；串口收到字节不等于有效观测。 */
     uint32_t p = __get_PRIMASK(), now = Diag_TimeUs();
     __disable_irq();
     if (Radar_stop_latched || epoch != LidarRx_epoch ||
@@ -59,6 +62,7 @@ void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale)
 }
 void Radar_GuardTick(void)
 {
+    /* 即使主循环卡住，10ms定时环仍按接收时间检查过期，不依赖主循环喂字节。 */
     if (Radar_started && !Radar_stop_latched) {
         if (Radar_age_ticks < RADAR_TIMEOUT_TICKS) Radar_age_ticks++;
         if (Radar_age_ticks >= RADAR_TIMEOUT_TICKS) {
@@ -103,6 +107,7 @@ void TIM5_Int_Init(u16 arr, u16 psc)
 /**
  * @brief  初始化TIM14为周期中断定时器（预留）
  */
+#if 0 /* 未使用的预留定时器；M10P只使用TIM5速度环与TIM6诊断时钟 */
 void TIM14_Int_Init(u16 arr, u16 psc)
 {
     TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
@@ -126,6 +131,7 @@ void TIM14_Int_Init(u16 arr, u16 psc)
     NVIC_InitStructure.NVIC_IRQChannelCmd                = ENABLE;
     NVIC_Init(&NVIC_InitStructure);
 }
+#endif /* M10P不编译上述历史实现 */
 
 uint16_t daoche_flag     = 0;  /* 倒车标志 */
 uint8_t  ENCODER_TIM     = 0;

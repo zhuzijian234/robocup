@@ -1,6 +1,6 @@
 """One command: execute host regressions, verify 3 entry points, build ARM image."""
 from pathlib import Path
-import subprocess,sys,os,json,hashlib,xml.etree.ElementTree as ET
+import subprocess,sys,os,json,hashlib,re,xml.etree.ElementTree as ET
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 P=Path(__file__).resolve().parents[1]
 out=P/'build_m10p_tests';out.mkdir(exist_ok=True)
@@ -31,4 +31,14 @@ for name,base in [('.eide/eide.yml',P),('USER/.eide/eide.yml',P/'USER')]:
  assert d['deviceName']=='STM32F407ZG' and d['outDir']=='build_m10p'
 records.append({'project_sources':len(expected),'entrances':'Keil and both EIDE source/scatter/device configurations match'})
 command([sys.executable,str(P/'test/build_m10p.py')])
+linked=(P/'build_m10p_verified/robocup_m10p.map').read_text(errors='replace')
+# 宿主历史回归仍提取旧实现做对照；固件符号表则必须确认旧入口/工作区不再存在。
+disabled=['LEIDA_DATA','LEIDA_ParserReset','LEIDA_DATA_HANDLE1','LEIDA_DATA_HANDLE3',
+          'LEIDA_DATA_HANDLE3_2','LEIDA_ANGLE_jiuzheng','LEIDA_DATA_HANDLE12',
+          'LEIDA_DATA_HANDLE13','LEIDA_PrintAll','LEIDA_PrintSample','LEIDA_PrintHead',
+          'LEIDA_PWM_Init','TIM14_Int_Init']
+for name in disabled:
+ assert not re.search(r'^\s*'+re.escape(name)+r'\s+0x[0-9a-fA-F]+',linked,re.M),name
+records.append({'disabled_legacy_symbols':disabled,'result':'absent from linked symbol table'})
+(out/'verification.json').write_text(json.dumps(records,ensure_ascii=False,indent=2),encoding='utf-8')
 print('PASS M10P host regressions, configuration audit and ARM build')

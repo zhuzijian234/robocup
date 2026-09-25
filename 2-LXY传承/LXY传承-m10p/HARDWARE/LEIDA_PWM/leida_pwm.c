@@ -1,3 +1,4 @@
+#if 0 /* M10P内部驱动电机，不使用LD14P外部PWM；保留源码供旧硬件参考。 */
 /**
  * @file    leida_pwm.c
  * @brief   雷达电机转速PWM控制驱动
@@ -82,3 +83,5 @@ void TIM9_PWM_Init(u32 psc, u32 arr, u32 pulse)
 
     TIM_Cmd(TIM9, ENABLE);
 }
+
+#endif

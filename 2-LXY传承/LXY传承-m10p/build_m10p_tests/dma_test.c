@@ -58,11 +58,13 @@ volatile uint32_t LidarRx_epoch,LidarRx_peak,LidarRx_blocks,LidarRx_late,LidarRx
 volatile uint32_t Diag_dma_errors,Diag_rx_overflow;
 void LidarRx_Fault(void)
 {
-    /* RX interrupts have equal preemption priority. Main calls with IRQ mask. */
+    /* UART与DMA错误中断抢占优先级相同；主循环调用本函数时必须先屏蔽中断。
+     * 同一次故障只增加一次epoch，防止旧扫描跨越接收恢复后继续驱动。 */
     if (!fault) { LidarRx_epoch++; fault = 1; }
 }
 uint16_t LidarRx_Read(uint8_t *dst, uint16_t capacity, LidarRxStamp *stamp)
 {
+    /* 复制完成才释放槽位；期间发生故障/换代则返回0，调用者不得解析本块。 */
     uint32_t t = tail, epoch = LidarRx_epoch;
     if (fault || capacity < LIDAR_RX_BLOCK || t == head) return 0;
     __DMB();
@@ -73,6 +75,8 @@ uint16_t LidarRx_Read(uint8_t *dst, uint16_t capacity, LidarRxStamp *stamp)
 }
 void DMA1_Stream5_IRQHandler(void)
 {
+    /* HISR原始位必须用DMA_HISR_*，不能用带库内部选择位的DMA_FLAG_*判断。
+     * 半区顺序/NDTR/周期任一异常即丢弃，不尝试拼接可能已被覆盖的字节。 */
     uint32_t flags = DMA1->HISR, now = Diag_TimeUs(), cycle = DWT->CYCCNT;
     uint32_t used, elapsed, ndtr;
     uint8_t half;
@@ -93,7 +97,7 @@ void DMA1_Stream5_IRQHandler(void)
     }
     used = head - tail;
     if (used >= LIDAR_RX_BLOCKS) { Diag_rx_overflow++; LidarRx_Fault(); return; }
-    memcpy(queue[head & 15u], DMA_USART2_RX_BUF + half * LIDAR_RX_BLOCK, LIDAR_RX_BLOCK);
+    memcpy(queue[head & (LIDAR_RX_BLOCKS - 1u)], DMA_USART2_RX_BUF + half * LIDAR_RX_BLOCK, LIDAR_RX_BLOCK);
     ndtr = DMA_GetCurrDataCounter(DMA1_Stream5);
     /* NDTR alone can look safe again after a complete DMA revolution.
      * A half-buffer takes at least 10 ms at 512000 baud, 8N1. */
@@ -103,9 +107,9 @@ void DMA1_Stream5_IRQHandler(void)
     }
     /* The previous IRQ timestamp is AFTER the hardware half boundary.
      * Subtract its bounded service latency, including across timer wrap. */
-    stamps[head & 15u].start_us = last_us - LIDAR_RX_SERVICE_MAX_US;
-    stamps[head & 15u].end_us = now;
-    stamps[head & 15u].epoch = LidarRx_epoch;
+    stamps[head & (LIDAR_RX_BLOCKS - 1u)].start_us = last_us - LIDAR_RX_SERVICE_MAX_US;
+    stamps[head & (LIDAR_RX_BLOCKS - 1u)].end_us = now;
+    stamps[head & (LIDAR_RX_BLOCKS - 1u)].epoch = LidarRx_epoch;
     __DMB(); head++;
     LidarRx_blocks++;
     if ((used + 1u) * LIDAR_RX_BLOCK > LidarRx_peak) LidarRx_peak = (used + 1u) * LIDAR_RX_BLOCK;

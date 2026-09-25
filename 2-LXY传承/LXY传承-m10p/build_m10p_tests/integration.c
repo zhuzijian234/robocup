@@ -41,13 +41,13 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
 {
     uint16_t i, n = 0, missing = 0, max_missing = 0;
     M10P_front_bins = M10P_left_bins = M10P_right_bins = 0;
-    M10P_clearance_mm = (float)M10P_MAX_MM;
+    M10P_clearance_mm = (float)M10P_MAX_MM; /* 先当"啥也没看见", 下面扫到更近的再改 */
     M10P_perception_ok = 0; M10P_speed_scale = 0;
     M10P_control_seq = scan->seq;
     M10P_control_front_us = scan->front_us;
     M10P_control_epoch = scan->epoch;
     M10P_Index(scan, bins);
-    /* A sufficient total count must not mask a blind sector straight ahead. */
+    /* 总点数够多不代表正前方没瞎 —— 单独量一下最长的连续空桶。 */
     for (i = 140; i <= 220; ++i) {
         if (bins[i] == 0xffffu) {
             if (++missing > max_missing) max_missing = missing;
@@ -55,30 +55,31 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
     }
     for (i = 0; i < M10P_BINS; ++i) if (bins[i] != 0xffffu) {
         const M10P_Point *p = &scan->points[bins[i]];
-        float a = M10P_AlgorithmAngle(p->angle_cdeg) / 100.0f;
-        if (n >= capacity) return 0;
+        float a = M10P_AlgorithmAngle(p->angle_cdeg) / 100.0f; /* 0.01° -> 度 */
+        if (n >= capacity) return 0; /* 装不下就整帧作废, 不喂半截数据 */
         out[n].angle = a; out[n++].distance = p->range_mm;
         if (i >= 140 && i <= 220) M10P_front_bins++;
         if (i >= 220 && i <= 340) M10P_left_bins++;
         if (i >= 20 && i <= 140) M10P_right_bins++;
     }
-    /* Independent near-obstacle path: use ALL raw returns, not wall filtering.
-     * Include close (<100 mm) nonzero returns conservatively as obstacles. */
+    /* 独立的近障碍判据: 用全部原始回波, 不走"墙点"那套过滤。
+     * 近处(<100mm)的非零点按"可能挡路"保守计入。 */
     for (i = 0; i < scan->count; ++i) {
         const M10P_Point *p = &scan->points[i];
         uint16_t theta;
         float angle, x, y;
         if (!p->range_mm || p->range_mm > M10P_MAX_MM) continue;
         theta = M10P_AlgorithmAngle(p->angle_cdeg);
-        /* Rear half has y<=0, so cannot intersect the forward corridor.
-         * Keep both side axes for conservative floating-point boundary behavior. */
+        /* 后半圈 y <= 0, 不可能落进正前方走廊, 直接跳过。
+         * 两侧保留完整判断, 让浮点边界行为偏保守。 */
         if (theta > 18000u) continue;
-        angle = theta * (PI / 18000.0f);
+        angle = theta * (PI / 18000.0f); /* 0.01° -> 弧度 */
         x = p->range_mm * arm_cos_f32(angle);
         y = p->range_mm * arm_sin_f32(angle);
         if (y > 0 && fabsf(x) < M10P_CORRIDOR_HALF_MM && y < M10P_clearance_mm)
             M10P_clearance_mm = y;
     }
+    /* 感知可信的全部条件, 缺一不可 */
     M10P_perception_ok = scan->front_seen && M10P_front_bins >= 40 &&
         max_missing <= M10P_FRONT_MAX_MISSING_BINS &&
         M10P_left_bins >= 16 && M10P_right_bins >= 16 &&
@@ -86,6 +87,7 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
         (uint32_t)(Diag_TimeUs() - scan->front_us) <= M10P_MAX_AGE_US &&
         M10P_clearance_mm > M10P_STOP_Y_MM;
     if (M10P_perception_ok) {
+        /* 净空越近越慢: 350mm -> 0.25 倍, 1000mm 及以上 -> 满速 */
         M10P_speed_scale = (M10P_clearance_mm - M10P_STOP_Y_MM) / (M10P_SLOW_Y_MM - M10P_STOP_Y_MM);
         if (M10P_speed_scale > 1) M10P_speed_scale = 1;
         if (M10P_speed_scale < 0.25f) M10P_speed_scale = 0.25f;
@@ -111,6 +113,8 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
         M10P_Feed(rx, n, stamp.start_us, stamp.end_us);
     }
     if (seen_discontinuities != M10P_stats.discontinuities || seen_rejected != M10P_stats.rejected) {
+        /* 解析器只要丢过帧/丢过圈, 就认为眼前这帧的几何关系不可信:
+         * 作废一次电机许可, 逼主循环重新用新鲜数据把许可挣回来。 */
         seen_discontinuities = M10P_stats.discontinuities;
         seen_rejected = M10P_stats.rejected;
         Radar_Invalidate();
@@ -127,12 +131,14 @@ uint8_t Radar_Permitted(void)
 }
 void Radar_Invalidate(void)
 {
+    /* 一次无效观测即撤销许可，同时清连续有效帧计数；恢复必须重新积累3帧。 */
     uint32_t p = __get_PRIMASK(); __disable_irq();
     observation_valid = 0; warmup = 0;
     __set_PRIMASK(p);
 }
 void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale)
 {
+    /* 只有已完成几何/控制计算的新鲜扫描才能提交；串口收到字节不等于有效观测。 */
     uint32_t p = __get_PRIMASK(), now = Diag_TimeUs();
     __disable_irq();
     if (Radar_stop_latched || epoch != LidarRx_epoch ||
@@ -151,6 +157,7 @@ void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale)
 }
 void Radar_GuardTick(void)
 {
+    /* 即使主循环卡住，10ms定时环仍按接收时间检查过期，不依赖主循环喂字节。 */
     if (Radar_started && !Radar_stop_latched) {
         if (Radar_age_ticks < RADAR_TIMEOUT_TICKS) Radar_age_ticks++;
         if (Radar_age_ticks >= RADAR_TIMEOUT_TICKS) {

@@ -1,10 +1,13 @@
 #include "DMA.h"
 #include "ble_diag.h"
 #include <string.h>
-/* Normal RX never disables DMA. Only error recovery restarts the stream. */
+/* 接收层只搬运字节，不做协议解析/浮点运算/打印。
+ * 正常运行保持循环DMA；只有故障恢复时才能停止并重启接收流。 */
 uint8_t DMA_USART2_RX_BUF[DMA_USART2_RX_BUF_LEN];
 static uint8_t queue[LIDAR_RX_BLOCKS][LIDAR_RX_BLOCK];
 static LidarRxStamp stamps[LIDAR_RX_BLOCKS];
+/* 单生产者/单消费者：ISR只推进head，主循环只推进tail；发布前使用DMB。
+ * 不允许额外的IDLE中断绕过这套所有权再向队列写入。 */
 static volatile uint32_t head, tail;
 static volatile uint8_t fault;
 static uint8_t expected_half;
@@ -14,7 +17,8 @@ volatile uint32_t LidarRx_late, LidarRx_copy_max_cycles;
 #define ALL_FLAGS (DMA_FLAG_TCIF5 | DMA_FLAG_HTIF5 | DMA_FLAG_TEIF5 | DMA_FLAG_DMEIF5 | DMA_FLAG_FEIF5)
 void LidarRx_Fault(void)
 {
-    /* RX interrupts have equal preemption priority. Main calls with IRQ mask. */
+    /* UART与DMA错误中断抢占优先级相同；主循环调用本函数时必须先屏蔽中断。
+     * 同一次故障只增加一次epoch，防止旧扫描跨越接收恢复后继续驱动。 */
     if (!fault) { LidarRx_epoch++; fault = 1; }
 }
 void DMA_Initializes(void)
@@ -47,6 +51,7 @@ void DMA_Initializes(void)
 }
 void LidarRx_Service(void)
 {
+    /* 恢复只在主循环做，ISR不等待DMA停止；清队列与换回正常态是短临界区。 */
     uint32_t p, sr;
     if (!fault) return;
     DMA_Cmd(DMA1_Stream5, DISABLE);
@@ -62,6 +67,7 @@ void LidarRx_Service(void)
 }
 uint16_t LidarRx_Read(uint8_t *dst, uint16_t capacity, LidarRxStamp *stamp)
 {
+    /* 复制完成才释放槽位；期间发生故障/换代则返回0，调用者不得解析本块。 */
     uint32_t t = tail, epoch = LidarRx_epoch;
     if (fault || capacity < LIDAR_RX_BLOCK || t == head) return 0;
     __DMB();
@@ -72,6 +78,8 @@ uint16_t LidarRx_Read(uint8_t *dst, uint16_t capacity, LidarRxStamp *stamp)
 }
 void DMA1_Stream5_IRQHandler(void)
 {
+    /* HISR原始位必须用DMA_HISR_*，不能用带库内部选择位的DMA_FLAG_*判断。
+     * 半区顺序/NDTR/周期任一异常即丢弃，不尝试拼接可能已被覆盖的字节。 */
     uint32_t flags = DMA1->HISR, now = Diag_TimeUs(), cycle = DWT->CYCCNT;
     uint32_t used, elapsed, ndtr;
     uint8_t half;
@@ -92,7 +100,7 @@ void DMA1_Stream5_IRQHandler(void)
     }
     used = head - tail;
     if (used >= LIDAR_RX_BLOCKS) { Diag_rx_overflow++; LidarRx_Fault(); return; }
-    memcpy(queue[head & 15u], DMA_USART2_RX_BUF + half * LIDAR_RX_BLOCK, LIDAR_RX_BLOCK);
+    memcpy(queue[head & (LIDAR_RX_BLOCKS - 1u)], DMA_USART2_RX_BUF + half * LIDAR_RX_BLOCK, LIDAR_RX_BLOCK);
     ndtr = DMA_GetCurrDataCounter(DMA1_Stream5);
     /* NDTR alone can look safe again after a complete DMA revolution.
      * A half-buffer takes at least 10 ms at 512000 baud, 8N1. */
@@ -102,9 +110,9 @@ void DMA1_Stream5_IRQHandler(void)
     }
     /* The previous IRQ timestamp is AFTER the hardware half boundary.
      * Subtract its bounded service latency, including across timer wrap. */
-    stamps[head & 15u].start_us = last_us - LIDAR_RX_SERVICE_MAX_US;
-    stamps[head & 15u].end_us = now;
-    stamps[head & 15u].epoch = LidarRx_epoch;
+    stamps[head & (LIDAR_RX_BLOCKS - 1u)].start_us = last_us - LIDAR_RX_SERVICE_MAX_US;
+    stamps[head & (LIDAR_RX_BLOCKS - 1u)].end_us = now;
+    stamps[head & (LIDAR_RX_BLOCKS - 1u)].epoch = LidarRx_epoch;
     __DMB(); head++;
     LidarRx_blocks++;
     if ((used + 1u) * LIDAR_RX_BLOCK > LidarRx_peak) LidarRx_peak = (used + 1u) * LIDAR_RX_BLOCK;

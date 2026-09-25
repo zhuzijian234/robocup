@@ -50,7 +50,7 @@
 #include "usart.h"
 #include "delay.h"
 #include "DMA.h"
-#include "leida_pwm.h"
+/* M10P内部驱动，无需旧LD14P的leida_pwm.h及TIM9初始化。 */
 #include "LEIDA_DATA.h"
 #include "bsp_bluetooth.h"
 #include "ble_tune.h" /* 蓝牙实时调参 (HARDWARE/hc-05/ble_tune.c) */
@@ -76,8 +76,10 @@ uint16_t RIGHT_duandian;       /* 右边界断点y坐标 */
 uint16_t LEFT_duandian;        /* 左边界断点y坐标 */
 float paodao_distance = 700;   /* 跑道宽度 (mm) */
 float paodao_distance_r = 700; /* 当前帧跑道宽度 (mm) */
+#if 0 /* 历史调试变量：无读写调用，保留名称供对照旧版本。 */
 float paodao_distance_r_r = 0;
 float paodao_distance_r_r_r = 0;
+#endif
 /* 兼容既有遥测字段；旧的固定帧数强制补打已由TurnGuard替代。 */
 uint16_t state_left_cnt = 0;
 uint16_t state_right_cnt = 0;
@@ -87,7 +89,9 @@ uint16_t state_right_cnt_2 = 0;
 extern float Speed_now;
 
 #define duandian_distance 600 /* 断点判断距离阈值 */
+#if 0 /* 旧控制状态，已由TurnGuard维护 */
 uint16_t state_sta = 1;
+#endif
 
 float duandian_DIStance = 600; /* 断点有效距离阈值 (mm) */
 
