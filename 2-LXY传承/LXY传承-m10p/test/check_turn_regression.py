@@ -105,6 +105,8 @@ int main(void){
         CHECK(tick(0,0,1462,50,50000));
         CHECK(turn_guard.active && !turn_guard.straight_frames && !Servo_PD_valid && telemetry_mode==11);
         CHECK(tick(0,1,1462,50,50000));CHECK(turn_held);
+        CHECK(tick(0,1,1462,50,50000));CHECK(turn_guard.active && turn_held);
+        /* At 20Hz two observations are only 50ms apart. Require >=100ms. */
         CHECK(tick(0,1,1462,50,50000));CHECK(!turn_guard.active);
 
         /* Downgraded measurements cannot rearm the 350ms deadline. */

@@ -9,6 +9,7 @@
 #define M10P_SCAN_CAPACITY 2048u
 #define M10P_BINS 720u
 #define M10P_MAX_AGE_US 150000u
+#define M10P_FRONT_MAX_MISSING_BINS 10u /* 5 degrees at half-degree resolution */
 #define M10P_MIN_PERIOD_US 60000u
 #define M10P_MAX_PERIOD_US 120000u
 #define M10P_BETA_CDEG 0
@@ -28,7 +29,7 @@ typedef struct {
     M10P_Point points[M10P_SCAN_CAPACITY];
     uint32_t seq, start_us, end_us, period_us, front_us, epoch;
     uint16_t count, coverage_cdeg, dps, invalid_slots;
-    uint8_t front_seen, overflow;
+    uint8_t front_seen, overflow, unstable;
 } M10P_Scan;
 typedef struct {
     uint32_t bytes, packets, bad_length, bad_tail, bad_angle, bad_speed;
@@ -38,7 +39,7 @@ typedef struct {
 extern M10P_Stats M10P_stats;
 void M10P_Init(void);
 void M10P_Lost(uint32_t epoch);
-/* Bounds on byte reception, NOT parsing time. start is previous DMA service. */
+/* Bounds on byte reception, NOT parsing time. start includes DMA IRQ uncertainty. */
 void M10P_Feed(const uint8_t *data, size_t count, uint32_t start_us, uint32_t end_us);
 const M10P_Scan *M10P_Acquire(void);
 void M10P_Release(const M10P_Scan *scan);

@@ -45,15 +45,49 @@ float Encoder_cnt,Speed_now;int16_t Encoder_cnt_arr[5];uint16_t Encoder_cnt_temp
 uint16_t LEIDA_DATA_HANDLE10(_LEIDA_DATA_plane *,u16);
 #define TURN_GUARD_US 350000u
 #define TURN_EXIT_FRAMES 2u
+#define TURN_EXIT_MIN_US 100000u
 #define TURN_EXIT_ERROR_MM 100.0f
 #define TURN_ENTRY_PWM 75.0f /* 入弯附加量同时不超过本帧|P|，不放大小误差噪声 */
 #define TURN_MIN_OFFSET 20  /* 接近中位的候选不能成为弯道保持依据 */
 #define TURN_RETRACT_PWM 60 /* 同模式单次明显收舵，需要出弯确认或期限到达 */
 typedef struct {
-    uint32_t observed_us;
+    uint32_t observed_us, straight_since_us;
     uint16_t mode, pwm;
     uint8_t active, straight_frames;
 } TurnGuard;
+static int16_t angle_heads[720], angle_next[LEIDA_DATA_COUNTER];
+static void angle_index_build(const _LEIDA_DATA *points, uint16_t size)
+{
+    int i;
+    for (i = 0; i < 720; ++i) angle_heads[i] = -1;
+    for (i = (int)size - 1; i >= 0; --i) {
+        int bin;
+        float a = points[i].angle;
+        angle_next[i] = -1;
+        if (!(a >= 0.0f && a <= 360.0f)) continue;
+        bin = (int)(a * 2.0f);
+        if (bin == 720) bin = 0;
+        angle_next[i] = angle_heads[bin];
+        angle_heads[bin] = (int16_t)i;
+    }
+}
+static int angle_nearest(const _LEIDA_DATA *points, float angle)
+{
+    int b, i, best = -1, center = (int)(angle * 2.0f);
+    float nearest = 2001.0f;
+    for (b = center - 2; b <= center + 2; ++b) {
+        int bin = (b + 720) % 720;
+        for (i = angle_heads[bin]; i >= 0; i = angle_next[i]) {
+            float d = points[i].distance, diff = fabsf(points[i].angle - angle);
+            if (diff > 180.0f) diff = 360.0f - diff;
+            if (d >= 100.0f && d <= 2000.0f && diff <= LEIDA_ANGLE_piancha &&
+                (d < nearest || (d == nearest && (best < 0 || i < best)))) {
+                nearest = d; best = i;
+            }
+        }
+    }
+    return best;
+}
 uint8_t Diag_RadarPacket(const uint8_t *a)
 {
     uint8_t crc = 0, b;
@@ -172,31 +206,14 @@ uint16_t LEIDA_DATA_HANDLE4(_LEIDA_DATA_plane data_center[], _LEIDA_DATA arr[], 
 {
     uint16_t i, n = 0;
     int right, left;
-    float a, b, dr, dl, diff, x, y;
+    float a, b, x, y;
     zhongxian_junzhi = 0;
+    if (size > LEIDA_DATA_COUNTER) return 0;
+    angle_index_build(arr, size);
     for (a = LEIDA_ANGLE_RIGHT, b = LEIDA_ANGLE_LEFT;
          a <= LEIDA_ANGLE_RIGHT + LEIDA_ANGLE_yuliang; a += 0.6f, b -= 0.6f) {
-        /* Each angular pair owns fresh indices; array index zero is valid. */
-        right = left = -1;
-        dr = dl = 2001.0f;
-        for (i = 0; i < size; i++) {
-            if (arr[i].distance < 100 || arr[i].distance > 2000)
-                continue;
-            diff = fabs(arr[i].angle - a);
-            if (diff > 180)
-                diff = 360 - diff;
-            if (diff <= LEIDA_ANGLE_piancha && arr[i].distance < dr) {
-                right = i;
-                dr = arr[i].distance;
-            }
-            diff = fabs(arr[i].angle - b);
-            if (diff > 180)
-                diff = 360 - diff;
-            if (diff <= LEIDA_ANGLE_piancha && arr[i].distance < dl) {
-                left = i;
-                dl = arr[i].distance;
-            }
-        }
+        right = angle_nearest(arr, a);
+        left = angle_nearest(arr, b);
         if (right < 0 || left < 0)
             continue;
         x = (arr[right].distance * arm_cos_f32(arr[right].angle * PI / 180) + arr[left].distance * arm_cos_f32(arr[left].angle * PI / 180)) / 2;
@@ -499,8 +516,9 @@ uint16_t TurnGuard_Apply(TurnGuard *state, uint16_t mode, uint8_t valid,
     }
     if (!state->active)
         return pwm;
-    state->straight_frames = straight ? state->straight_frames + 1 : 0;
-    if (state->straight_frames >= TURN_EXIT_FRAMES) {
+    if (straight && !state->straight_frames) state->straight_since_us = now;
+    state->straight_frames = straight ? (state->straight_frames < 255 ? state->straight_frames + 1 : 255) : 0;
+    if (state->straight_frames >= TURN_EXIT_FRAMES && (uint32_t)(now-state->straight_since_us) >= TURN_EXIT_MIN_US) {
         state->active = 0;
         state->straight_frames = 0;
         return pwm;

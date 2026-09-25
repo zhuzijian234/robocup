@@ -9,6 +9,8 @@
 /bin
 /obj
 /out
+/build_m10p*/
+/USER/build_m10p/
 
 # eide template
 *.ept

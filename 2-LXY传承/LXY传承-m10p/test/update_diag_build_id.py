@@ -8,7 +8,7 @@ target=project/'HARDWARE/hc-05/diag_build_id.h'
 files={}
 for directory in ['USER','CORE','SYSTEM','HARDWARE','FWLIB','test']:
     for p in sorted((project/directory).rglob('*')):
-        if p.is_file() and p.suffix.lower() in ('.c','.h','.s','.py','.lib','.uvprojx','.yml') and p!=target:
+        if p.is_file() and p.suffix.lower() in ('.c','.h','.s','.py','.lib','.uvprojx','.yml','.sct') and p!=target:
             if any(part in ('build','Objects','Listings','__pycache__') for part in p.parts):continue
             # Newline normalization avoids hash drift caused solely by git autocrlf.
             data=p.read_bytes().replace(b'\r\n',b'\n')

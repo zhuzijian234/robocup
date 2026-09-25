@@ -55,6 +55,39 @@ typedef struct {
     uint16_t mode, pwm;
     uint8_t active, straight_frames;
 } TurnGuard;
+static int16_t angle_heads[720], angle_next[LEIDA_DATA_COUNTER];
+static void angle_index_build(const _LEIDA_DATA *points, uint16_t size)
+{
+    int i;
+    for (i = 0; i < 720; ++i) angle_heads[i] = -1;
+    for (i = (int)size - 1; i >= 0; --i) {
+        int bin;
+        float a = points[i].angle;
+        angle_next[i] = -1;
+        if (!(a >= 0.0f && a <= 360.0f)) continue;
+        bin = (int)(a * 2.0f);
+        if (bin == 720) bin = 0;
+        angle_next[i] = angle_heads[bin];
+        angle_heads[bin] = (int16_t)i;
+    }
+}
+static int angle_nearest(const _LEIDA_DATA *points, float angle)
+{
+    int b, i, best = -1, center = (int)(angle * 2.0f);
+    float nearest = 2001.0f;
+    for (b = center - 2; b <= center + 2; ++b) {
+        int bin = (b + 720) % 720;
+        for (i = angle_heads[bin]; i >= 0; i = angle_next[i]) {
+            float d = points[i].distance, diff = fabsf(points[i].angle - angle);
+            if (diff > 180.0f) diff = 360.0f - diff;
+            if (d >= 100.0f && d <= 2000.0f && diff <= LEIDA_ANGLE_piancha &&
+                (d < nearest || (d == nearest && (best < 0 || i < best)))) {
+                nearest = d; best = i;
+            }
+        }
+    }
+    return best;
+}
 uint8_t Diag_RadarPacket(const uint8_t *a)
 {
     uint8_t crc = 0, b;
@@ -172,37 +205,27 @@ uint16_t LEIDA_DATA_HANDLE10(_LEIDA_DATA_plane arr[], u16 size)
 uint16_t LEIDA_DATA_HANDLE4(_LEIDA_DATA_plane data_center[], _LEIDA_DATA arr[], u16 size)
 {
     uint16_t i, n = 0;
+    uint8_t used[(LEIDA_DATA_COUNTER + 7) / 8] = {0};
     int right, left;
-    float a, b, dr, dl, diff, x, y;
+    float a, b, x, y;
     zhongxian_junzhi = 0;
+    if (size > LEIDA_DATA_COUNTER) return 0;
+    angle_index_build(arr, size);
     for (a = LEIDA_ANGLE_RIGHT, b = LEIDA_ANGLE_LEFT;
          a <= LEIDA_ANGLE_RIGHT + LEIDA_ANGLE_yuliang; a += 0.6f, b -= 0.6f) {
-        /* Each angular pair owns fresh indices; array index zero is valid. */
-        right = left = -1;
-        dr = dl = 2001.0f;
-        for (i = 0; i < size; i++) {
-            if (arr[i].distance < 100 || arr[i].distance > 2000)
-                continue;
-            diff = fabs(arr[i].angle - a);
-            if (diff > 180)
-                diff = 360 - diff;
-            if (diff <= LEIDA_ANGLE_piancha && arr[i].distance < dr) {
-                right = i;
-                dr = arr[i].distance;
-            }
-            diff = fabs(arr[i].angle - b);
-            if (diff > 180)
-                diff = 360 - diff;
-            if (diff <= LEIDA_ANGLE_piancha && arr[i].distance < dl) {
-                left = i;
-                dl = arr[i].distance;
-            }
-        }
+        right = angle_nearest(arr, a);
+        left = angle_nearest(arr, b);
         if (right < 0 || left < 0)
             continue;
+        /* Overlapping query windows must not count one physical return twice
+         * as independent support for a straight line or turn-exit decision. */
+        if ((used[right / 8] & (1u << (right % 8))) ||
+            (used[left / 8] & (1u << (left % 8)))) continue;
         x = (arr[right].distance * arm_cos_f32(arr[right].angle * PI / 180) + arr[left].distance * arm_cos_f32(arr[left].angle * PI / 180)) / 2;
         y = (arr[right].distance * arm_sin_f32(arr[right].angle * PI / 180) + arr[left].distance * arm_sin_f32(arr[left].angle * PI / 180)) / 2;
         if (y >= 0 && y <= 800 && n < LEIDA_DATA_COUNTER / 2) {
+            used[right / 8] |= (uint8_t)(1u << (right % 8));
+            used[left / 8] |= (uint8_t)(1u << (left % 8));
             data_center[n]._x = x;
             data_center[n++]._y = y;
         }
@@ -796,6 +819,8 @@ int main(void){
         CHECK(tick(0,0,1462,50,50000));
         CHECK(turn_guard.active && !turn_guard.straight_frames && !Servo_PD_valid && telemetry_mode==11);
         CHECK(tick(0,1,1462,50,50000));CHECK(turn_held);
+        CHECK(tick(0,1,1462,50,50000));CHECK(turn_guard.active && turn_held);
+        /* At 20Hz two observations are only 50ms apart. Require >=100ms. */
         CHECK(tick(0,1,1462,50,50000));CHECK(!turn_guard.active);
 
         /* Downgraded measurements cannot rearm the 350ms deadline. */

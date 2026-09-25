@@ -83,7 +83,9 @@ uint16_t LEIDA_DATA_HANDLE10(_LEIDA_DATA_plane *,u16);
 '''
 header = source('HARDWARE/CENTRE_LINE/CENTRE_LINE.h')
 prefix += header[header.index('#define TURN_GUARD_US'):header.index('uint16_t TurnGuard_Apply')]
-functions = [function(diag, 'Diag_RadarPacket')]
+functions = ['static int16_t angle_heads[720], angle_next[LEIDA_DATA_COUNTER];',
+             function(radar, 'angle_index_build'), function(radar, 'angle_nearest'),
+             function(diag, 'Diag_RadarPacket')]
 functions += [function(radar, name) for name in ['LEIDA_ParserReset','LEIDA_DATA_HANDLE1',
     'LEIDA_DATA_HANDLE10','LEIDA_DATA_HANDLE4','LEIDA_DATA_HANDLE11']]
 functions += [function(steering, name) for name in ['Midline_fit','Midline_PD_Reset','pd_reject',
@@ -146,6 +148,9 @@ static int run(void){
     CHECK(LEIDA_DATA_HANDLE11(plane,0,4)==0 && LEIDA_vertical_valid);
     points[0].angle=30;points[0].distance=400;points[1].angle=150;points[1].distance=400;
     CHECK(LEIDA_DATA_HANDLE4(plane,points,2)>0); /* index zero usable */
+    points[0].angle=30.3f;points[1].angle=149.7f;
+    CHECK(LEIDA_DATA_HANDLE4(plane,points,2)==1); /* overlapping windows, one pair */
+    CHECK(LEIDA_DATA_HANDLE11(plane,0,1)==0 && !LEIDA_vertical_valid);
     points[0].angle=0;points[1].angle=179;
     CHECK(LEIDA_DATA_HANDLE4(plane,points,2)==0); /* no cross-angle stale pairing */
     CHECK(!Midline_fit(plane,0,0,&line));

@@ -46,15 +46,15 @@ static void begin_scan(uint32_t t)
     writer = -1;
     for (i = 0; i < 2; ++i) if (!state[i]) { writer = i; break; }
     if (writer < 0) {
-        for (i = 0; i < 2; ++i) if (state[i] == 2) {
-            writer = i; M10P_stats.ready_drop++; break;
-        }
+        for (i = 0; i < 2; ++i) if (state[i] == 2 &&
+            (writer < 0 || (int32_t)(scans[i].seq - scans[writer].seq) < 0)) writer = i;
+        if (writer >= 0) M10P_stats.ready_drop++;
     }
     if (writer >= 0) {
         M10P_Scan *s = &scans[writer];
         /* No full-point memset: count defines the initialized range. */
         s->start_us = t; s->count = s->coverage_cdeg = s->invalid_slots = 0;
-        s->front_seen = s->overflow = 0; s->epoch = M10P_stats.epoch;
+        s->front_seen = s->overflow = s->unstable = 0; s->front_us = t; s->epoch = M10P_stats.epoch;
         state[writer] = 1;
     }
 }
@@ -64,8 +64,9 @@ static void boundary(uint32_t start, uint32_t end)
         M10P_Scan *s = &scans[writer];
         s->end_us = end;
         s->period_us = start - s->start_us;
-        if (!s->overflow && s->coverage_cdeg >= 35900 && s->coverage_cdeg <= 36100 &&
-            s->period_us >= M10P_MIN_PERIOD_US && s->period_us <= M10P_MAX_PERIOD_US) {
+        if (!s->overflow && !s->unstable && s->coverage_cdeg >= 35900 && s->coverage_cdeg <= 36100 &&
+            s->period_us >= M10P_MIN_PERIOD_US && s->period_us <= M10P_MAX_PERIOD_US &&
+            s->dps >= 3000u && s->dps <= 6000u) {
             s->seq = ++scan_seq; state[writer] = 2; M10P_stats.scans++;
         } else {
             state[writer] = 0; M10P_stats.rejected++;
@@ -81,6 +82,8 @@ static void coverage(uint16_t span, uint16_t invalid, uint16_t dps)
         else s->coverage_cdeg = (uint16_t)(s->coverage_cdeg + span);
         s->invalid_slots = (uint16_t)(s->invalid_slots + invalid);
         s->dps = dps;
+        /* A normal last packet cannot hide an unstable speed earlier in the scan. */
+        if (dps < 3000u || dps > 6000u) s->unstable = 1;
     }
 }
 static void append(uint16_t a, uint16_t raw, uint32_t t)

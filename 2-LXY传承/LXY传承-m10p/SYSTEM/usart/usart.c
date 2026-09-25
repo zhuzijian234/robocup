@@ -133,10 +133,10 @@ void USART1_IRQHandler(void) // 串口1中断服务程序
  * @brief  初始化USART2 — 雷达串口 (PA2=TX, PA3=RX)
  *
  * 对应谢露版引脚复用: USART2替代原USART6
- * 注意: PA2在初始化后被雷达电机PWM(TIM9_CH1)覆盖，
- *       仅PA3(RX)用于DMA接收雷达数据，TX不需要。
+ * M10P: PA3(RX)用于DMA接收，PA2保留USART2_TX复用。
+ *       主程序不再启用LD14P电机PWM(TIM9_CH1)。
  *
- * @param  bound: 波特率 (雷达用230400)
+ * @param  bound: 波特率 (M10P用512000)
  */
 void uart2_init(u32 bound)
 {

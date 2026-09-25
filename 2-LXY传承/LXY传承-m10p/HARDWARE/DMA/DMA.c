@@ -86,7 +86,7 @@ void DMA1_Stream5_IRQHandler(void)
     half = (flags & DMA_HISR_HTIF5) ? 0 : 1;
     DMA_ClearFlag(DMA1_Stream5, half ? DMA_FLAG_TCIF5 : DMA_FLAG_HTIF5);
     ndtr = DMA_GetCurrDataCounter(DMA1_Stream5);
-    if (half != expected_half || cycle - last_cycles > SystemCoreClock / 50u ||
+    if (half != expected_half || cycle - last_cycles > SystemCoreClock / 50u || !ndtr ||
         (!half && ndtr > LIDAR_RX_BLOCK) || (half && ndtr <= LIDAR_RX_BLOCK)) {
         LidarRx_late++; LidarRx_Fault(); return;
     }
@@ -94,10 +94,15 @@ void DMA1_Stream5_IRQHandler(void)
     if (used >= LIDAR_RX_BLOCKS) { Diag_rx_overflow++; LidarRx_Fault(); return; }
     memcpy(queue[head & 15u], DMA_USART2_RX_BUF + half * LIDAR_RX_BLOCK, LIDAR_RX_BLOCK);
     ndtr = DMA_GetCurrDataCounter(DMA1_Stream5);
-    if ((!half && ndtr > LIDAR_RX_BLOCK) || (half && ndtr <= LIDAR_RX_BLOCK)) {
+    /* NDTR alone can look safe again after a complete DMA revolution.
+     * A half-buffer takes at least 10 ms at 512000 baud, 8N1. */
+    if (!ndtr || DWT->CYCCNT - cycle >= SystemCoreClock / 100u ||
+        (!half && ndtr > LIDAR_RX_BLOCK) || (half && ndtr <= LIDAR_RX_BLOCK)) {
         LidarRx_late++; LidarRx_Fault(); return;
     }
-    stamps[head & 15u].start_us = last_us;
+    /* The previous IRQ timestamp is AFTER the hardware half boundary.
+     * Subtract its bounded service latency, including across timer wrap. */
+    stamps[head & 15u].start_us = last_us - LIDAR_RX_SERVICE_MAX_US;
     stamps[head & 15u].end_us = now;
     stamps[head & 15u].epoch = LidarRx_epoch;
     __DMB(); head++;

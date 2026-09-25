@@ -1,5 +1,5 @@
 from pathlib import Path
-import subprocess, os, json
+import subprocess, os, json, tempfile
 P=Path(__file__).resolve().parents[1]
 OUT=P/'build_m10p_tests'; OUT.mkdir(exist_ok=True)
 wrapper=OUT/'env.bat'
@@ -11,8 +11,10 @@ for line in r.stdout.decode(errors='replace').splitlines():
     if k and s:env[k]=v
 cl='D:/VS/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe'
 def run(name,source):
-    exe=OUT/(name+'.exe')
-    cmd=[cl,'/nologo','/std:c11','/utf-8','/Od','/W4',str(source),'/I'+str(P/'HARDWARE/LEIDA_DATA'),'/Fe:'+str(exe),'/Fo:'+str(OUT/(name+'.obj'))]
+    # Isolate compiler intermediates from stale/sync-locked files of a prior run.
+    run_out=Path(tempfile.mkdtemp(prefix=name+'_',dir=OUT))
+    exe=run_out/(name+'.exe')
+    cmd=[cl,'/nologo','/std:c11','/utf-8','/Od','/W4',str(source),'/I'+str(P/'HARDWARE/LEIDA_DATA'),'/Fe:'+str(exe),'/Fo:'+str(run_out/(name+'.obj'))]
     b=subprocess.run(cmd,env=env,capture_output=True)
     (OUT/(name+'_compile.log')).write_bytes(b.stdout+b.stderr)
     if b.returncode:print((b.stdout+b.stderr).decode(errors='replace'));raise SystemExit(b.returncode)

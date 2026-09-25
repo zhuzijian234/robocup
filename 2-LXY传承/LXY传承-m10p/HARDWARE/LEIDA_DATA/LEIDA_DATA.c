@@ -7,7 +7,9 @@
  *
  * ======================== 数据流水线 ========================
  *
- *   USART6 DMA缓冲区 (原始字节)
+ *   下图为保留的LD14P路径；M10P运行时由m10p.c/m10p_vehicle.c
+ *   经USART2循环DMA直接生成LEIDA_DATA2，不调用HANDLE1/3_2。
+ *   原始DMA缓冲区 (原始字节)
  *        |
  *        v
  *   HANDLE1: 解析47字节数据包 -> 极坐标 (角度, 距离) LEIDA_DATA[]
@@ -223,6 +225,42 @@ uint16_t RIGHT_cnt_2;
 uint16_t CENTER_cnt;
 float zhongxian_junzhi;
 
+/* Main-context scratch index; rebuilt for each caller, never caches pointers.
+ * Lists retain every input point, so nearest/tie and width semantics are exact. */
+static int16_t angle_heads[720], angle_next[LEIDA_DATA_COUNTER];
+static void angle_index_build(const _LEIDA_DATA *points, uint16_t size)
+{
+    int i;
+    for (i = 0; i < 720; ++i) angle_heads[i] = -1;
+    for (i = (int)size - 1; i >= 0; --i) {
+        int bin;
+        float a = points[i].angle;
+        angle_next[i] = -1;
+        if (!(a >= 0.0f && a <= 360.0f)) continue;
+        bin = (int)(a * 2.0f);
+        if (bin == 720) bin = 0;
+        angle_next[i] = angle_heads[bin];
+        angle_heads[bin] = (int16_t)i;
+    }
+}
+static int angle_nearest(const _LEIDA_DATA *points, float angle)
+{
+    int b, i, best = -1, center = (int)(angle * 2.0f);
+    float nearest = 2001.0f;
+    for (b = center - 2; b <= center + 2; ++b) {
+        int bin = (b + 720) % 720;
+        for (i = angle_heads[bin]; i >= 0; i = angle_next[i]) {
+            float d = points[i].distance, diff = fabsf(points[i].angle - angle);
+            if (diff > 180.0f) diff = 360.0f - diff;
+            if (d >= 100.0f && d <= 2000.0f && diff <= LEIDA_ANGLE_piancha &&
+                (d < nearest || (d == nearest && (best < 0 || i < best)))) {
+                nearest = d; best = i;
+            }
+        }
+    }
+    return best;
+}
+
 /* ======================== HANDLE4: 中线点计算 ======================== */
 
 /**
@@ -243,37 +281,27 @@ float zhongxian_junzhi;
 uint16_t LEIDA_DATA_HANDLE4(_LEIDA_DATA_plane data_center[], _LEIDA_DATA arr[], u16 size)
 {
     uint16_t i, n = 0;
+    uint8_t used[(LEIDA_DATA_COUNTER + 7) / 8] = {0};
     int right, left;
-    float a, b, dr, dl, diff, x, y;
+    float a, b, x, y;
     zhongxian_junzhi = 0;
+    if (size > LEIDA_DATA_COUNTER) return 0;
+    angle_index_build(arr, size);
     for (a = LEIDA_ANGLE_RIGHT, b = LEIDA_ANGLE_LEFT;
          a <= LEIDA_ANGLE_RIGHT + LEIDA_ANGLE_yuliang; a += 0.6f, b -= 0.6f) {
-        /* Each angular pair owns fresh indices; array index zero is valid. */
-        right = left = -1;
-        dr = dl = 2001.0f;
-        for (i = 0; i < size; i++) {
-            if (arr[i].distance < 100 || arr[i].distance > 2000)
-                continue;
-            diff = fabs(arr[i].angle - a);
-            if (diff > 180)
-                diff = 360 - diff;
-            if (diff <= LEIDA_ANGLE_piancha && arr[i].distance < dr) {
-                right = i;
-                dr = arr[i].distance;
-            }
-            diff = fabs(arr[i].angle - b);
-            if (diff > 180)
-                diff = 360 - diff;
-            if (diff <= LEIDA_ANGLE_piancha && arr[i].distance < dl) {
-                left = i;
-                dl = arr[i].distance;
-            }
-        }
+        right = angle_nearest(arr, a);
+        left = angle_nearest(arr, b);
         if (right < 0 || left < 0)
             continue;
+        /* Overlapping query windows must not count one physical return twice
+         * as independent support for a straight line or turn-exit decision. */
+        if ((used[right / 8] & (1u << (right % 8))) ||
+            (used[left / 8] & (1u << (left % 8)))) continue;
         x = (arr[right].distance * arm_cos_f32(arr[right].angle * PI / 180) + arr[left].distance * arm_cos_f32(arr[left].angle * PI / 180)) / 2;
         y = (arr[right].distance * arm_sin_f32(arr[right].angle * PI / 180) + arr[left].distance * arm_sin_f32(arr[left].angle * PI / 180)) / 2;
         if (y >= 0 && y <= 800 && n < LEIDA_DATA_COUNTER / 2) {
+            used[right / 8] |= (uint8_t)(1u << (right % 8));
+            used[left / 8] |= (uint8_t)(1u << (left % 8));
             data_center[n]._x = x;
             data_center[n++]._y = y;
         }
@@ -433,7 +461,8 @@ uint16_t LEIDA_DATA_HANDLE9(_LEIDA_DATA arr[], u16 size)
  */
 float LEIDA_Distance(_LEIDA_DATA data[], u16 size)
 {
-    uint16_t i, j;
+    uint16_t i;
+    int j, bucket, center;
 
     float angle_left;
     float angle_right;
@@ -446,6 +475,8 @@ float LEIDA_Distance(_LEIDA_DATA data[], u16 size)
     float distance_min_5 = 5000;
     float distance_min_6 = 5000;
 
+    if (size > LEIDA_DATA_COUNTER) return distance_min_6;
+    angle_index_build(data, size);
     for (i = 0; i < size; i++) {
         if ((data[i].angle >= 180 - 30) && (data[i].angle <= 180 + 30)) { /* 左半: 150°~210° */
             angle_left = data[i].angle;
@@ -454,9 +485,11 @@ float LEIDA_Distance(_LEIDA_DATA data[], u16 size)
             if (angle_right >= 360)
                 angle_right -= 360;
 
-            for (j = 0; j < size; j++) {
+            center = (int)(angle_right * 2.0f);
+            for (bucket = center - 3; bucket <= center + 3; ++bucket) {
+              for (j = angle_heads[(bucket + 720) % 720]; j >= 0; j = angle_next[j]) {
                 /* 角度差（含环绕处理）：0°和359°物理上只差1°，需归一化到[-180,180] */
-                float angle_diff = fabs(data[j].angle - angle_right);
+                float angle_diff = fabsf(data[j].angle - angle_right);
                 if (angle_diff > 180)
                     angle_diff = 360 - angle_diff;
                 if (angle_diff <= 1.0f) {
@@ -492,6 +525,7 @@ float LEIDA_Distance(_LEIDA_DATA data[], u16 size)
                         distance_min_6 = distance_temp;
                     }
                 }
+              }
             }
         }
     }

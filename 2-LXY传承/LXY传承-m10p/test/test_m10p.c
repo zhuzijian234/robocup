@@ -82,7 +82,32 @@ int main(void)
     M10P_Init();make(18000,1000);feed();make(21000,1000);feed();CHECK(M10P_stats.discontinuities==1);
     M10P_Init();make(18000,1000);feed();now+=100000;make(19500,1000);feed();CHECK(M10P_stats.discontinuities==1);
     M10P_Init();now=0xffff0000u;s=circle(1000);CHECK(s!=0);CHECK(s->count==1680);M10P_Release(s);
+    /* Actual 512-byte DMA boundaries at the nominal 46,080 byte/s data rate. */
+    {
+        static uint8_t stream[160*120];
+        unsigned off, len, received=0;
+        uint32_t prev=0, end;
+        M10P_Init();
+        for(j=0;j<120;j++){make((17300+j*1500)%36000,1000);memcpy(stream+j*160,wire,160);}
+        for(off=0;off<sizeof stream;off+=len){
+            len=sizeof stream-off;if(len>512)len=512;
+            end=(uint32_t)((double)(off+len)*1000000.0/46080.0);
+            M10P_Feed(stream+off,len,prev,end);prev=end;
+            s=M10P_Acquire();
+            if(s){CHECK(s->count==1680);CHECK(s->period_us>=60000 && s->period_us<=120000);CHECK(s->front_seen);received++;M10P_Release(s);}
+        }
+        CHECK(received==4);CHECK(M10P_stats.packets==120);CHECK(!M10P_stats.discontinuities);
+    }
     /* Deterministic noise stress checks parser storage/progress, not CRC guarantees. */
+    /* Reject a complete scan with one unstable-speed packet, even if its final
+     * packet reports a normal speed. Next clean scan must recover normally. */
+    M10P_Init();now=0;
+    for(j=0;j<60;j++){
+        make((17300+j*1500)%36000,1000);
+        if(j==10){wire[6]=0x20;wire[7]=0;}
+        feed();
+    }
+    CHECK(M10P_stats.rejected==1);s=M10P_Acquire();CHECK(s!=0);CHECK(!s->unstable);M10P_Release(s);
     M10P_Init();{uint32_t seed=12345;uint8_t noise[512];for(j=0;j<2000;j++){
         for(i=0;i<512;i++){seed=seed*1664525u+1013904223u;noise[i]=(uint8_t)(seed>>24);}
         M10P_Feed(noise,512,j*10000,(j+1)*10000);CHECK(pending<160);

@@ -1,8 +1,10 @@
 {
   "source_count": 59,
   "failures": [],
-  "warnings": 35,
-  "settings": "AC5 Cortex-M4.fp.sp C99 O0 MicroLIB split_sections; current uvproj source/include/defines; existing EIDE scatter",
-  "ram_bytes": 88144,
-  "rom_bytes": 40268
+  "warnings": 34,
+  "settings": "AC5 Cortex-M4.fp.sp C99 O0 MicroLIB split_sections; current uvproj source/include/defines; explicit m10p.sct; ZG 1MiB Flash / 128KiB SRAM",
+  "ram_bytes": 91192,
+  "rom_bytes": 41156,
+  "dma_buffer_address": "0x2000024c",
+  "hex_sha256": "62d902d6ea9bc0d4ef1782194e0d44d040de5d4402a8ed46c84ef638c30398ab"
 }

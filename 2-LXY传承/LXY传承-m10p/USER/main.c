@@ -365,7 +365,7 @@ int main(void)
              * 有新鲜有效候选的有界HOLD也算有效；感知无效不能借保舵续命。 */
             if (Servo_PD_valid)
                 Radar_Observe(scan->seq, scan->front_us, scan->epoch,
-                              M10P_speed_scale * ((pid_select == 0 || pid_select == 5 || pid_select == 7) ? 1.0f : 0.6f));
+                              M10P_speed_scale * ((!turn_held && (pid_select == 0 || pid_select == 5 || pid_select == 7)) ? 1.0f : 0.6f));
             else {
                 Radar_invalid_inputs++;
                 Radar_Invalidate();

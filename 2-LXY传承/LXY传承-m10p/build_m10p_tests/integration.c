@@ -21,6 +21,12 @@ void __DMB(void){}
 
 uint32_t LidarRx_epoch;
 static uint16_t bins[720];
+static uint8_t rx[512];
+static uint32_t seen_epoch,seen_discontinuities,seen_rejected;
+typedef struct{uint32_t start_us,end_us,epoch;} LidarRxStamp;
+void LidarRx_Service(void){}
+uint16_t LidarRx_Read(uint8_t *p,uint16_t n,LidarRxStamp *s){(void)p;(void)n;(void)s;return 0;}
+void Radar_Invalidate(void);
 uint32_t M10P_control_seq,M10P_control_front_us,M10P_control_epoch;
 uint16_t M10P_front_bins,M10P_left_bins,M10P_right_bins;
 float M10P_clearance_mm,M10P_speed_scale;
@@ -33,7 +39,7 @@ typedef struct {float kp,ki,kd,err,err_l,err_sum;} pid_type;
 volatile float Diag_motor_integral,Diag_motor_prelimit;
 uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
 {
-    uint16_t i, n = 0;
+    uint16_t i, n = 0, missing = 0, max_missing = 0;
     M10P_front_bins = M10P_left_bins = M10P_right_bins = 0;
     M10P_clearance_mm = (float)M10P_MAX_MM;
     M10P_perception_ok = 0; M10P_speed_scale = 0;
@@ -41,6 +47,12 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
     M10P_control_front_us = scan->front_us;
     M10P_control_epoch = scan->epoch;
     M10P_Index(scan, bins);
+    /* A sufficient total count must not mask a blind sector straight ahead. */
+    for (i = 140; i <= 220; ++i) {
+        if (bins[i] == 0xffffu) {
+            if (++missing > max_missing) max_missing = missing;
+        } else missing = 0;
+    }
     for (i = 0; i < M10P_BINS; ++i) if (bins[i] != 0xffffu) {
         const M10P_Point *p = &scan->points[bins[i]];
         float a = M10P_AlgorithmAngle(p->angle_cdeg) / 100.0f;
@@ -54,15 +66,21 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
      * Include close (<100 mm) nonzero returns conservatively as obstacles. */
     for (i = 0; i < scan->count; ++i) {
         const M10P_Point *p = &scan->points[i];
+        uint16_t theta;
         float angle, x, y;
         if (!p->range_mm || p->range_mm > M10P_MAX_MM) continue;
-        angle = M10P_AlgorithmAngle(p->angle_cdeg) * (PI / 18000.0f);
+        theta = M10P_AlgorithmAngle(p->angle_cdeg);
+        /* Rear half has y<=0, so cannot intersect the forward corridor.
+         * Keep both side axes for conservative floating-point boundary behavior. */
+        if (theta > 18000u) continue;
+        angle = theta * (PI / 18000.0f);
         x = p->range_mm * arm_cos_f32(angle);
         y = p->range_mm * arm_sin_f32(angle);
         if (y > 0 && fabsf(x) < M10P_CORRIDOR_HALF_MM && y < M10P_clearance_mm)
             M10P_clearance_mm = y;
     }
     M10P_perception_ok = scan->front_seen && M10P_front_bins >= 40 &&
+        max_missing <= M10P_FRONT_MAX_MISSING_BINS &&
         M10P_left_bins >= 16 && M10P_right_bins >= 16 &&
         scan->epoch == LidarRx_epoch &&
         (uint32_t)(Diag_TimeUs() - scan->front_us) <= M10P_MAX_AGE_US &&
@@ -73,6 +91,30 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
         if (M10P_speed_scale < 0.25f) M10P_speed_scale = 0.25f;
     }
     return n;
+}void M10P_Poll(void)
+{
+    unsigned budget = 2;
+    LidarRxStamp stamp;
+    uint16_t n;
+    if (seen_epoch != LidarRx_epoch) {
+        seen_epoch = LidarRx_epoch;
+        M10P_Lost(seen_epoch); Radar_Invalidate();
+    }
+    LidarRx_Service();
+    while (budget-- && (n = LidarRx_Read(rx, sizeof rx, &stamp)) != 0) {
+        if (stamp.epoch != seen_epoch) {
+            seen_epoch = stamp.epoch; M10P_Lost(seen_epoch); Radar_Invalidate();
+        }
+        if ((uint32_t)(Diag_TimeUs() - stamp.start_us) > M10P_MAX_AGE_US) {
+            M10P_Lost(seen_epoch); Radar_Invalidate(); continue;
+        }
+        M10P_Feed(rx, n, stamp.start_us, stamp.end_us);
+    }
+    if (seen_discontinuities != M10P_stats.discontinuities || seen_rejected != M10P_stats.rejected) {
+        seen_discontinuities = M10P_stats.discontinuities;
+        seen_rejected = M10P_stats.rejected;
+        Radar_Invalidate();
+    }
 }static volatile uint32_t observation_us, observation_epoch, observation_seq, completed_us;
 static volatile float observation_scale;
 static volatile uint8_t observation_valid, warmup;
@@ -165,6 +207,11 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  for(i=0;i<720;i++){s.points[i].angle_cdeg=(uint16_t)(i*50);s.points[i].range_mm=1000;}s.count=720;
  CHECK(M10P_Build(&s,out,720)==720);CHECK(M10P_perception_ok);CHECK(M10P_front_bins==81);
  CHECK(out[0].angle==0 && out[180].angle==90 && out[360].angle==180);
+ /* 40 valid front bins can still hide a 20-degree central blind sector. */
+ for(i=0;i<720;i++)if(i<=20 || i>=700)s.points[i].range_mm=0;
+ M10P_Build(&s,out,720);CHECK(M10P_front_bins==40);CHECK(!M10P_perception_ok);
+ for(i=0;i<720;i++)s.points[i].range_mm=1000;
+ M10P_Build(&s,out,720);CHECK(M10P_perception_ok);
  CHECK(!M10P_Build(&s,out,719));CHECK(!M10P_perception_ok);
  s.points[0].range_mm=200;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);CHECK(M10P_clearance_mm<201);
  s.points[0].range_mm=80;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);CHECK(M10P_clearance_mm<81);
@@ -183,6 +230,13 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  for(i=1;i<=3;i++){clock_us+=83000;Radar_Observe(i,clock_us-50000,0,1);}CHECK(observation_valid);
  LidarRx_epoch++;Radar_GuardTick();CHECK(!observation_valid);CHECK(warmup==0);
  Radar_Invalidate();CHECK(!observation_valid);
+ /* Rejecting a newly completed circle revokes the prior driving permission
+  * immediately, without waiting for its age timeout. */
+ seen_epoch=LidarRx_epoch;seen_discontinuities=M10P_stats.discontinuities;
+ seen_rejected=M10P_stats.rejected;observation_valid=1;warmup=3;
+ M10P_stats.rejected++;M10P_Poll();CHECK(!observation_valid && !warmup);
+ observation_valid=1;warmup=3;M10P_stats.discontinuities++;
+ M10P_Poll();CHECK(!observation_valid && !warmup);
  for(i=0;i<20;i++)pwm=PID_realize(0,10,&pid);CHECK(pwm==100);CHECK(pid.err_sum==200);
  Speed_PID_Reset(&pid);CHECK(pid.err_sum==0 && pid.err_l==0);CHECK(Diag_motor_integral==0);
  CHECK(PID_realize(0,0,&pid)==0);

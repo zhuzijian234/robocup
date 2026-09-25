@@ -5,7 +5,7 @@
 #include <float.h>
 static uint16_t bins[M10P_BINS];
 static uint8_t rx[LIDAR_RX_BLOCK];
-static uint32_t seen_epoch, seen_discontinuities;
+static uint32_t seen_epoch, seen_discontinuities, seen_rejected;
 uint32_t M10P_control_seq, M10P_control_front_us, M10P_control_epoch;
 uint16_t M10P_front_bins, M10P_left_bins, M10P_right_bins;
 float M10P_clearance_mm, M10P_speed_scale;
@@ -30,14 +30,15 @@ void M10P_Poll(void)
         }
         M10P_Feed(rx, n, stamp.start_us, stamp.end_us);
     }
-    if (seen_discontinuities != M10P_stats.discontinuities) {
+    if (seen_discontinuities != M10P_stats.discontinuities || seen_rejected != M10P_stats.rejected) {
         seen_discontinuities = M10P_stats.discontinuities;
+        seen_rejected = M10P_stats.rejected;
         Radar_Invalidate();
     }
 }
 uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
 {
-    uint16_t i, n = 0;
+    uint16_t i, n = 0, missing = 0, max_missing = 0;
     M10P_front_bins = M10P_left_bins = M10P_right_bins = 0;
     M10P_clearance_mm = (float)M10P_MAX_MM;
     M10P_perception_ok = 0; M10P_speed_scale = 0;
@@ -45,6 +46,12 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
     M10P_control_front_us = scan->front_us;
     M10P_control_epoch = scan->epoch;
     M10P_Index(scan, bins);
+    /* A sufficient total count must not mask a blind sector straight ahead. */
+    for (i = 140; i <= 220; ++i) {
+        if (bins[i] == 0xffffu) {
+            if (++missing > max_missing) max_missing = missing;
+        } else missing = 0;
+    }
     for (i = 0; i < M10P_BINS; ++i) if (bins[i] != 0xffffu) {
         const M10P_Point *p = &scan->points[bins[i]];
         float a = M10P_AlgorithmAngle(p->angle_cdeg) / 100.0f;
@@ -58,15 +65,21 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
      * Include close (<100 mm) nonzero returns conservatively as obstacles. */
     for (i = 0; i < scan->count; ++i) {
         const M10P_Point *p = &scan->points[i];
+        uint16_t theta;
         float angle, x, y;
         if (!p->range_mm || p->range_mm > M10P_MAX_MM) continue;
-        angle = M10P_AlgorithmAngle(p->angle_cdeg) * (PI / 18000.0f);
+        theta = M10P_AlgorithmAngle(p->angle_cdeg);
+        /* Rear half has y<=0, so cannot intersect the forward corridor.
+         * Keep both side axes for conservative floating-point boundary behavior. */
+        if (theta > 18000u) continue;
+        angle = theta * (PI / 18000.0f);
         x = p->range_mm * arm_cos_f32(angle);
         y = p->range_mm * arm_sin_f32(angle);
         if (y > 0 && fabsf(x) < M10P_CORRIDOR_HALF_MM && y < M10P_clearance_mm)
             M10P_clearance_mm = y;
     }
     M10P_perception_ok = scan->front_seen && M10P_front_bins >= 40 &&
+        max_missing <= M10P_FRONT_MAX_MISSING_BINS &&
         M10P_left_bins >= 16 && M10P_right_bins >= 16 &&
         scan->epoch == LidarRx_epoch &&
         (uint32_t)(Diag_TimeUs() - scan->front_us) <= M10P_MAX_AGE_US &&

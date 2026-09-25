@@ -19,6 +19,7 @@ void __DMB(void){}
 
 #define LIDAR_RX_BLOCK 512u
 #define LIDAR_RX_BLOCKS 16u
+#define LIDAR_RX_SERVICE_MAX_US 20000u
 typedef struct{uint32_t start_us,end_us,epoch;} LidarRxStamp;
 static struct{uint32_t HISR;} dma_regs;
 static struct{uint32_t CYCCNT;} dwt_regs;
@@ -38,8 +39,15 @@ uint32_t SystemCoreClock=168000000;
 #define DMA_FLAG_TCIF5 (0x20000000u|DMA_HISR_TCIF5)
 #define ALL_FLAGS (DMA_FLAG_TCIF5|DMA_FLAG_HTIF5|DMA_FLAG_TEIF5|DMA_FLAG_DMEIF5|DMA_FLAG_FEIF5)
 static uint32_t ndtr;
+static unsigned ndtr_reads, simulate_copy_wrap, simulate_copy_cross;
 void DMA_ClearFlag(int s,uint32_t f){(void)s;DMA1->HISR &= ~(f&0x0fffffffu);}
-uint32_t DMA_GetCurrDataCounter(int s){(void)s;return ndtr;}
+uint32_t DMA_GetCurrDataCounter(int s){(void)s;
+ if (++ndtr_reads==2) {
+  if(simulate_copy_wrap)DWT->CYCCNT+=SystemCoreClock/40u;
+  if(simulate_copy_cross)return 1000;
+ }
+ return ndtr;
+}
 static uint8_t DMA_USART2_RX_BUF[1024],queue[16][512];
 static LidarRxStamp stamps[16];
 static volatile uint32_t head,tail;
@@ -79,7 +87,7 @@ void DMA1_Stream5_IRQHandler(void)
     half = (flags & DMA_HISR_HTIF5) ? 0 : 1;
     DMA_ClearFlag(DMA1_Stream5, half ? DMA_FLAG_TCIF5 : DMA_FLAG_HTIF5);
     ndtr = DMA_GetCurrDataCounter(DMA1_Stream5);
-    if (half != expected_half || cycle - last_cycles > SystemCoreClock / 50u ||
+    if (half != expected_half || cycle - last_cycles > SystemCoreClock / 50u || !ndtr ||
         (!half && ndtr > LIDAR_RX_BLOCK) || (half && ndtr <= LIDAR_RX_BLOCK)) {
         LidarRx_late++; LidarRx_Fault(); return;
     }
@@ -87,10 +95,15 @@ void DMA1_Stream5_IRQHandler(void)
     if (used >= LIDAR_RX_BLOCKS) { Diag_rx_overflow++; LidarRx_Fault(); return; }
     memcpy(queue[head & 15u], DMA_USART2_RX_BUF + half * LIDAR_RX_BLOCK, LIDAR_RX_BLOCK);
     ndtr = DMA_GetCurrDataCounter(DMA1_Stream5);
-    if ((!half && ndtr > LIDAR_RX_BLOCK) || (half && ndtr <= LIDAR_RX_BLOCK)) {
+    /* NDTR alone can look safe again after a complete DMA revolution.
+     * A half-buffer takes at least 10 ms at 512000 baud, 8N1. */
+    if (!ndtr || DWT->CYCCNT - cycle >= SystemCoreClock / 100u ||
+        (!half && ndtr > LIDAR_RX_BLOCK) || (half && ndtr <= LIDAR_RX_BLOCK)) {
         LidarRx_late++; LidarRx_Fault(); return;
     }
-    stamps[head & 15u].start_us = last_us;
+    /* The previous IRQ timestamp is AFTER the hardware half boundary.
+     * Subtract its bounded service latency, including across timer wrap. */
+    stamps[head & 15u].start_us = last_us - LIDAR_RX_SERVICE_MAX_US;
     stamps[head & 15u].end_us = now;
     stamps[head & 15u].epoch = LidarRx_epoch;
     __DMB(); head++;
@@ -100,12 +113,12 @@ void DMA1_Stream5_IRQHandler(void)
     elapsed = DWT->CYCCNT - cycle;
     if (elapsed > LidarRx_copy_max_cycles) LidarRx_copy_max_cycles = elapsed;
 }
-static void reset(void){head=tail=0;fault=expected_half=0;last_us=last_cycles=0;clock_us=0;DWT->CYCCNT=0;LidarRx_epoch=0;}
+static void reset(void){head=tail=0;fault=expected_half=0;last_us=last_cycles=0;clock_us=0;DWT->CYCCNT=0;LidarRx_epoch=0;ndtr_reads=simulate_copy_wrap=simulate_copy_cross=0;}
 static void irq(unsigned half){clock_us+=11000;DWT->CYCCNT+=1848000;ndtr=half?1000:500;DMA1->HISR=half?0x800:0x400;DMA1_Stream5_IRQHandler();}
 int main(void){unsigned i;uint8_t out[512];LidarRxStamp s;
  reset();memset(DMA_USART2_RX_BUF,0x12,512);memset(DMA_USART2_RX_BUF+512,0x34,512);
  irq(0);CHECK(head==1 && !fault);CHECK(!DMA1->HISR);CHECK(!LidarRx_Read(out,511,&s));CHECK(tail==0);
- CHECK(LidarRx_Read(out,512,&s)==512);CHECK(out[0]==0x12 && out[511]==0x12);CHECK(s.start_us==0 && s.end_us==11000);
+ CHECK(LidarRx_Read(out,512,&s)==512);CHECK(out[0]==0x12 && out[511]==0x12);CHECK(s.start_us==0u-LIDAR_RX_SERVICE_MAX_US && s.end_us==11000);
  irq(1);CHECK(LidarRx_Read(out,512,&s)==512);CHECK(out[0]==0x34);CHECK(!LidarRx_Read(out,512,&s));
  for(i=0;i<100;i++){irq(i&1);CHECK(LidarRx_Read(out,512,&s)==512);}CHECK(!fault);
  reset();for(i=0;i<16;i++)irq(i&1);CHECK(head-tail==16);CHECK(LidarRx_peak==8192);CHECK(!fault);
@@ -114,6 +127,14 @@ int main(void){unsigned i;uint8_t out[512];LidarRxStamp s;
  reset();irq(1);CHECK(fault);CHECK(!head);
  reset();DMA1->HISR=0x200;DMA1_Stream5_IRQHandler();CHECK(fault && Diag_dma_errors==1);
  reset();DWT->CYCCNT=4000000;irq(0);CHECK(fault);CHECK(!head);
+ /* Hardware boundary ambiguity, crossing while copying, and full-wrap ABA. */
+ reset();DMA1->HISR=0x400;ndtr=0;DMA1_Stream5_IRQHandler();CHECK(fault && !head);
+ reset();simulate_copy_cross=1;irq(0);CHECK(fault && !head);
+ reset();simulate_copy_wrap=1;irq(0);CHECK(fault && !head);
+ /* A delayed previous interrupt must not make the next block look younger. */
+ reset();irq(0);irq(1);CHECK(LidarRx_Read(out,512,&s)==512);CHECK(LidarRx_Read(out,512,&s)==512);
+ CHECK(s.start_us==11000u-LIDAR_RX_SERVICE_MAX_US);
+ CHECK((uint32_t)(22000u-s.start_us)==31000u);
  reset();head=tail=0xfffffff0u;for(i=0;i<32;i++){irq(i&1);CHECK(LidarRx_Read(out,512,&s)==512);}CHECK(head==16 && tail==16);
  printf("PASS %u DMA ISR/FIFO checks\n",checks);return 0;
 }
