@@ -29,9 +29,7 @@ static unsigned servo_writes;
 uint16_t TIM_GetCounter(int ignored){return encoder_counter;}
 void TIM_SetCounter(int ignored,uint16_t value){encoder_counter=value;}
 uint32_t Diag_detail_u[24];float Diag_detail_f[16];
-uint32_t LEIDA_parse_calls,LEIDA_sync_failures,LEIDA_short_inputs,LEIDA_missing_packets;
 uint16_t LEIDA_speed_dps,LEIDA_raw_count;
-static uint8_t lidar_packet[47];static uint16_t lidar_pending;
 float zhongxian_junzhi,zhongxian_chuizhi;
 uint8_t LEIDA_vertical_valid,Servo_PD_valid;
 static uint8_t pd_history_valid;static uint16_t pd_previous_mode;static uint32_t pd_previous_us;
@@ -87,90 +85,6 @@ static int angle_nearest(const _LEIDA_DATA *points, float angle)
         }
     }
     return best;
-}
-uint8_t Diag_RadarPacket(const uint8_t *a)
-{
-    uint8_t crc = 0, b;
-    uint16_t i, start = (uint16_t)(a[4] | a[5] << 8), end = (uint16_t)(a[42] | a[43] << 8);
-    Diag_detail_u[12]++;
-    for (i = 0; i < 46; i++) {
-        crc ^= a[i];
-        for (b = 0; b < 8; b++)
-            crc = (uint8_t)((crc << 1) ^ ((crc & 0x80) ? 0x4d : 0));
-    }
-    if (crc != a[46])
-        Diag_detail_u[13]++;
-    if (a[1] != 0x2c)
-        Diag_detail_u[14]++;
-    if (start >= 36000 || end >= 36000)
-        Diag_detail_u[15]++;
-    return a[0] == 0x54 && a[1] == 0x2c && start < 36000 && end < 36000 && crc == a[46];
-}
-void LEIDA_ParserReset(void)
-{
-    lidar_pending = 0;
-}
-uint16_t LEIDA_DATA_HANDLE1(_LEIDA_DATA data[], u8 arr[], u16 size)
-{
-    uint16_t i, j = 0, k, skip;
-    float start, end, angle;
-    LEIDA_parse_calls++;
-    LEIDA_raw_count = 0;
-    Diag_detail_u[4] |= 64;
-    Diag_detail_u[17] = 0xffffffffu;
-    /* 先全清: 同一个 800 槽数组被前后两块数据复用, 上一块写过的槽位这一块可能不再
-     * 被写到, 残留旧点会被 HANDLE3_2 当成有效点混进 valid_couter。 */
-    memset(data, 0, LEIDA_DATA_COUNTER * sizeof(*data));
-    if (!size) {
-        LEIDA_short_inputs++;
-        return 0;
-    }
-    for (i = 0; i < size; i++) {
-        if (!lidar_pending && arr[i] != 0x54)
-            continue;
-        lidar_packet[lidar_pending++] = arr[i];
-        if (lidar_pending < 47)
-            continue;
-        if (Diag_RadarPacket(lidar_packet)) {
-            if (Diag_detail_u[17] == 0xffffffffu)
-                Diag_detail_u[17] = i >= 46 ? i - 46 : 0;
-            LEIDA_speed_dps = (uint16_t)(lidar_packet[2] | lidar_packet[3] << 8);
-            start = (lidar_packet[4] | lidar_packet[5] << 8) / 100.0f;
-            end = (lidar_packet[42] | lidar_packet[43] << 8) / 100.0f;
-            if (end < start)
-                end += 360.0f;
-            for (k = 0; k < 12 && j < LEIDA_DATA_COUNTER; k++, j++) {
-                data[j].distance = (float)(lidar_packet[6 + 3 * k] | lidar_packet[7 + 3 * k] << 8);
-                /* LD14P 一包 47 字节: [0]0x54 [1]0x2C [2..3]转速 [4..5]起始角
-                 * [6..41]12 个点, 每点 3 字节(前 2 字节=距离, 小端; 第 3 字节本代码不用)
-                 * [42..43]结束角 [44..45]时间戳 [46]CRC8。点角度不读包内的, 用起止角插值:
-                 * 12 个点把首尾两端都算进去了, 所以除 11 而不是 12。 */
-                angle = start + (end - start) * k / 11.0f;
-                angle = 360.0f - angle + LEIDA_ANGLE_CENTER;
-                while (angle >= 360.0f)
-                    angle -= 360.0f;
-                while (angle < 0)
-                    angle += 360.0f;
-                data[j].angle = angle;
-                if (data[j].distance > 0)
-                    Diag_detail_u[18] |= 1u << (uint16_t)(angle / 30.0f);
-            }
-            lidar_pending = 0;
-        } else {
-            LEIDA_missing_packets++;
-            Diag_detail_u[16]++;
-            /* Resynchronize bytewise; preserve a potential header inside a bad packet. */
-            for (skip = 1; skip < 47 && lidar_packet[skip] != 0x54; skip++) {
-            }
-            lidar_pending = (uint16_t)(47 - skip);
-            if (lidar_pending)
-                memmove(lidar_packet, lidar_packet + skip, lidar_pending);
-        }
-    }
-    if (!j && size >= 47)
-        LEIDA_sync_failures++;
-    LEIDA_raw_count = j;
-    return j;
 }
 uint16_t LEIDA_DATA_HANDLE10(_LEIDA_DATA_plane arr[], u16 size)
 {
@@ -552,7 +466,6 @@ void Get_Encoder(void)
 }
 static int checks;
 #define CHECK(c) do{checks++;if(!(c)){printf("FAIL line %d: %s\n",__LINE__,#c);return 1;}}while(0)
-static uint8_t packet[47]={0x54,0x2c,0x68,0x08,0xab,0x7e,0xe0,0x00,0xe4,0xdc,0x00,0xe2,0xd9,0x00,0xe5,0xd5,0x00,0xe3,0xd3,0x00,0xe4,0xd0,0x00,0xe9,0xcd,0x00,0xe4,0xca,0x00,0xe2,0xc7,0x00,0xe9,0xc5,0x00,0xe5,0xc2,0x00,0xe5,0xc0,0x00,0xe5,0xbe,0x82,0x3a,0x1a,0x50};
 static _LEIDA_DATA points[800];
 static _LEIDA_DATA_plane plane[400];
 static pid_type pid;
@@ -568,32 +481,10 @@ static uint16_t drive(uint16_t mode,float error){
                       Midline_PD(plane,&pid,&line,144.5f,0,2,mode);
 }
 static int run(void){
-    unsigned split,k,total;uint8_t stream[2000],bad[47];Midline_type line;
+    unsigned k;Midline_type line;
     uint16_t output;float before;
     TurnGuard guard={0};uint8_t held;unsigned writes;
     pid.kp=.035f;pid.kd=.035f;pid.kp_2=.040f;pid.kd_2=.022f;pid.kp_3=.0395f;pid.kd_3=.020f;
-    CHECK(Diag_RadarPacket(packet));
-    for(split=1;split<47;split++){
-        LEIDA_ParserReset();memset(points,0xff,sizeof points);
-        CHECK(LEIDA_DATA_HANDLE1(points,packet,(uint16_t)split)==0);
-        CHECK(points[799].distance==0);
-        CHECK(LEIDA_DATA_HANDLE1(points,packet+split,(uint16_t)(47-split))==12);
-        CHECK(LEIDA_speed_dps==2152);
-        CHECK(fabs(points[11].angle-115.3f)<.001f);
-    }
-    memcpy(bad,packet,47);bad[6]^=1;memcpy(stream,bad,47);memcpy(stream+47,packet,47);
-    LEIDA_ParserReset();CHECK(LEIDA_DATA_HANDLE1(points,stream,94)==12);
-    CHECK(points[12].distance==0);
-    /* Byte insertion and deletion recover later complete packets. */
-    memcpy(stream,packet,20);stream[20]=0x11;memcpy(stream+21,packet+20,27);memcpy(stream+48,packet,47);
-    LEIDA_ParserReset();CHECK(LEIDA_DATA_HANDLE1(points,stream,95)==12);
-    memcpy(stream,packet,20);memcpy(stream+20,packet+21,26);memcpy(stream+46,packet,47);
-    LEIDA_ParserReset();CHECK(LEIDA_DATA_HANDLE1(points,stream,93)==12);
-    for(k=0;k<40;k++)memcpy(stream+k*47,packet,47);
-    LEIDA_ParserReset();total=LEIDA_DATA_HANDLE1(points,stream,1798);total+=LEIDA_DATA_HANDLE1(points,stream+1798,82);
-    CHECK(total==480); /* split DMA boundary loses no accepted slots */
-    LEIDA_ParserReset();CHECK(!LEIDA_DATA_HANDLE1(points,packet,20));LEIDA_ParserReset();CHECK(!LEIDA_DATA_HANDLE1(points,packet+20,27));
-    CHECK(LEIDA_DATA_HANDLE1(points,packet,47)==12);
     CHECK(LEIDA_DATA_HANDLE10(plane,0)==0);
     for(k=0;k<8;k++){plane[k]._x=50;plane[k]._y=(float)k*100;}
     CHECK(LEIDA_DATA_HANDLE10(plane,8)==8);

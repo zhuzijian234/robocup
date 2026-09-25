@@ -104,35 +104,6 @@ void TIM5_Int_Init(u16 arr, u16 psc)
     NVIC_Init(&NVIC_InitStructure);
 }
 
-/**
- * @brief  初始化TIM14为周期中断定时器（预留）
- */
-#if 0 /* 未使用的预留定时器；M10P只使用TIM5速度环与TIM6诊断时钟 */
-void TIM14_Int_Init(u16 arr, u16 psc)
-{
-    TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
-    NVIC_InitTypeDef NVIC_InitStructure;
-
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM14, ENABLE);
-
-    TIM_TimeBaseInitStructure.TIM_Period          = arr;
-    TIM_TimeBaseInitStructure.TIM_Prescaler       = psc;
-    TIM_TimeBaseInitStructure.TIM_CounterMode     = TIM_CounterMode_Up;
-    TIM_TimeBaseInitStructure.TIM_ClockDivision   = TIM_CKD_DIV1;
-
-    TIM_TimeBaseInit(TIM14, &TIM_TimeBaseInitStructure);
-
-    TIM_ITConfig(TIM14, TIM_IT_Update, ENABLE);
-    TIM_Cmd(TIM14, ENABLE);
-
-    NVIC_InitStructure.NVIC_IRQChannel                   = TIM8_TRG_COM_TIM14_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x01;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority        = 0x03;
-    NVIC_InitStructure.NVIC_IRQChannelCmd                = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
-}
-#endif /* M10P不编译上述历史实现 */
-
 uint16_t daoche_flag     = 0;  /* 倒车标志 */
 uint8_t  ENCODER_TIM     = 0;
 uint8_t  TIM_IRQ_COUNTER = 0;

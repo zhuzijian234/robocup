@@ -20,6 +20,7 @@
 
 #include "ble_tune.h"
 #include "ble_diag.h"
+#include "m10p.h"
 #include "timer.h"
 #include "bsp_bluetooth.h"      /* BLERX_BUFF/BLERX_FLAG/BLERX_LEN, 蓝牙收发函数 */
 #include "centre_line.h"        /* Servo_pd, Speed_pid, BLUE_DIS_*, BLUE_Y_* */
@@ -116,9 +117,9 @@ static void Tune_ApplyOne(char *line)
 
     if (strcmp(line,"radar")==0) {
         char status[224];
-        sprintf(status,"radar calls=%lu sync=%lu short=%lu missing=%lu raw=%u invalid=%lu age10ms=%u start=%u stop=%u timeouts=%lu\r\n",
-            (unsigned long)LEIDA_parse_calls,(unsigned long)LEIDA_sync_failures,
-            (unsigned long)LEIDA_short_inputs,(unsigned long)LEIDA_missing_packets,
+        sprintf(status,"radar packets=%lu discontinuities=%lu rejected=%lu overflow=%lu raw=%u invalid=%lu age10ms=%u start=%u stop=%u timeouts=%lu\r\n",
+            (unsigned long)M10P_stats.packets,(unsigned long)M10P_stats.discontinuities,
+            (unsigned long)M10P_stats.rejected,(unsigned long)M10P_stats.scan_overflow,
             (unsigned)LEIDA_raw_count,(unsigned long)Radar_invalid_inputs,
             (unsigned)Radar_age_ticks,(unsigned)Radar_started,(unsigned)Radar_stop_latched,
             (unsigned long)Radar_timeout_count);

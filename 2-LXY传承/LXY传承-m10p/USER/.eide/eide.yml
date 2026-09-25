@@ -70,8 +70,6 @@ virtualFolder:
       files:
         - path: ../HARDWARE/DMA/DMA.c
         - path: ../HARDWARE/DMA/DMA.h
-        - path: ../HARDWARE/LEIDA_PWM/leida_pwm.c
-        - path: ../HARDWARE/LEIDA_PWM/leida_pwm.h
         - path: ../HARDWARE/hc-05/bsp_bluetooth.c
         - path: ../HARDWARE/hc-05/bsp_bluetooth.h
         - path: ../HARDWARE/hc-05/ble_diag.c
@@ -120,7 +118,6 @@ targets:
         - .
         - ../FWLIB/inc
         - ../HARDWARE/DMA
-        - ../HARDWARE/LEIDA_PWM
         - ../HARDWARE/hc-05
         - ../HARDWARE/LEIDA_DATA
         - ../HARDWARE/DSP

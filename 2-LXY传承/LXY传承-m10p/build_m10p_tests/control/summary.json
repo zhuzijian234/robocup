@@ -2,6 +2,6 @@
   "compiler": "MSVC 14.44 /Od",
   "build_exit": 0,
   "run_exit": 0,
-  "output": "PASS 289 checks (production C, mocked hardware)\r\n",
+  "output": "PASS 50 checks (production C, mocked hardware)\r\n",
   "note": "Production function bodies; hardware mocked, not ARM execution."
 }

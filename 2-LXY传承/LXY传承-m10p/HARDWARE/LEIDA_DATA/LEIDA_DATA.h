@@ -1,22 +1,8 @@
 /**
- * @file    LEIDA_DATA.h
- * @brief   激光雷达数据结构与处理函数声明
- *
- * 本模块处理雷达原始极坐标数据，包含以下功能：
- * - 本模块只保留当前使用的几何处理；M10P协议解析见m10p.h
- * - 极坐标(角度,距离) -> 笛卡尔坐标(x,y) 转换
- * - 提取左/右边界点
- * - 检测边界突变点（弯道入口）
- * - 计算跑道宽度（左右边界距离对）
- * - 前方路径扫描与障碍物检测
- *
- * 数据处理流水线：
- *   DMA字节队列 -> M10P_Feed整圈 -> M10P_Build -> LEIDA_DATA2[]
- *     -> HANDLE6/7提取左右边界 -> LEIDA_DATA_LEFT[] / LEIDA_DATA_RIGHT[]
- *        -> HANDLE2转笛卡尔 -> LEIDA_DATA_LEFT_Plane[] / LEIDA_DATA_RIGHT_Plane[]
- *     -> HANDLE4计算中线 -> LEIDA_DATA_CENTER[]
- *     -> HANDLE5扫描前方路径 -> LEIDA_DATA_Forward[]
- *     -> HANDLE8/9检测突变点 -> 断点距离
+ * @brief M10P工作点云的几何处理：坐标转换、边界、中线、断点和前方墙面。
+ * 字节接收由DMA.c负责；协议解析和整圈所有权由m10p.c负责。
+ * m10p_vehicle.c生成LEIDA_DATA2后，本模块仅使用有效点数范围内的数据。
+ * 坐标约定：0度向右、90度向前；距离和x/y均以毫米计。
  */
 
 #ifndef __LEIDA_DATA_H
@@ -42,20 +28,8 @@ typedef struct {
 #define LEIDA_DATA_COUNTER 800   /* 每帧最大数据点数 */
 extern uint16_t valid_couter;
 extern uint8_t LEIDA_vertical_valid;
-#if 0 /* 历史接口已停用，M10P调用新解析/适配层 */
-void LEIDA_ParserReset(void);
-#endif
-extern volatile uint32_t LEIDA_parse_calls;
-extern volatile uint32_t LEIDA_sync_failures;
-extern volatile uint32_t LEIDA_short_inputs;
-extern volatile uint32_t LEIDA_missing_packets;
 extern volatile uint16_t LEIDA_raw_count; /* 当前M10P整圈的真实点数，不是工作数组容量 */
-extern uint16_t LEIDA_speed_dps;   /* main从M10P整圈复制的角速度，度/秒 */
-#if 0 /* 停用的LD14P工作区和调试变量 */
-extern _LEIDA_DATA LEIDA_DATA[];        /* 雷达原始极坐标数据 */
-extern u8 tiaoshi;
-#endif
-extern _LEIDA_DATA LEIDA_DATA2[];       /* 筛选后的有效极坐标数据 */
+extern uint16_t LEIDA_speed_dps;   extern _LEIDA_DATA LEIDA_DATA2[];       /* 筛选后的有效极坐标数据 */
 
 /* 雷达角度配置
  * LEIDA_ANGLE_CENTER = 90度（正前方）
@@ -98,25 +72,8 @@ extern float zhongxian_junzhi;    /* 中线均值x坐标 */
 
 /* ============ 雷达数据处理流水线 ============ */
 
-/* HANDLE1: 解析原始字节流为极坐标数据点
- * 每包47字节，12个数据点，同步头0x54
- * 返回: 成功=本次成功解析出的数据点数(每个命中帧头+12, 正常>=12), 0=未找到有效帧头 */
-#if 0 /* 历史接口已停用，M10P调用新解析/适配层 */
-uint16_t LEIDA_DATA_HANDLE1(_LEIDA_DATA data[], u8 arr[], u16 size);
-#endif
-
 /* HANDLE2: 极坐标转笛卡尔坐标 */
 void LEIDA_DATA_HANDLE2(_LEIDA_DATA_plane data[], _LEIDA_DATA arr[], u16 size);
-
-/* HANDLE3: 筛选左右90度内距离非零的有效点 */
-#if 0 /* 历史接口已停用，M10P调用新解析/适配层 */
-uint16_t LEIDA_DATA_HANDLE3(_LEIDA_DATA data[], _LEIDA_DATA arr[], u16 size);
-#endif
-
-/* HANDLE3_2: 筛选距离>=100mm的所有有效点 */
-#if 0 /* 历史接口已停用，M10P调用新解析/适配层 */
-uint16_t LEIDA_DATA_HANDLE3_2(_LEIDA_DATA data[], _LEIDA_DATA arr[], u16 size);
-#endif
 
 /* HANDLE4: 配对左右边界点计算中线点，并滤除离群点 */
 uint16_t LEIDA_DATA_HANDLE4(_LEIDA_DATA_plane data_center[], _LEIDA_DATA arr[], u16 size);
@@ -149,37 +106,10 @@ uint16_t LEIDA_DATA_HANDLE10(_LEIDA_DATA_plane arr[], u16 size);
  * x跨度<10mm视为垂直，返回中点x坐标；否则返回0 */
 float LEIDA_DATA_HANDLE11(_LEIDA_DATA_plane arr[], u16 size_start, u16 size_end);
 
-/* HANDLE12: 占位/预留 */
-#if 0 /* 历史接口已停用，M10P调用新解析/适配层 */
-uint16_t LEIDA_DATA_HANDLE12(_LEIDA_DATA arr[], u16 size);
-#endif
-
-/* HANDLE13: 判断指定角度范围内的边界点是否接近直线
- * 第5级x跨度<100mm返回1，否则返回0 */
-#if 0 /* 历史接口已停用，M10P调用新解析/适配层 */
-uint16_t LEIDA_DATA_HANDLE13(_LEIDA_DATA arr[], u16 size, float start_angle, float end_angle);
-#endif
-
 /* 计算跑道宽度：左右边界距离对的第6小值 */
 float LEIDA_Distance(_LEIDA_DATA data[], u16 size);
 
-/* 雷达角度校准：利用左右边界对称性计算角度偏差 */
-#if 0 /* 历史接口已停用，M10P调用新解析/适配层 */
-float LEIDA_ANGLE_jiuzheng(_LEIDA_DATA data[], u16 size);
-#endif
-
 /* 反转_LEIDA_DATA_plane数组 */
 void reverse(_LEIDA_DATA_plane a[], int sz);
-
-/* ============ 调试打印接口 ============ */
-#if 0 /* 历史接口已停用，M10P调用新解析/适配层 */
-void LEIDA_PrintAll(const _LEIDA_DATA *pts, uint16_t count);
-#endif
-#if 0 /* 历史接口已停用，M10P调用新解析/适配层 */
-void LEIDA_PrintSample(const _LEIDA_DATA *pts, uint16_t count, uint16_t step);
-#endif
-#if 0 /* 历史接口已停用，M10P调用新解析/适配层 */
-void LEIDA_PrintHead(const _LEIDA_DATA *pts, uint16_t count, uint16_t n);
-#endif
 
 #endif

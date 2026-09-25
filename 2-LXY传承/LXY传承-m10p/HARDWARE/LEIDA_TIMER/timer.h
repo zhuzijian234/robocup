@@ -30,8 +30,5 @@ extern volatile float Radar_effective_target;
 void Radar_GuardTick(void);
 
 void TIM5_Int_Init(u16 arr, u16 psc);
-#if 0 /* M10P未使用的预留定时器，禁止误调用 */
-void TIM14_Int_Init(u16 arr, u16 psc);
-#endif
 
 #endif

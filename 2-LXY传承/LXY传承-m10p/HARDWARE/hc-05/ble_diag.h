@@ -19,7 +19,6 @@ extern uint32_t Diag_detail_u[24];
 extern float Diag_detail_f[16];
 extern volatile float Diag_motor_integral, Diag_motor_prelimit;
 void Diag_MotorTick(uint16_t raw, uint8_t encoder_fresh, uint8_t pi_fresh);
-uint8_t Diag_RadarPacket(const uint8_t *packet);
 void Diag_Init(void);
 uint32_t Diag_TimeUs(void);
 uint32_t Diag_TimeMs(void);

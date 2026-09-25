@@ -32,7 +32,7 @@ for name,base in [('.eide/eide.yml',P),('USER/.eide/eide.yml',P/'USER')]:
 records.append({'project_sources':len(expected),'entrances':'Keil and both EIDE source/scatter/device configurations match'})
 command([sys.executable,str(P/'test/build_m10p.py')])
 linked=(P/'build_m10p_verified/robocup_m10p.map').read_text(errors='replace')
-# 宿主历史回归仍提取旧实现做对照；固件符号表则必须确认旧入口/工作区不再存在。
+# 固件符号表确认已删除的旧入口/工作区没有被其他工程文件意外带回。
 disabled=['LEIDA_DATA','LEIDA_ParserReset','LEIDA_DATA_HANDLE1','LEIDA_DATA_HANDLE3',
           'LEIDA_DATA_HANDLE3_2','LEIDA_ANGLE_jiuzheng','LEIDA_DATA_HANDLE12',
           'LEIDA_DATA_HANDLE13','LEIDA_PrintAll','LEIDA_PrintSample','LEIDA_PrintHead',

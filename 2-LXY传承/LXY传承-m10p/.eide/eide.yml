@@ -70,8 +70,6 @@ virtualFolder:
       files:
         - path: HARDWARE/DMA/DMA.c
         - path: HARDWARE/DMA/DMA.h
-        - path: HARDWARE/LEIDA_PWM/leida_pwm.c
-        - path: HARDWARE/LEIDA_PWM/leida_pwm.h
         - path: HARDWARE/LEIDA_DATA/LEIDA_DATA.c
         - path: HARDWARE/LEIDA_DATA/m10p.c
         - path: HARDWARE/LEIDA_DATA/m10p_vehicle.c
@@ -118,7 +116,6 @@ targets:
         - USER
         - FWLIB/inc
         - HARDWARE/DMA
-        - HARDWARE/LEIDA_PWM
         - HARDWARE/LEIDA_DATA
         - HARDWARE/DSP
         - HARDWARE/CENTRE_LINE

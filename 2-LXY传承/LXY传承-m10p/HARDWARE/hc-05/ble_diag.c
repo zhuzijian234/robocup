@@ -68,24 +68,7 @@ void Diag_MotorTick(uint16_t raw, uint8_t fresh, uint8_t pi)
 }
 /* CRC8 matches the LD14P development manual table (poly 0x4d, init 0).
  * Required acceptance checks; also counts rejected candidate packets. */
-uint8_t Diag_RadarPacket(const uint8_t *a)
-{
-    uint8_t crc = 0, b;
-    uint16_t i, start = (uint16_t)(a[4] | a[5] << 8), end = (uint16_t)(a[42] | a[43] << 8);
-    Diag_detail_u[12]++;
-    for (i = 0; i < 46; i++) {
-        crc ^= a[i];
-        for (b = 0; b < 8; b++)
-            crc = (uint8_t)((crc << 1) ^ ((crc & 0x80) ? 0x4d : 0));
-    }
-    if (crc != a[46])
-        Diag_detail_u[13]++;
-    if (a[1] != 0x2c)
-        Diag_detail_u[14]++;
-    if (start >= 36000 || end >= 36000)
-        Diag_detail_u[15]++;
-    return a[0] == 0x54 && a[1] == 0x2c && start < 36000 && end < 36000 && crc == a[46];
-}
+
 
 static const uint16_t scales[26] = {10, 1, 1, 1000, 1, 1000, 1, 1000, 1000, 1, 1, 1, 1, 1, 1, 1, 1, 1, 10, 1, 1, 1, 1, 1, 1, 1};
 static void put16(uint8_t *p, uint16_t v)
@@ -316,8 +299,8 @@ static void detail_submit(uint32_t elapsed, uint8_t action, uint8_t ok)
     Diag_detail_u[5] = elapsed;
     Diag_detail_u[11] = hold_count;
     (void)ok;
-    Diag_detail_u[19] = LEIDA_sync_failures;
-    Diag_detail_u[20] = LEIDA_missing_packets;
+    Diag_detail_u[19] = 0; /* V2保留的LD14P字段；M10P统计在type 7报告。 */
+    Diag_detail_u[20] = 0;
     Diag_detail_u[21] = Diag_input_drop;
     Diag_detail_u[22] = Diag_tx_drop;
     Diag_detail_u[23] = motor_dropped;
