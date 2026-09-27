@@ -1,0 +1,36 @@
+{
+  "status": "WARN",
+  "issues": [
+    "发现结构异常帧，检查通信稳定性"
+  ],
+  "duration_s": 15.031,
+  "bytes": 686037,
+  "frames": 4315,
+  "frames_per_s": 287.07,
+  "points_per_s": 19941.52,
+  "rpm_mean": 719.94,
+  "scan_hz": 11.999,
+  "rpm_min": 712.66,
+  "rpm_max": 725.69,
+  "sectors_seen": 24,
+  "rotations_observed": 180,
+  "angle_jumps": 1,
+  "bad_frames": 1,
+  "discarded_bytes": 252,
+  "buffered_bytes": 2,
+  "frame_lengths": {
+    "160": 2006,
+    "158": 2309
+  },
+  "nonzero_points": 276262,
+  "invalid_ffff": 0,
+  "zero_points": 23479,
+  "high_reflection_points": 0,
+  "distance_min_mm": 8,
+  "distance_max_mm": 3141,
+  "max_receive_gap_s": 0.047,
+  "port": "COM11",
+  "baudrate": 512000,
+  "timestamp": "2026-09-27T16:21:54.662021+08:00",
+  "note": "基本通信与扫描自检；不等同于距离精度标定。协议无校验和，帧结构正确不保证每个字节正确。"
+}
