@@ -1,0 +1,153 @@
+{
+  "source": "latest_capture.bin",
+  "sha256": "cc8fcc5d075bf7f56652b666048566dd65681deb505af3f9992019f1afe9ef34",
+  "frame_lengths": {
+    "158": 4742,
+    "160": 3862,
+    "162": 5,
+    "156": 26
+  },
+  "bad_frames": 0,
+  "estimated_duration_s": 29.976982000000195,
+  "front_window_deg": [
+    -2,
+    2
+  ],
+  "front_samples": 359,
+  "front_points": 6821,
+  "front_zero_points": 0,
+  "initial_0_to_22s_median_mm": 223.0,
+  "initial_scan_median_range_mm": [
+    221.0,
+    227.0
+  ],
+  "final_28s_onward_median_mm": 346.0,
+  "final_scan_median_range_mm": [
+    345.0,
+    350.0
+  ],
+  "displacement_mm": 123.0,
+  "per_second": [
+    {
+      "second": 0,
+      "median_mm": 223.0
+    },
+    {
+      "second": 1,
+      "median_mm": 223.5
+    },
+    {
+      "second": 2,
+      "median_mm": 223.0
+    },
+    {
+      "second": 3,
+      "median_mm": 224.0
+    },
+    {
+      "second": 4,
+      "median_mm": 223.5
+    },
+    {
+      "second": 5,
+      "median_mm": 223.5
+    },
+    {
+      "second": 6,
+      "median_mm": 223.0
+    },
+    {
+      "second": 7,
+      "median_mm": 223.0
+    },
+    {
+      "second": 8,
+      "median_mm": 223.5
+    },
+    {
+      "second": 9,
+      "median_mm": 224.0
+    },
+    {
+      "second": 10,
+      "median_mm": 224.0
+    },
+    {
+      "second": 11,
+      "median_mm": 224.0
+    },
+    {
+      "second": 12,
+      "median_mm": 224.0
+    },
+    {
+      "second": 13,
+      "median_mm": 224.0
+    },
+    {
+      "second": 14,
+      "median_mm": 223.5
+    },
+    {
+      "second": 15,
+      "median_mm": 224.0
+    },
+    {
+      "second": 16,
+      "median_mm": 223.0
+    },
+    {
+      "second": 17,
+      "median_mm": 223.0
+    },
+    {
+      "second": 18,
+      "median_mm": 223.0
+    },
+    {
+      "second": 19,
+      "median_mm": 223.0
+    },
+    {
+      "second": 20,
+      "median_mm": 223.5
+    },
+    {
+      "second": 21,
+      "median_mm": 223.5
+    },
+    {
+      "second": 22,
+      "median_mm": 223.5
+    },
+    {
+      "second": 23,
+      "median_mm": 257.0
+    },
+    {
+      "second": 24,
+      "median_mm": 283.0
+    },
+    {
+      "second": 25,
+      "median_mm": 307.5
+    },
+    {
+      "second": 26,
+      "median_mm": 327.0
+    },
+    {
+      "second": 27,
+      "median_mm": 344.5
+    },
+    {
+      "second": 28,
+      "median_mm": 346.0
+    },
+    {
+      "second": 29,
+      "median_mm": 346.0
+    }
+  ],
+  "note": "Time estimated from motor speed and 15-degree packet span; not exact host timestamps. Distances assume supplied protocol layout. Not an accuracy calibration."
+}

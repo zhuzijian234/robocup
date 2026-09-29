@@ -1,1 +1,1 @@
-#define DIAG_BUILD_ID "sha256-36aa0b34a71d5206"
+#define DIAG_BUILD_ID "sha256-d5428b090c598aef"

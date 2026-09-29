@@ -1,0 +1,38 @@
+{
+  "status": "WARN",
+  "issues": [
+    "测试被提前结束，结果不完整"
+  ],
+  "duration_s": 13.094,
+  "bytes": 595181,
+  "frames": 3744,
+  "frames_per_s": 285.93,
+  "points_per_s": 19857.34,
+  "rpm_mean": 720.13,
+  "scan_hz": 12.002,
+  "rpm_min": 709.02,
+  "rpm_max": 734.43,
+  "sectors_seen": 24,
+  "rotations_observed": 156,
+  "angle_jumps": 0,
+  "bad_frames": 0,
+  "discarded_bytes": 148,
+  "buffered_bytes": 129,
+  "frame_lengths": {
+    "160": 1688,
+    "158": 1993,
+    "156": 46,
+    "162": 17
+  },
+  "nonzero_points": 232283,
+  "invalid_ffff": 0,
+  "zero_points": 27729,
+  "high_reflection_points": 0,
+  "distance_min_mm": 41,
+  "distance_max_mm": 5376,
+  "max_receive_gap_s": 0.094,
+  "port": "COM11",
+  "baudrate": 512000,
+  "timestamp": "2026-09-28T12:52:17.509648+08:00",
+  "note": "基本通信与扫描自检；不等同于距离精度标定。协议无校验和，帧结构正确不保证每个字节正确。"
+}

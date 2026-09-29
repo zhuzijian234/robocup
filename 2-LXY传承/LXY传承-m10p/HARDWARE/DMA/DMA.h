@@ -1,7 +1,7 @@
 #ifndef __DMA_H
 #define __DMA_H
 #include "sys.h"
-/* 接收层容量独立于协议包长：160字节包允许横跨任意512字节DMA块。 */
+/* 接收层容量独立于协议包长：变长包可横跨任意512字节DMA块，由m10p.c拼包。 */
 #define DMA_USART2_RX_BUF_LEN 1024u
 #define LIDAR_RX_BLOCK 512u
 #define LIDAR_RX_BLOCKS 16u

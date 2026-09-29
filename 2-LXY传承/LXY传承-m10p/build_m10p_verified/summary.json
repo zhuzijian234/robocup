@@ -3,8 +3,8 @@
   "failures": [],
   "warnings": 33,
   "settings": "AC5 Cortex-M4.fp.sp C99 O0 MicroLIB split_sections; current uvproj source/include/defines; explicit m10p.sct; ZG 1MiB Flash / 128KiB SRAM",
-  "ram_bytes": 84712,
-  "rom_bytes": 39380,
+  "ram_bytes": 85064,
+  "rom_bytes": 39484,
   "dma_buffer_address": "0x2000022c",
-  "hex_sha256": "1a4ce6c447058b0db71c115e2506f93917cf9bf32439f6db691b247ac091b16e"
+  "hex_sha256": "6b20e515d7d70ebe7738ec704b55c254b0de99f06be22b95d007e020e62fa887"
 }

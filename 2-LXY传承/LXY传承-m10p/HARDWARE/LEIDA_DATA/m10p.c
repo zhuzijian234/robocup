@@ -10,10 +10,10 @@
  *   M10P_Poll()  取一块 -> M10P_Feed()          [m10p_vehicle.c 调用]
  *        |
  *        v
- *   M10P_Feed: 找 A5 5A 帧头 / 凑满 160B / 校验长度·尾·角度·转速
+ *   M10P_Feed: 找 A5 5A 帧头 / 按长度字段收全 / 校验长度·尾·角度·转速
  *        |
  *        v
- *   decode(): 单包 70 槽 -> 每点角度按 15° 窗口线性摊开 -> append()
+ *   decode(): 动态槽数 -> 每点角度按 15° 窗口线性摊开 -> append()
  *        |
  *        v
  *   角度回绕到车尾时 boundary(): 结掉本圈 -> 检查(覆盖≈360° / 周期 60~120ms / 转速 3000~6000dps) -> 发布
@@ -22,10 +22,10 @@
  *   M10P_Acquire()/M10P_Release(): 主循环取走用, 用完归还
  *
  * ======================== 各函数速查 ========================
- *   M10P_Feed    字节级组包: A5 找头、A5 5A 校验、Byte2~3==160 校验长度、尾 FA FB、
+ *   M10P_Feed    字节级组包: A5 找头、A5 5A 校验、Byte2~3 给出总长度、尾 FA FB、
  *                转速合法(speed<229 拒), 坏了就按"保留后缀里的下一个 A5"重新同步
  *   decode       单包解码: 读角度(Byte4~5)和转速(Byte6~7), 算 dps = 15000000/speed,
- *                70 个槽里 0xFFFF 的算空槽, 其余按 pos = rel + (1500*n + m/2)/m 插值出
+ *                (包长-20)/2 个槽里 0xFFFF 的算空槽, 其余按 pos = rel + (1500*n + m/2)/m 插值出
  *                每点角度; 顺便用角度增量(应在 14~16° 之间)判丢圈
  *   append       落点进当前扫描帧, 并记录"前方 30°~150° 第一次见到有效点"的时刻 front_us
  *   boundary / begin_scan / coverage
@@ -53,7 +53,7 @@ static M10P_Scan scans[2]; /* 双缓冲: 一帧给主循环读, 另一帧给解�
 /* 解析器和扫描帧状态都归主循环上下文所有, ISR 一律不碰这些对象。 */
 static uint8_t state[2]; /* 每个缓冲的状态: 0=空闲 1=正在写 2=已就绪待取 3=主循环正在读 */
 static int writer;       /* 当前正在写的缓冲下标, -1 = 没有 */
-static uint8_t packet[M10P_PACKET_BYTES]; /* 组包暂存区 */
+static uint8_t packet[M10P_PACKET_MAX_BYTES]; /* 组包暂存区，实际长度从包内读取 */
 static uint16_t pending, previous_angle;  /* pending=已缓冲字节数; previous_angle=上一包角度(0.01°) */
 static uint32_t packet_start_us, previous_end_us, scan_seq; /* 包起点时刻 / 上一包结束时刻 / 帧号计数 */
 static uint8_t have_previous; /* 有没有上一包可比对(上电第一包没法判跳变) */
@@ -230,10 +230,12 @@ static void append(uint16_t a, uint16_t raw, uint32_t t)
 
 /**
  * @brief  解码一个已经收全并校验通过的包
+ * @param  packet_bytes 本包长度，已经过边界/偶数校验
  * @param  end_us 本包结束时刻(用所在 DMA 块的结束时刻)
  *
- * 包布局: [0]A5 [1]5A [2~3]长度(=160) [4~5]角度 [6~7]转速
- *         [8~147] 70 槽 × 2 字节 [148~157]保留 [158~159]FA FB 尾
+ * 包布局: [0]A5 [1]5A [2~3]总长度L [4~5]角度 [6~7]转速
+ *         [8,L-12)测距槽，[L-12,L-2)保留区，[L-2,L)为FA FB。
+ * 此变长布局沿用实测工具假定，保留区和角度分配规则仍待厂家确认。
  *
  * 关键三步:
  * 1) 跳变检测 —— 相邻两包角度必须差 14°~16°(正常 15°), 且间隔不超过 20ms;
@@ -245,9 +247,10 @@ static void append(uint16_t a, uint16_t raw, uint32_t t)
  * 那段 +18000 / -18000 的平移, 是为了让"以包角度为起点的 15° 窗口"统一落在坐标中间,
  * 不必在窗口跨过 0° 时把它拆成两段算。
  */
-static void decode(uint32_t end_us)
+static void decode(uint16_t packet_bytes, uint32_t end_us)
 {
     uint16_t a = be16(packet + 4), speed = be16(packet + 6), m = 0, i, n = 0;
+    uint16_t slots = (uint16_t)((packet_bytes - M10P_PACKET_OVERHEAD) / 2u);
     uint16_t rel, before, dps, raw, delta;
     uint8_t crossed = 0;
     if (a == 36000) a = 0;
@@ -259,80 +262,125 @@ static void decode(uint32_t end_us)
         }
     }
     previous_angle = a; previous_end_us = end_us; have_previous = 1;
-    for (i = 0; i < 70; ++i) if (be16(packet + 8 + i * 2) != 0xffffu) ++m;
-    M10P_stats.invalid_slots += 70 - m;
+    for (i = 0; i < slots; ++i)
+        if (be16(packet + M10P_HEADER_BYTES + i * 2u) != 0xffffu) ++m;
+    M10P_stats.invalid_slots += slots - m;
     dps = (uint16_t)(15000000u / speed); /* 协议给的转速字段 -> 度/秒 */
     rel = (uint16_t)((a + 18000u) % 36000u);
     /* before = 本包这 15° 里落在回绕点之前的那部分, 算在上一圈账上 */
-    before = rel + 1500u >= 36000u ? (uint16_t)(36000u - rel) : 1500u;
-    coverage(before, (uint16_t)(70 - m), dps);
-    for (i = 0; i < 70; ++i) {
+    before = rel + M10P_PACKET_SPAN_CDEG >= 36000u ?
+             (uint16_t)(36000u - rel) : M10P_PACKET_SPAN_CDEG;
+    coverage(before, (uint16_t)(slots - m), dps);
+    for (i = 0; i < slots; ++i) {
         uint32_t pos;
-        raw = be16(packet + 8 + i * 2);
+        raw = be16(packet + M10P_HEADER_BYTES + i * 2u);
         if (raw == 0xffffu) continue;
         /* 空槽计数按"协议上有效"算, 在测距筛选之前 —— 不能拿距离过滤后的数当丢点率。 */
-        pos = rel + (1500u * n + m / 2u) / m; ++n;
+        /* 仅FFFF压缩角度序号。距离0和高反点仍占一个角度位置；全FFFF不会进入除法。 */
+        pos = rel + (M10P_PACKET_SPAN_CDEG * n + m / 2u) / m; ++n;
         if (pos >= 36000u && !crossed) {
             boundary(packet_start_us, end_us); crossed = 1;
         }
         if (raw & 0x8000u) M10P_stats.high_reflect++;
         append((uint16_t)((pos + 18000u) % 36000u), raw, packet_start_us);
     }
-    if (rel + 1500u >= 36000u) {
+    if (rel + M10P_PACKET_SPAN_CDEG >= 36000u) {
         /* 这一包跨了回绕点: 若摊点时没触发切帧(整包全空槽), 这里补切一次;
          * 后半段的角度覆盖记到新开的这圈上(空槽数前面已经记过, 这里传 0)。 */
         if (!crossed) boundary(packet_start_us, end_us);
-        coverage((uint16_t)(1500u - before), 0, dps);
+        coverage((uint16_t)(M10P_PACKET_SPAN_CDEG - before), 0, dps);
     }
 }
 
 /**
- * @brief  喂一块 DMA 数据进来(M10P_Poll 每取到一块就调一次)
- * @param  data     块首地址
- * @param  count    块长度
- * @param  start_us 这块第一个字节的到达时刻(含 DMA 中断延迟, 只会偏早)
- * @param  end_us   这块最后一个字节的到达时刻
+ * @brief 移除已消费前缀，保留坏包内可能藏着的下一包。
+ * 重同步保留的字节沿用较早的packet_start_us，使数据年龄估计偏保守。
+ */
+static void consume_prefix(uint16_t count)
+{
+    pending = (uint16_t)(pending - count);
+    if (pending) memmove(packet, packet + count, pending);
+}
+
+/**
+ * @brief 尽可能处理暂存字节；只有缺少后续字节时才返回。
  *
- * 逐字节组包, 四种情况判坏包: 第 2 字节不是 5A、长度字段不是 160、尾不是 FA FB、
- * 角度 > 36000、转速字段太小(会让 dps 溢出 uint16)。
- * 坏包不整块丢: 在已缓冲的字节里找下一个 A5 当头, 把后半段 memmove 到前面接着用
- * (帧头可能就藏在坏包中间); 找不到 A5 就清空, 等下一块。
- * 残留后缀沿用它原来的包起点时刻 —— 那是更早的时刻, 对"时间戳只许偏早"的约定是安全的。
+ * 错误长度可能吞进多个短包，所以重同步后必须立即重新检查剩余数据，
+ * 不能等下一个字节再处理，也不能把“缓存字节数”误当成“当前包长”。
+ * 每轮要么消费字节、要么等待；缓存始终有界，不依赖DMA分块大小。
+ */
+static void parse_pending(uint32_t end_us)
+{
+    while (pending) {
+        uint16_t packet_bytes, skip, speed;
+        uint8_t bad = 0;
+
+        if (packet[0] != 0xa5 || (pending >= 2u && packet[1] != 0x5a)) {
+            bad = 1;
+        } else {
+            if (pending < 4u) return; /* 先收齐帧头和长度字段 */
+            packet_bytes = be16(packet + 2);
+            if (packet_bytes < M10P_PACKET_MIN_BYTES ||
+                packet_bytes > M10P_PACKET_MAX_BYTES ||
+                ((packet_bytes - M10P_PACKET_OVERHEAD) & 1u)) {
+                M10P_stats.bad_length++;
+                bad = 1;
+            } else {
+                if (pending < packet_bytes) return;
+                /* 帧尾由本包长度定位；测距/保留区里的A5 5A或FA FB只是数据。 */
+                if (packet[packet_bytes - 2u] != 0xfa || packet[packet_bytes - 1u] != 0xfb) {
+                    M10P_stats.bad_tail++;
+                    bad = 1;
+                }
+                if (be16(packet + 4) > 36000u) {
+                    M10P_stats.bad_angle++;
+                    bad = 1;
+                }
+                speed = be16(packet + 6);
+                /* 防止零除和dps溢出；启转期间的不稳定转速仍由整圈检查拒绝。 */
+                if (speed < 229u) {
+                    M10P_stats.bad_speed++;
+                    bad = 1;
+                }
+                if (!bad) {
+                    M10P_stats.packets++;
+                    decode(packet_bytes, end_us);
+                    consume_prefix(packet_bytes);
+                    continue;
+                }
+            }
+        }
+
+        /* 一旦遇到坏包，正在拼的扫描圈失去连续性，不能交给控制。 */
+        if (have_previous) {
+            M10P_stats.discontinuities++;
+            abandon();
+        }
+        for (skip = 1u; skip < pending && packet[skip] != 0xa5; ++skip) {}
+        consume_prefix(skip);
+    }
+}
+
+/**
+ * @brief 喂入任意长度的连续字节块，跨调用保留半包。
+ * @param start_us 本块起点的保守到达时间
+ * @param end_us 本块结束的到达时间，不是主循环解析时间
+ *
+ * DMA每次搬512字节与雷达每包多长无关。只按大端长度字段取完整包，
+ * 尾、角度、转速通过后才解码；结构检查不能替代协议没有提供的校验和。
  */
 void M10P_Feed(const uint8_t *data, size_t count, uint32_t start_us, uint32_t end_us)
 {
     size_t i;
     M10P_stats.bytes += (uint32_t)count;
     for (i = 0; i < count; ++i) {
-        uint16_t skip;
-        uint8_t bad = 0;
         if (!pending) {
-            if (data[i] != 0xa5) continue; /* 没在组包: 一路丢字节, 直到看见帧头 */
+            if (data[i] != 0xa5) continue;
             packet_start_us = start_us;
         }
+        /* parse_pending在缓存满时必定消费或重同步，因此这里不会越界。 */
         packet[pending++] = data[i];
-        if (pending >= 2 && packet[1] != 0x5a) bad = 1;
-        if (pending >= 4 && be16(packet + 2) != M10P_PACKET_BYTES) {
-            M10P_stats.bad_length++; bad = 1;
-        }
-        if (!bad && pending < M10P_PACKET_BYTES) continue; /* 还没凑够 160 字节, 继续攒 */
-        if (!bad) {
-            uint16_t speed = be16(packet + 6);
-            if (packet[158] != 0xfa || packet[159] != 0xfb) { M10P_stats.bad_tail++; bad = 1; }
-            if (be16(packet + 4) > 36000) { M10P_stats.bad_angle++; bad = 1; }
-            /* 转速字段太小会让 dps 溢出 uint16 存不下, 这种包直接判坏;
-             * 上电时转速还没稳(超出周期窗口)的包不在这里拦, 交给整圈门槛去筛。 */
-            if (speed < 229u) { M10P_stats.bad_speed++; bad = 1; }
-        }
-        if (!bad) {
-            M10P_stats.packets++; decode(end_us); pending = 0;
-        } else {
-            if (have_previous) { M10P_stats.discontinuities++; abandon(); }
-            for (skip = 1; skip < pending && packet[skip] != 0xa5; ++skip) {}
-            pending = (uint16_t)(pending - skip);
-            if (pending) memmove(packet, packet + skip, pending);
-            /* 留下的后缀继续用它原来的(更早的)起点时刻, 时间戳只会偏早。 */
-        }
+        parse_pending(end_us);
     }
 }
 

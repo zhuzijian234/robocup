@@ -25,4 +25,5 @@ def run(name,source):
     return {'build_exit':b.returncode,'run_exit':r.returncode,'output':r.stdout.decode(errors='replace')}
 if __name__=='__main__':
     result=run('m10p',P/'test/test_m10p.c')
+    result['variable_length']=run('m10p_variable',P/'test/test_m10p_variable.c')
     (OUT/'summary.json').write_text(json.dumps(result,indent=2),encoding='utf-8')

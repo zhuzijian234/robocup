@@ -8,8 +8,17 @@
 #define M10P_CONFIG_H
 /* ======================== 协议 / 尺度常量 ======================== */
 #define M10P_BAUD 512000u          /* USART2 波特率, 20K 型固定 512000 (8N1) */
-#define M10P_PACKET_BYTES 160u     /* 单包长度: A5 5A + 长度(2) + 角度(2) + 转速(2) + 70槽×2 + 保留(10) + FA FB 尾 */
-#define M10P_SCAN_CAPACITY 2048u   /* 每圈容量上限；24包×70槽=1680槽，实际有效点数受FFFF影响 */
+/* 20260929实测：包长会变化，160字节只是示例，不能作为分包步长。
+ * 以下沿用测试工具的布局假定：8字节头部 + 测距槽 + 10字节保留区 + 2字节尾。
+ * 22~512为软件接收边界，并非厂家已确认的合法范围；超过整圈容量仍拒绝发布。
+ * 原始bin已验证156/158/160/162；164/166只有统计记录，另用合成包回归。 */
+#define M10P_HEADER_BYTES 8u
+#define M10P_TRAILER_BYTES 12u
+#define M10P_PACKET_OVERHEAD (M10P_HEADER_BYTES + M10P_TRAILER_BYTES)
+#define M10P_PACKET_MIN_BYTES (M10P_PACKET_OVERHEAD + 2u) /* 至少一个测距槽 */
+#define M10P_PACKET_MAX_BYTES 512u /* 暂存容量，不是实际包长或DMA分块长度 */
+#define M10P_PACKET_SPAN_CDEG 1500u /* 每包15°，按非FFFF槽数均分；仍待厂家确认 */
+#define M10P_SCAN_CAPACITY 2048u   /* 24包×73槽=1752槽可容纳；超容量整圈丢弃，绝不截断后发布 */
 #define M10P_BINS 720u             /* 0.5° 一桶: 360/0.5 = 720 桶; 前方盲区、左右侧点数都按桶统计 */
 #define M10P_MAX_AGE_US 150000u    /* 一帧的保鲜期 150ms: 比最慢允许转速(8.3Hz, 120ms)还宽, 超期当"没数据" */
 #define M10P_FRONT_MAX_MISSING_BINS 10u /* 正前方允许的最大连续空桶数; 10 桶 = 5° 盲区, 超过就判感知无效 */

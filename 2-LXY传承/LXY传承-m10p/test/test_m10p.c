@@ -110,7 +110,7 @@ int main(void)
     CHECK(M10P_stats.rejected==1);s=M10P_Acquire();CHECK(s!=0);CHECK(!s->unstable);M10P_Release(s);
     M10P_Init();{uint32_t seed=12345;uint8_t noise[512];for(j=0;j<2000;j++){
         for(i=0;i<512;i++){seed=seed*1664525u+1013904223u;noise[i]=(uint8_t)(seed>>24);}
-        M10P_Feed(noise,512,j*10000,(j+1)*10000);CHECK(pending<160);
+        M10P_Feed(noise,512,j*10000,(j+1)*10000);CHECK(pending<M10P_PACKET_MAX_BYTES);
     }}
     make(0,1000);feed();CHECK(M10P_stats.packets>=1);
     printf("PASS %u M10P production-C checks\n",checks);return 0;

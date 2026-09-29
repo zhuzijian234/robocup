@@ -474,7 +474,7 @@ static void config_poll(void)
             text = "break=550/600mm;width=600..900mm;PWM=1170/1445/1720;PDmid=1445;fit=checked;center=paired";
             break;
         case 14:
-            text = "M10P20K 512000 160B/70slots;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720";
+            text = "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720";
             break;
         }
     if (text) {

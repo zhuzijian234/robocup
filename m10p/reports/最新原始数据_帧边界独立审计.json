@@ -1,0 +1,88 @@
+{
+  "source": "D:\\OneDrive\\Desktop\\robocup\\m10p\\reports\\latest_capture.bin",
+  "bytes": 1372252,
+  "sha256": "cc8fcc5d075bf7f56652b666048566dd65681deb505af3f9992019f1afe9ef34",
+  "literal_headers": 8636,
+  "complete_frames": 8635,
+  "frame_lengths": {
+    "156": 26,
+    "158": 4742,
+    "160": 3862,
+    "162": 5
+  },
+  "all_three_methods_identical": true,
+  "angle_deltas_cdeg": {
+    "1500": 8635
+  },
+  "prefix_bytes": 100,
+  "suffix_bytes": 130,
+  "accounted_bytes": 1372252,
+  "fixed_160_trial": {
+    "blocks": 8575,
+    "header_matches": 120,
+    "fully_valid_160_frames": 60
+  },
+  "examples": [
+    {
+      "length": 156,
+      "start": 133922,
+      "end": 134078,
+      "header": "A5 5A 00 9C 14 B4 0D 8A",
+      "boundary": "FA FB A5 5A 00 A0 1A 90 0D 82"
+    },
+    {
+      "length": 158,
+      "start": 100,
+      "end": 258,
+      "header": "A5 5A 00 9E 08 FC 0D 94",
+      "boundary": "FA FB A5 5A 00 A0 0E D8 0D 8D"
+    },
+    {
+      "length": 160,
+      "start": 258,
+      "end": 418,
+      "header": "A5 5A 00 A0 0E D8 0D 8D",
+      "boundary": "FA FB A5 5A 00 9E 14 B4 0D 8A"
+    },
+    {
+      "length": 162,
+      "start": 118018,
+      "end": 118180,
+      "header": "A5 5A 00 A2 89 E4 0D B0",
+      "boundary": "FA FB A5 5A 00 9E 03 20 0D 92"
+    }
+  ],
+  "read_chunk_trials": [
+    {
+      "chunk_bytes": 1,
+      "frames": 8635,
+      "decoded_sha256": "9239fb8c9eed7a4b44af017e96677fd12e0cf612708b6af445b234754b45e743",
+      "bad_frames": 0
+    },
+    {
+      "chunk_bytes": 7,
+      "frames": 8635,
+      "decoded_sha256": "9239fb8c9eed7a4b44af017e96677fd12e0cf612708b6af445b234754b45e743",
+      "bad_frames": 0
+    },
+    {
+      "chunk_bytes": 160,
+      "frames": 8635,
+      "decoded_sha256": "9239fb8c9eed7a4b44af017e96677fd12e0cf612708b6af445b234754b45e743",
+      "bad_frames": 0
+    },
+    {
+      "chunk_bytes": 4096,
+      "frames": 8635,
+      "decoded_sha256": "9239fb8c9eed7a4b44af017e96677fd12e0cf612708b6af445b234754b45e743",
+      "bad_frames": 0
+    },
+    {
+      "chunk_bytes": 65536,
+      "frames": 8635,
+      "decoded_sha256": "9239fb8c9eed7a4b44af017e96677fd12e0cf612708b6af445b234754b45e743",
+      "bad_frames": 0
+    }
+  ],
+  "claim_scope": "Confirms varying frame sizes in bytes received by the PC; does not locate whether radar firmware or intermediate hardware caused them."
+}

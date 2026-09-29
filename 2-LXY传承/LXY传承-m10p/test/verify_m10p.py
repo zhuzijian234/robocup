@@ -13,7 +13,7 @@ def command(args,cwd=P):
  print(output,flush=True)
  (out/'verification.json').write_text(json.dumps(records,ensure_ascii=False,indent=2),encoding='utf-8')
  if r.returncode:raise SystemExit(r.returncode)
-for name in ['check_m10p.py','check_m10p_integration.py','check_m10p_geometry.py','check_turn_regression.py','check_m10p_telemetry.py']:
+for name in ['check_m10p.py','check_m10p_replay.py','check_m10p_integration.py','check_m10p_geometry.py','check_turn_regression.py','check_m10p_telemetry.py']:
  command([sys.executable,str(P/'test'/name)])
 command([sys.executable,'-m','unittest','discover','-s','tests','-v'],P/'上位机')
 import yaml
