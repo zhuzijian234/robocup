@@ -23,6 +23,7 @@ static float fields[26], config_params[16];
 static uint8_t frame[256];
 uint32_t Diag_detail_u[24];
 float Diag_detail_f[16];
+uint32_t Diag_nav_u[10];
 volatile float Diag_motor_integral, Diag_motor_prelimit;
 /* Single TIM5 producer / main consumer; payload published before head. */
 typedef struct {
@@ -58,7 +59,7 @@ void Diag_MotorTick(uint16_t raw, uint8_t fresh, uint8_t pi)
     s->raw = raw;
     s->pwm = (uint16_t)TIM2->CCR1;
     s->speed = Speed_now;
-    s->target = Speed_mubiao;
+    s->target = Speed_effective;
     s->integral = Diag_motor_integral;
     s->prelimit = Diag_motor_prelimit;
     s->flags = (fresh ? 1u : 0u) | (pi ? 2u : 0u) | (Radar_started ? 4u : 0u) | (Radar_stop_latched ? 8u : 0u) | (daoche_flag ? 16u : 0u);
@@ -217,6 +218,7 @@ void Diag_Begin(uint32_t ms, uint32_t us)
     begin_us = Diag_TimeUs();
     memset(Diag_detail_u, 0, sizeof Diag_detail_u);
     memset(Diag_detail_f, 0, sizeof Diag_detail_f);
+    memset(Diag_nav_u, 0, sizeof Diag_nav_u);
 }
 void Diag_Field(uint8_t i, float v, uint8_t valid)
 {
@@ -309,7 +311,7 @@ static void detail_submit(uint32_t elapsed, uint8_t action, uint8_t ok)
 {
     uint8_t i;
     (void)action;
-    Diag_detail_u[0] = 1;
+    Diag_detail_u[0] = 2; /* 保留旧160B字段，末尾追加导航诊断 */
     Diag_detail_u[1] = control_seq;
     Diag_detail_u[2] = Diag_revision;
     Diag_detail_u[5] = elapsed;
@@ -320,12 +322,23 @@ static void detail_submit(uint32_t elapsed, uint8_t action, uint8_t ok)
     Diag_detail_u[21] = Diag_input_drop;
     Diag_detail_u[22] = Diag_tx_drop;
     Diag_detail_u[23] = motor_dropped;
-    header(5, 176);
+    header(5, 232);
     for (i = 0; i < 24; i++)
         put32(frame + 14 + 4 * i, Diag_detail_u[i]);
     for (i = 0; i < 16; i++)
         memcpy(frame + 110 + 4 * i, &Diag_detail_f[i], 4);
-    BLE_Queue(frame, 176, 0);
+    Diag_nav_u[3] = Navigation.action;
+    Diag_nav_u[4] = Navigation.front_bins;
+    Diag_nav_u[5] = Navigation.left_bins;
+    Diag_nav_u[6] = Navigation.right_bins;
+    Diag_nav_u[7] = Navigation.max_age_ms;
+    Diag_nav_u[8] = Radar_limit_reason;
+    for (i = 0; i < 10; i++) put32(frame + 174 + i * 4, Diag_nav_u[i]);
+    memcpy(frame + 214, &Speed_mubiao, 4);
+    { float effective = Speed_effective; memcpy(frame + 218, &effective, 4); }
+    memcpy(frame + 222, &Navigation.obstacle_x, 4);
+    memcpy(frame + 226, &Navigation.obstacle_y, 4);
+    BLE_Queue(frame, 232, 0);
 }
 void Diag_Submit(uint16_t mode, uint16_t raw, uint16_t speed, uint8_t ok)
 {
@@ -349,7 +362,7 @@ void Diag_Submit(uint16_t mode, uint16_t raw, uint16_t speed, uint8_t ok)
     if (now - begin_us > process_max)
         process_max = now - begin_us;
     action = mode <= 9 ? 1 : mode == BLE_MODE_INVALID ? 5
-                         : mode == BLE_MODE_FORCED    ? ((TIM3->CCR1 == SERVO_PWM_MAX) ? 3 : 4)
+                         : mode == BLE_MODE_FORCED    ? ((TIM3->CCR1 > SERVO_PWM_MID) ? 3 : 4)
                                                       : 2;
     Diag_Field(1, (float)TIM3->CCR1, 1);
     if (mode <= 9) {
@@ -359,7 +372,7 @@ void Diag_Submit(uint16_t mode, uint16_t raw, uint16_t speed, uint8_t ok)
     p = __get_PRIMASK();
     __disable_irq();
     Diag_Field(18, Speed_now, 1);
-    Diag_Field(19, Speed_mubiao, 1);
+    Diag_Field(19, Speed_effective, 1);
     motor = Radar_stop_latched ? 3 : Radar_started ? 2
                                                    : 1;
     __set_PRIMASK(p);
@@ -418,7 +431,7 @@ void Diag_Submit(uint16_t mode, uint16_t raw, uint16_t speed, uint8_t ok)
     put32(frame + 98, Diag_revision);
     put16(frame + 102, raw);
     put16(frame + 104, raw ? speed : 0);
-    BLE_Queue(frame, 108, 0);
+    BLE_Queue(frame, 108, 1);
     detail_submit(now - begin_us, action, ok);
 }
 /* CONFIG registry: 1 layout,2 build,3 lidar,4 algorithm,5 input_kind,6 baud,
@@ -478,7 +491,7 @@ static void config_poll(void)
             number = 1000;
             break;
         case 10:
-            text = "mm;CCR;encoder_units;slope;PD=mode-reset-Dcap150;entry=min(75,abs(P));turn=350ms-exit2";
+            text = "mm;CCR;encoder_units;slope;PD=wall-fit-Dcap150;turn=reverse2;cache=200ms;speed=effective";
             break;
         case 11:
             number = DMA_USART2_RX_BUF_LEN;
@@ -487,7 +500,7 @@ static void config_poll(void)
             number = LEIDA_DATA_COUNTER;
             break;
         case 13:
-            text = "break=550/600mm;width=600..900mm;PWM=1170/1445/1720;PDmid=1445;fit=checked;center=paired";
+            text = "break=550/600mm;width=600..900mm;PWM=1170/1445/1720;PDmid=1445;fit=checked;center=paired;vehicle=250x200;nav=schema2";
             break;
         case 14:
             text = "LD14P nominal4000pts/s@6Hz;PWM97;raw_crc=required;input=DMA-stream";
@@ -578,8 +591,15 @@ uint8_t Diag_Command(char *line)
 {
     uint32_t n;
     char ack[180];
+    if (!strcmp(line, "drive 0") || !strcmp(line, "drive 1")) {
+        Radar_drive_enabled = line[6] == '1';
+        /* drive 1只放行速度仲裁，不清500ms锁停，也不越过障碍限速。 */
+        sprintf(ack, "OK %s\r\n", line);
+        Send_Bluetooth_Data(ack);
+        return 1;
+    }
     if (!strcmp(line, "info")) {
-        sprintf(ack, "INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=2 input=%u atomic=0 detail=1 motor=1\r\n", DIAG_LAYOUT, DIAG_BUILD_ID, (unsigned)DIAG_LIDAR_ID, (unsigned)DIAG_INPUT_KIND);
+        sprintf(ack, "INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=2 input=%u atomic=0 detail=2 motor=1 drive=1\r\n", DIAG_LAYOUT, DIAG_BUILD_ID, (unsigned)DIAG_LIDAR_ID, (unsigned)DIAG_INPUT_KIND);
         Send_Bluetooth_Data(ack);
         return 1;
     }
@@ -646,7 +666,7 @@ void Diag_Poll(void)
     if (!Get_Bluetooth_ConnectFlag())
         return;
     config_poll();
-    motor_poll();
+    /* HEALTH/CONFIG先入队，MOTOR不能挤占它们的发送机会。 */
     if (Diag_mode == 3 && BLE_FreeCritical() >= 3) {
         if (previous_stop != Radar_stop_latched) {
             sprintf(event_text, "motor_stop_latched=%u", (unsigned)Radar_stop_latched);
@@ -658,9 +678,11 @@ void Diag_Poll(void)
             reported_drop = Diag_tx_drop;
         }
     }
-    if (Diag_mode != 3 || now - last_health < (Radar_stop_latched ? 200u : 1000u))
+    if (Diag_mode != 3 || now - last_health < (Radar_stop_latched ? 200u : 1000u)) {
+        motor_poll();
         return;
-    last_health = now;
+    }
+    /* 入队成功后才更新时间；队列拥堵时下一轮重试。 */
     p = __get_PRIMASK();
     __disable_irq();
     input_ms = Diag_input_ms;
@@ -699,5 +721,6 @@ void Diag_Poll(void)
     header(2, 80);
     for (i = 0; i < 16; i++)
         put32(frame + 14 + i * 4, values[i]);
-    BLE_Queue(frame, 80, 1);
+    if (BLE_Queue(frame, 80, 2)) last_health = now;
+    motor_poll();
 }

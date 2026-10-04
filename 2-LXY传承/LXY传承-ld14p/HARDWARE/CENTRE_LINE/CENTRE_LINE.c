@@ -16,10 +16,8 @@
  *        y_target = 拟合线末点 points[end-1]._y（BLUE_Y_STRA_SEL=1 时改用 BLUE_Y_STRA）
  *        |k| <= 0.1 视为"线太横"退化, 直接拒绝本帧
  *   1  = 小角度右转                    误差: -(x + paodao*BLUE_DIS_RIGHT/100)             kp_3, kd_3
- *        在窗口里找 y 最接近 BLUE_Y_RIGHT 的点, 用它的 x 算偏差, 即"把右墙保持在车右
- *        paodao*BLUE_DIS_RIGHT/100 mm 处"; 窗口里一个点都没有则拒绝本帧
- *   2  = 小角度左转                    误差: -(x - paodao*BLUE_DIS_LEFT/100)              kp_3, kd_3
- *        同上, 目标高度 BLUE_Y_LEFT
+ *        使用外侧墙 x=a*y+b 在BLUE_Y_RIGHT/LEFT处求参考；
+ *        至少6点、y跨度250mm、均方根残差<=60mm、外推<=250mm，否则拒绝。
  *   3  = 大角度右转（右断点+前方拟合, |k|<0.35）    误差: -mag          kp_2, kd_2
  *   4  = 大角度左转                               误差: +mag          kp_2, kd_2
  *   8  = 中等角度右转（0.35<=|k|<0.7 且单边拟合）   误差: -mag          kp_2, kd_2
@@ -256,6 +254,7 @@ float err[5] = {0};        /* 误差历史缓冲区（FIR滤波用，当前未�
  *   6. 输出到舵机
  */
 uint8_t Servo_PD_valid;
+uint8_t Servo_reject_reason; /* 0有效，1窗口，2中线，3外墙参考，4非有限数 */
 static uint8_t pd_history_valid;
 static uint16_t pd_previous_mode;
 static uint32_t pd_previous_us;
@@ -271,11 +270,57 @@ void Midline_PD_Reset(void)
  * 所以"拒绝"只能偶发, 不能变成常态。 */
 static uint16_t pd_reject(void)
 {
+    if (!Servo_reject_reason) Servo_reject_reason = 4;
     Diag_detail_u[4] &= ~1u;
     Diag_detail_u[4] |= 512u;
     Midline_PD_Reset();
     return (uint16_t)TIM3->CCR1;
 }
+
+/* 外侧墙使用 x=a*y+b，竖直墙也可拟合；拒绝短小锥桶簇和过远外推。 */
+static uint8_t wall_reference(_LEIDA_DATA_plane *points, uint16_t start, uint16_t end,
+                              uint16_t mode, float target, float *reference)
+{
+    uint16_t i, n = 0;
+    float sx = 0, sy = 0, yy = 0, xy = 0, residual = 0;
+    float low = FLT_MAX, high = -FLT_MAX, a, b, x, y;
+    for (i = start; i < end; i++) {
+        x = points[i]._x; y = points[i]._y;
+        if (!(fabs(x) <= FLT_MAX && y >= 150 && y <= 1800)) continue;
+        if ((mode == 1 && x > -80) || (mode == 2 && x < 80)) continue;
+        sx += x; sy += y; n++;
+        if (y < low) low = y;
+        if (y > high) high = y;
+    }
+    Diag_detail_u[9] = n;
+    if (n < 6 || high - low < 250 || target < low - 250 || target > high + 250)
+        return 0;
+    sx /= n; sy /= n;
+    for (i = start; i < end; i++) {
+        x = points[i]._x; y = points[i]._y;
+        if (!(fabs(x) <= FLT_MAX && y >= 150 && y <= 1800)) continue;
+        if ((mode == 1 && x > -80) || (mode == 2 && x < 80)) continue;
+        yy += (y - sy) * (y - sy); xy += (y - sy) * (x - sx);
+    }
+    if (yy < 1) return 0;
+    a = xy / yy; b = sx - a * sy;
+    if (fabs(a) > 2) return 0;
+    for (i = start; i < end; i++) {
+        x = points[i]._x; y = points[i]._y;
+        if (!(fabs(x) <= FLT_MAX && y >= 150 && y <= 1800)) continue;
+        if ((mode == 1 && x > -80) || (mode == 2 && x < 80)) continue;
+        residual += (x - a * y - b) * (x - a * y - b);
+    }
+    if (residual / n > 60 * 60) return 0;
+    *reference = a * target + b;
+    Diag_detail_f[8] = *reference;
+    Diag_detail_f[9] = target;
+    /* ref_dy现在表示外推距离，0表示目标位于真实覆盖区间内。 */
+    Diag_detail_f[10] = target < low ? low - target : target > high ? target - high : 0;
+    Diag_detail_u[4] |= 2;
+    return 1;
+}
+
 static uint8_t turn_direction(uint16_t mode);
 static uint8_t turn_rank(uint16_t mode);
 uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *line,
@@ -283,8 +328,9 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
 {
     uint16_t i;
     uint32_t now = Diag_TimeUs(), dt = now - pd_previous_us;
-    float e = 0, kp, kd, p, d, original_d, output, mag, x = 0, best = FLT_MAX, target, entry = 0;
+    float e = 0, kp, kd, p, d, original_d, output, mag, x = 0, target, entry = 0;
     Servo_PD_valid = 0;
+    Servo_reject_reason = 0;
     Diag_detail_u[6] = pd_previous_mode;
     Diag_detail_u[7] = start;
     Diag_detail_u[8] = end;
@@ -293,35 +339,28 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
     Diag_detail_f[11] = line->k;
     Diag_detail_f[12] = line->b;
     if (mode > 9 || end <= start || end > LEIDA_DATA_COUNTER / 2) {
+        Servo_reject_reason = 1;
         if (mode == 1 || mode == 2)
             Diag_detail_u[4] |= 8;
         return pd_reject();
     }
     if (mode == 0) {
-        if (!(fabs(line->k) > 0.1f && fabs(line->k) <= FLT_MAX && fabs(line->b) <= FLT_MAX))
+        if (!(fabs(line->k) > 0.1f && fabs(line->k) <= FLT_MAX && fabs(line->b) <= FLT_MAX)) {
+            Servo_reject_reason = 2;
             return pd_reject();
+        }
         target = BLUE_Y_STRA_SEL == 1 ? BLUE_Y_STRA : points[end - 1]._y;
         e = -((target - line->b) / line->k - 50);
-        if (BLUE_Y_STRA_SEL != 1) {
-            if (e > 200)
-                e = 200;
-            if (e < -200)
-                e = -200;
+        /* 保留全局±500保护，不再将正常中线纠偏永久压成±200。
+         * 固定前视不许远超实际覆盖，否则应降级而非盲目外推。 */
+        if (BLUE_Y_STRA_SEL == 1 && fabs(target - points[end - 1]._y) > 250) {
+            Servo_reject_reason = 2;
+            return pd_reject();
         }
     } else if (mode == 1 || mode == 2) {
         target = mode == 1 ? BLUE_Y_RIGHT : BLUE_Y_LEFT;
-        for (i = start; i < end; i++) {
-            float dy = fabs(points[i]._y - target);
-            if (dy < best && fabs(points[i]._x) <= FLT_MAX) {
-                best = dy;
-                x = points[i]._x;
-                Diag_detail_u[4] |= 2;
-                Diag_detail_f[8] = x;
-                Diag_detail_f[9] = points[i]._y;
-                Diag_detail_f[10] = dy;
-            }
-        }
-        if (!(Diag_detail_u[4] & 2)) {
+        if (!wall_reference(points, start, end, mode, target, &x)) {
+            Servo_reject_reason = 3;
             Diag_detail_u[4] |= 8;
             return pd_reject();
         }
@@ -454,6 +493,25 @@ uint16_t TurnGuard_Apply(TurnGuard *state, uint16_t mode, uint8_t valid,
     uint8_t direction = turn_direction(mode);
     int offset, previous_offset;
     *held = 0;
+    if (!valid) state->pending_direction = 0;
+    if (valid && direction && turn_direction(state->mode) &&
+        direction != turn_direction(state->mode)) {
+        /* 两个独立的侧墙观测才能确认反向；重复缓存不会给确认计数。
+         * 待确认只短时保舵，主循环同步限速；紧急障碍绕过此仲裁。 */
+        if (state->pending_direction != direction) {
+            state->pending_direction = direction;
+            state->pending_us = now;
+            state->pending_evidence = state->evidence_us;
+            *held = 1;
+            return state->pwm;
+        }
+        if (state->evidence_us == state->pending_evidence ||
+            (uint32_t)(now - state->pending_us) < 60000u) {
+            *held = 1;
+            return state->pwm;
+        }
+        state->pending_direction = 0;
+    } else if (valid) state->pending_direction = 0;
     /* unsigned差值允许微秒时钟回绕；HOLD/INVALID绝不刷新这个时刻。 */
     if (state->active && (uint32_t)(now - state->observed_us) >= TURN_GUARD_US) {
         state->active = 0;
@@ -495,6 +553,7 @@ uint16_t TurnGuard_Apply(TurnGuard *state, uint16_t mode, uint8_t valid,
     if (state->straight_frames >= TURN_EXIT_FRAMES) {
         state->active = 0;
         state->straight_frames = 0;
+        state->mode = 0;
         return pwm;
     }
     *held = 1;
@@ -553,34 +612,30 @@ uint16_t Speed_PID(float speed_now, float speed_mubiao, pid_type *speed_pid, uin
  * 公式: pwm = kp*err + ki*err_sum + kd*(err - err_last)
  * 在TIM5 ISR中每10ms调用一次。
  */
+/* 停驱动/明显降速时调用，避免停车后残留积分重新顶满油门。 */
+void Speed_PID_Reset(pid_type *pid)
+{
+    pid->err_sum = 0;
+    pid->err_l = 0;
+    Diag_motor_integral = 0;
+    Diag_motor_prelimit = 0;
+}
 float PID_realize(float speed_now, float speed_mubiao, pid_type *speed_pid)
 {
-    float moto_pwm = 0;
-    static float err_sum = 0;
-
-    /* 计算当前偏差 */
+    float output, next_sum;
     speed_pid->err = speed_mubiao - speed_now;
-
-    /* 累加积分 */
-    err_sum += speed_pid->err;
-
-    /* 积分抗饱和 */
-    if (err_sum >= 200)
-        err_sum = 200;
-    if (err_sum <= -200)
-        err_sum = -200;
-
-    /* 位置式PI: pwm = kp*err + ki*积分 + kd*微分 */
-    moto_pwm = speed_pid->kp * speed_pid->err + speed_pid->ki * err_sum + speed_pid->kd * (speed_pid->err - speed_pid->err_l);
-
-    /* 记录上一次偏差 */
+    next_sum = speed_pid->err_sum + speed_pid->err;
+    if (next_sum > 200) next_sum = 200;
+    if (next_sum < -200) next_sum = -200;
+    output = speed_pid->kp * speed_pid->err + speed_pid->ki * next_sum +
+             speed_pid->kd * (speed_pid->err - speed_pid->err_l);
+    /* 饱和时只允许有助于退出饱和的积分，避免长期贴墙仍积累驱动力。 */
+    if (!((output > 100 && speed_pid->err > 0) || (output < 0 && speed_pid->err < 0)))
+        speed_pid->err_sum = next_sum;
     speed_pid->err_l = speed_pid->err;
-
-    /* 输出限幅 [0, 100] */
-    if (moto_pwm >= 100)
-        moto_pwm = 100;
-    if (moto_pwm <= 0)
-        moto_pwm = 0;
-
-    return moto_pwm;
+    Diag_motor_integral = speed_pid->err_sum;
+    Diag_motor_prelimit = output;
+    if (output > 100) output = 100;
+    if (output < 0) output = 0;
+    return output;
 }

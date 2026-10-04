@@ -63,6 +63,8 @@ typedef struct
 
 extern pid_type Servo_pd;
 extern uint8_t Servo_PD_valid;
+extern uint8_t Servo_reject_reason;
+void Speed_PID_Reset(pid_type *pid);
 void Midline_PD_Reset(void);
 extern pid_type Speed_pid;
 extern Midline_type Midline;
@@ -102,6 +104,8 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
 #define TURN_RETRACT_PWM 60 /* 同模式单次明显收舵，需要出弯确认或期限到达 */
 typedef struct {
     uint32_t observed_us;
+    uint32_t evidence_us, pending_evidence, pending_us; /* 独立观测时间，均支持回绕 */
+    uint8_t pending_direction; /* 0无，1右，2左；等待期间必须限速 */
     uint16_t mode, pwm;
     uint8_t active, straight_frames;
 } TurnGuard;

@@ -21,6 +21,8 @@ EXTRA = "version session tx_seq control_seq input_end_ms control_end_ms control_
 
 DETAIL_U = "schema control_seq param_revision input_seq detail_flags process_us previous_mode ref_start ref_end ref_count center_count hold_count radar_packets radar_crc_bad radar_verlen_bad radar_angle_bad radar_header_missing radar_sync_offset radar_angle_bins radar_sync_fail_total radar_missing_total input_drop_total tx_drop_total motor_drop_total".split()
 DETAIL_F = "pd_err_previous pd_err pd_p pd_d pd_kp pd_kd pwm_unclamped pwm_mid ref_x ref_y ref_dy pd_line_k pd_line_b pd_err_before_reset center_mean width_candidate".split()
+NAV_U = "reject_reason candidate_mode candidate_pwm navigation_action front_bins left_bins right_bins max_point_age_ms speed_limit_reason pending_direction".split()
+NAV_F = "requested_speed effective_speed obstacle_x obstacle_y".split()
 MOTOR_FIELDS = "sample_us encoder_raw motor_pwm speed_float target_float motor_integral motor_prelimit motor_flags".split()
 
 def detail_key(row):
@@ -113,10 +115,14 @@ class Decoder:
                 segment=self.segment,host_t=host_t)
             msg.update(rec)
         elif kind==5:
-            if n!=176:raise ValueError("DETAIL length")
+            if n not in (176,232):raise ValueError("DETAIL length")
             msg.update(zip(DETAIL_U,struct.unpack_from('<24I',payload)))
             msg.update(zip(DETAIL_F,struct.unpack_from('<16f',payload,96)))
-            if msg['schema']!=1 or msg['detail_flags']&~4095:raise ValueError("DETAIL schema/flags")
+            if (msg['schema'],n) not in ((1,176),(2,232)) or msg['detail_flags']&~4095:
+                raise ValueError("DETAIL schema/flags")
+            if msg['schema']==2:
+                msg.update(zip(NAV_U,struct.unpack_from('<10I',payload,160)))
+                msg.update(zip(NAV_F,struct.unpack_from('<4f',payload,200)))
         elif kind==6:
             if len(payload)<16:raise ValueError("MOTOR prefix")
             schema,count,first,rev,dropped=struct.unpack_from('<HHIII',payload)
@@ -199,6 +205,9 @@ class Handshake:
                 if not line.startswith("INFO "):continue
                 if f"layout={LAYOUT}" not in line or "proto=1,2" not in line:raise ValueError("V2 capability/layout mismatch")
                 self.info=line
+                if "drive=1" in line:
+                    # 新固件先撤驱动，配置和日志就绪后由采集器单独放行。
+                    self.commands.insert(1,"drive 0")
             elif self.stage>=len(self.commands) or line!="OK "+self.commands[self.stage]:continue
             self.stage+=1
             if self.stage<len(self.commands):self._send(now)
@@ -212,7 +221,9 @@ class Handshake:
 
 
 def analyze(parser,field_names):
-    preroll=getattr(parser,"meta",{}).get("pre_roll_s",0)
+    meta=getattr(parser,"meta",{})
+    preroll=meta.get("pre_roll_s",0)
+    all_rows=[r for r in parser.records if r.get("version")==2]
     rows=[r for r in parser.records if r.get("version")==2 and (r.get("host_t") is None or r["host_t"]>=preroll)]
     periods=[r["control_dt_us"]/1000 for r in rows if r["valid_mask"]&(1<<30)]
     errors=[r["Speed_now"]-r["Speed_mubiao"] for r in rows if math.isfinite(r["Speed_now"]) and math.isfinite(r["Speed_mubiao"]) and not r["clipped_mask"]&((1<<18)|(1<<19))]
@@ -243,7 +254,9 @@ def analyze(parser,field_names):
         motor_drop_max=max((m['motor_dropped'] for m in parser.v2.messages if m['type']==6),default=0),
         pd_d_abs_max=max((abs(m['pd_d']) for m in details if m['detail_flags']&1 and math.isfinite(m['pd_d'])),default=None))
     unknown=sum((r["session"],r["param_revision"]) not in parser.v2.configs for r in rows)
-    return dict(v2=True,n_frames=len(rows),bad_frames=parser.bad_frames,dropped=parser.v2.missing,
+    return dict(v2=True,n_frames=len(rows),all_frames=len(all_rows),
+        formal_known="pre_roll_s" in meta,all_actions=dict(Counter(r['action_reason'] for r in all_rows)),
+        all_details=sum(m['type']==5 for m in parser.v2.messages),bad_frames=parser.bad_frames,dropped=parser.v2.missing,
         duration_s=parser.capture_duration,periods=periods,speed_error=sum(errors)/len(errors) if errors else None,
         actions=dict(Counter(r["action_reason"] for r in rows)),max_pwm_step=max(jumps,default=None),
         pd_modes=dict(Counter(int(r["pid_select"]) for r in pd)),near_saturation=near_sat,
@@ -257,14 +270,14 @@ def write_extensions(parser,path):
     base=Path(path).with_suffix('')
     details=[m for m in parser.v2.messages if m['type']==5]
     motors=[s for m in parser.v2.messages if m['type']==6 for s in m['samples']]
-    for suffix,rows,names in [('.detail.csv',details,['session','tx_seq','host_t']+DETAIL_U+DETAIL_F),
+    for suffix,rows,names in [('.detail.csv',details,['session','tx_seq','host_t']+DETAIL_U+DETAIL_F+NAV_U+NAV_F),
         ('.motor.csv',motors,['session','param_revision','sample_seq','host_t']+MOTOR_FIELDS+['encoder_signed'])]:
         with open(str(base)+suffix,'w',newline='',encoding='utf-8-sig') as f:
             writer=csv.DictWriter(f,fieldnames=names,extrasaction='ignore');writer.writeheader();writer.writerows(rows)
 
 def report(result,path,name=""):
     p=result["periods"];dur=result["duration_s"]
-    lines=[f"# V2遥测报告 — {name}","",f"CONTROL（正式区间）：{result['n_frames']}；CRC/结构失败候选：{result['bad_frames']}",
+    lines=[f"# V2遥测报告 — {name}","",f"CONTROL（统计区间）：{result['n_frames']}；CRC/结构失败候选：{result['bad_frames']}",
       f"tx_seq缺口估计：{result['dropped']}（全部V2消息；不等于雷达丢包）",
       f"配置未知的CONTROL：{result['unknown_config']}；这些区间不能追溯控制参数。",
       "", "## 控制周期与状态", "",
@@ -275,6 +288,8 @@ def report(result,path,name=""):
       f"编码限幅字段计数：{ {k:v for k,v in result['clipped_fields'].items() if v} }",
       f"平均速度误差（排除编码限幅，仍需检查传感器有效性）：{result['speed_error']}；样本 {result['speed_error_samples']}",
       f"连续同配置控制帧的最大PWM差：{result['max_pwm_step']}"]
+    lines += [f"全文件CONTROL：{result.get('all_frames',result['n_frames'])}；全文件DETAIL：{result.get('all_details',0)}；全文件动作：{result.get('all_actions',{})}",
+              "已按协商完成时刻区分正式区间。" if result.get('formal_known') else "缺少协商完成标记；本报告不能称为正式采集区间。"]
     if dur:lines += [f"含协商阶段的主机接收吞吐：{result['received_bytes']/dur:.1f} B/s；采集总时长：{dur:.3f}s"]
     lines += ["", "## 扩展诊断", "", "```json",json.dumps(result['diagnosis'],ensure_ascii=False,indent=2),"```",
               "detail_frames=0 或 motor_samples=0 表示无扩展证据，不等于无异常。编码器负数是16位计数的有符号解释；必须结合方向与原始计数确认。",

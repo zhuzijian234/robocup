@@ -242,47 +242,35 @@ float zhongxian_junzhi;
  */
 uint16_t LEIDA_DATA_HANDLE4(_LEIDA_DATA_plane data_center[], _LEIDA_DATA arr[], u16 size)
 {
-    uint16_t i, n = 0;
+    int16_t index[181];
+    uint16_t i, bin, n = 0;
     int right, left;
-    float a, b, dr, dl, diff, x, y;
+    float x, y;
+    /* 先按1度索引，再配对；不再为每个角度重复扫描全部点。 */
+    for (i = 0; i <= 180; i++) index[i] = -1;
+    for (i = 0; i < size; i++) {
+        if (arr[i].distance < 100 || arr[i].distance > 2000 ||
+            arr[i].angle < 0 || arr[i].angle > 180) continue;
+        bin = (uint16_t)(arr[i].angle + 0.5f);
+        if (index[bin] < 0 || arr[i].distance < arr[index[bin]].distance)
+            index[bin] = i;
+    }
     zhongxian_junzhi = 0;
-    for (a = LEIDA_ANGLE_RIGHT, b = LEIDA_ANGLE_LEFT;
-         a <= LEIDA_ANGLE_RIGHT + LEIDA_ANGLE_yuliang; a += 0.6f, b -= 0.6f) {
-        /* Each angular pair owns fresh indices; array index zero is valid. */
-        right = left = -1;
-        dr = dl = 2001.0f;
-        for (i = 0; i < size; i++) {
-            if (arr[i].distance < 100 || arr[i].distance > 2000)
-                continue;
-            diff = fabs(arr[i].angle - a);
-            if (diff > 180)
-                diff = 360 - diff;
-            if (diff <= LEIDA_ANGLE_piancha && arr[i].distance < dr) {
-                right = i;
-                dr = arr[i].distance;
-            }
-            diff = fabs(arr[i].angle - b);
-            if (diff > 180)
-                diff = 360 - diff;
-            if (diff <= LEIDA_ANGLE_piancha && arr[i].distance < dl) {
-                left = i;
-                dl = arr[i].distance;
-            }
-        }
-        if (right < 0 || left < 0)
-            continue;
-        x = (arr[right].distance * arm_cos_f32(arr[right].angle * PI / 180) + arr[left].distance * arm_cos_f32(arr[left].angle * PI / 180)) / 2;
-        y = (arr[right].distance * arm_sin_f32(arr[right].angle * PI / 180) + arr[left].distance * arm_sin_f32(arr[left].angle * PI / 180)) / 2;
-        if (y >= 0 && y <= 800 && n < LEIDA_DATA_COUNTER / 2) {
+    for (i = 0; i <= 75; i++) {
+        right = index[i]; left = index[180 - i];
+        if (right < 0 || left < 0) continue;
+        x = (arr[right].distance * arm_cos_f32(arr[right].angle * PI / 180) +
+             arr[left].distance * arm_cos_f32(arr[left].angle * PI / 180)) / 2;
+        y = (arr[right].distance * arm_sin_f32(arr[right].angle * PI / 180) +
+             arr[left].distance * arm_sin_f32(arr[left].angle * PI / 180)) / 2;
+        if (y >= 0 && y <= 800) {
             data_center[n]._x = x;
             data_center[n++]._y = y;
         }
     }
     n = LEIDA_DATA_HANDLE10(data_center, n);
-    for (i = 0; i < n; i++)
-        zhongxian_junzhi += data_center[i]._x;
-    if (n)
-        zhongxian_junzhi /= n;
+    for (i = 0; i < n; i++) zhongxian_junzhi += data_center[i]._x;
+    if (n) zhongxian_junzhi /= n;
     return n;
 }
 
@@ -536,8 +524,7 @@ uint32_t Forward_Distance;
  * @brief  扫描前方路径 (70°-110°)，检测前方墙壁生成前视数据
  *
  * 算法:
- *   1. 空旷检测: 86°-94°范围内若有>=5个点距离>1500mm，
- *      认为前方空旷/有缺口，返回0
+ *   1. 保留近处与远处的共同观测；近障碍另由导航模块检查
  *   2. 在70°-110°以1°步进扫描，每度找最近的符合条件点
  *      (距离>=200mm, y投影<=2000mm)
  *   3. 对前方点拟合直线
@@ -553,8 +540,6 @@ uint16_t LEIDA_DATA_HANDLE5(_LEIDA_DATA_plane data[], _LEIDA_DATA arr[], u16 siz
     uint16_t zhidao_counter = 0;
     Midline_type midline;
     float start_angle = 60;
-    uint16_t cnt = 0;
-
     float y_max = -4000;
     float y_max_r = -4000;
     float y_max_r_r = -4000;
@@ -563,18 +548,10 @@ uint16_t LEIDA_DATA_HANDLE5(_LEIDA_DATA_plane data[], _LEIDA_DATA arr[], u16 siz
     float y_min_r_r = 4000;
     float jiange = 0;
 
-    /* 空旷检测: 正前方(86°-94°)有>=5个点距离>1.5m，说明前方空旷(有缺口) */
-    for (i = 0; i < size - 1; i++) {
-        if ((fabs(arr[i].angle - 90) <= 4) && (arr[i].distance > 1500) && (arr[i].distance <= 4000)) {
-            cnt++;
-        }
-        if (cnt >= 5)
-            return 0; /* 前方无遮挡，不用前视数据 */
-    }
-
+    /* 远背景与近锥桶可以同时存在，禁止用远点数量否定近障碍。 */
     /* 前方有墙: 扫描前方弧70°-110°,得到前视数据 */
     for (start_angle = 70; start_angle <= 110; start_angle += 1) {
-        for (i = 0; i < size - 1; i++) {
+        for (i = 0; i < size; i++) {
             if ((fabs(arr[i].angle - start_angle) <= 1)                             /*找角度匹配的那个点*/
                 && (arr[i].distance * arm_sin_f32(arr[i].angle * PI / 180) <= 2000) /*太近的是噪声(≥200),且只看前方2米以内*/
                 && (arr[i].distance >= 200)) {
@@ -648,8 +625,6 @@ uint16_t LEIDA_DATA_HANDLE5_2(_LEIDA_DATA_plane data[], _LEIDA_DATA arr[], u16 s
     uint16_t counter = 0;
     uint16_t zhidao_counter = 0;
     Midline_type midline;
-    uint16_t cnt = 0;
-
     float y_max = -4000;
     float y_max_r = -4000;
     float y_max_r_r = -4000;
@@ -659,7 +634,7 @@ uint16_t LEIDA_DATA_HANDLE5_2(_LEIDA_DATA_plane data[], _LEIDA_DATA arr[], u16 s
     float jiange = 0;
 
     for (; start_angle <= end_angle; start_angle += 1) {
-        for (i = 0; i < size - 1; i++) {
+        for (i = 0; i < size; i++) {
             if ((fabs(arr[i].angle - start_angle) <= 1) && (arr[i].distance * arm_sin_f32(arr[i].angle * PI / 180) <= 2000) && (arr[i].distance >= 200)) {
                 data[counter]._x = arr[i].distance * arm_cos_f32(arr[i].angle * PI / 180);
                 data[counter]._y = arr[i].distance * arm_sin_f32(arr[i].angle * PI / 180);
@@ -983,4 +958,208 @@ void LEIDA_PrintHead(const _LEIDA_DATA *pts, uint16_t count, uint16_t n)
     for (uint16_t i = 0; i < n; i++) {
         printf("%03u:(ang=%6.1f, dist=%6.1f)\r\n", i, pts[i].angle, pts[i].distance);
     }
+}
+
+
+/* ===== 带年龄的角度缓存与独立近障碍检测 ===== */
+typedef struct {
+    _LEIDA_DATA point;
+    float x, y;             /* 转换一次，多处复用 */
+    uint32_t measured_us;   /* 用包内扫描角差估算；不是主机接收时刻 */
+    uint8_t seen;
+} NavigationBin;
+static NavigationBin navigation_bins[360];
+NavigationObservation Navigation;
+
+void LEIDA_ScanReset(void)
+{
+    memset(navigation_bins, 0, sizeof navigation_bins);
+    memset(&Navigation, 0, sizeof Navigation);
+    Navigation.action = NAV_UNKNOWN;
+}
+
+void LEIDA_ScanUpdate(const _LEIDA_DATA *raw, uint16_t count, uint32_t input_us)
+{
+    uint16_t i, bin;
+    float last_angle, delta;
+    uint32_t measured;
+    /* 异常转速下不能可靠估计点年龄，宁可清空，也不沿用旧空间。 */
+    if (!count || LEIDA_speed_dps < 1500 || LEIDA_speed_dps > 3000) {
+        LEIDA_ScanReset();
+        return;
+    }
+    last_angle = raw[count - 1].angle;
+    for (i = 0; i < count; i++) {
+        if (!(raw[i].angle >= 0 && raw[i].angle < 360))
+            continue;
+        bin = (uint16_t)(raw[i].angle + 0.5f) % 360;
+        /* 车体坐标角随扫描递减；最末点前的角差对应较早的测量。
+         * 额外扣3ms覆盖DMA尾部未完成包；仅作为本机年龄估计。 */
+        delta = raw[i].angle - last_angle;
+        if (delta < 0) delta += 360;
+        measured = input_us - (uint32_t)(delta * 1000000.0f / LEIDA_speed_dps) - 3000u;
+        if (navigation_bins[bin].seen &&
+            (int32_t)(measured - navigation_bins[bin].measured_us) < 0) continue;
+        /* 同一角度只保留较新观测；近乎同时的点取最近，避免远背景盖住锥桶。 */
+        if (navigation_bins[bin].seen &&
+            (uint32_t)(measured - navigation_bins[bin].measured_us) < 2000u &&
+            navigation_bins[bin].point.distance >= 100 &&
+            navigation_bins[bin].point.distance < raw[i].distance)
+            continue;
+        navigation_bins[bin].point = raw[i];
+        navigation_bins[bin].measured_us = measured;
+        navigation_bins[bin].seen = raw[i].distance >= 100 && raw[i].distance <= 4000;
+        if (navigation_bins[bin].seen) {
+            navigation_bins[bin].x = raw[i].distance * arm_cos_f32(raw[i].angle * PI / 180);
+            navigation_bins[bin].y = raw[i].distance * arm_sin_f32(raw[i].angle * PI / 180);
+        }
+    }
+}
+
+static uint8_t navigation_fresh(uint16_t bin, uint32_t now)
+{
+    return navigation_bins[bin].seen &&
+           (uint32_t)(now - navigation_bins[bin].measured_us) <= NAV_CACHE_US;
+}
+
+uint16_t LEIDA_ScanSnapshot(_LEIDA_DATA *out, uint32_t now)
+{
+    uint16_t i, count = 0;
+    for (i = 0; i < 360; i++)
+        if (navigation_fresh(i, now))
+            out[count++] = navigation_bins[i].point;
+    return count;
+}
+
+/* 检查目标前后扫掠走廊。此处是低速几何可行性，不替代实车转角标定。 */
+static uint8_t navigation_path_clear(float lateral, float target_y, uint32_t now)
+{
+    uint16_t i, bin;
+    float y, x, angle, reach, path_x;
+    if (fabs(lateral) > 450 || target_y < 450) return 0;
+    /* 每100mm采样中心线及左右边缘；所有方向均须有更新的远端回波。 */
+    for (y = 200; y <= target_y + NAV_FRONT_MM; y += 100) {
+        path_x = lateral * (y < target_y ? y / target_y : 1);
+        for (i = 0; i < 3; i++) {
+            x = path_x + ((int)i - 1) * (NAV_HALF_WIDTH_MM + NAV_MARGIN_MM);
+            angle = atan2f(y, x) * 180 / PI;
+            bin = (uint16_t)(angle + 0.5f);
+            reach = sqrtf(x * x + y * y);
+            if (!navigation_fresh(bin, now) || navigation_bins[bin].point.distance < reach + 50)
+                return 0;
+        }
+    }
+    /* 同时检查走廊内部，防止只查三条射线漏掉窄锥桶。 */
+    for (i = 0; i < 180; i++) {
+        if (!navigation_fresh(i, now)) continue;
+        y = navigation_bins[i].y;
+        if (y < 100 || y > target_y + NAV_FRONT_MM) continue;
+        path_x = lateral * (y < target_y ? y / target_y : 1);
+        if (fabs(navigation_bins[i].x - path_x) < NAV_HALF_WIDTH_MM + NAV_MARGIN_MM)
+            return 0;
+    }
+    return 1;
+}
+
+void LEIDA_InspectNavigation(uint32_t now)
+{
+    uint16_t i, age, nearest_bin = 0, lo, hi;
+    uint32_t left_age = 0xffffffffu, right_age = 0xffffffffu;
+    float closest = NAV_LOOK_MM + 1, x, y;
+    uint8_t clustered;
+    memset(&Navigation, 0, sizeof Navigation);
+    for (i = 0; i < 360; i++) {
+        if (!navigation_fresh(i, now)) continue;
+        age = (uint16_t)((now - navigation_bins[i].measured_us) / 1000u);
+        if (age > Navigation.max_age_ms) Navigation.max_age_ms = age;
+        if (i >= 70 && i <= 110) Navigation.front_bins++;
+        if (i >= 105 && i <= 180) {
+            Navigation.left_bins++;
+            if (now - navigation_bins[i].measured_us < left_age) {
+                left_age = now - navigation_bins[i].measured_us;
+                Navigation.left_stamp = navigation_bins[i].measured_us;
+            }
+        }
+        if (i <= 75) {
+            Navigation.right_bins++;
+            if (now - navigation_bins[i].measured_us < right_age) {
+                right_age = now - navigation_bins[i].measured_us;
+                Navigation.right_stamp = navigation_bins[i].measured_us;
+            }
+        }
+        x = navigation_bins[i].x;
+        y = navigation_bins[i].y;
+        if (y < 100 || y > NAV_LOOK_MM || fabs(x) > NAV_HALF_WIDTH_MM + NAV_MARGIN_MM +
+            (fabs((float)TIM3->CCR1 - SERVO_PWM_MID) > 100 ? 75 : 0))
+            continue;
+        /* 两个相邻角度形成小簇；400mm以内单个可信回波也立即停车。
+         * 这里不做“远点数量足够就清空近点”的判断。 */
+        clustered = y <= NAV_STOP_MM;
+        if (i > 0 && navigation_fresh(i - 1, now) &&
+            fabs(navigation_bins[i - 1].x - x) < 120 &&
+            fabs(navigation_bins[i - 1].y - y) < 120)
+            clustered = 1;
+        if (i < 359 && navigation_fresh(i + 1, now) &&
+            fabs(navigation_bins[i + 1].x - x) < 120 &&
+            fabs(navigation_bins[i + 1].y - y) < 120)
+            clustered = 1;
+        if (clustered && y < closest) {
+            closest = y;
+            nearest_bin = i;
+            Navigation.obstacle_x = x;
+            Navigation.obstacle_y = y;
+        }
+    }
+    Navigation.action = Navigation.front_bins >= 29 ? NAV_CLEAR : NAV_UNKNOWN;
+    if (closest > NAV_LOOK_MM) return;
+    Navigation.action = NAV_OBSTACLE;
+    /* 扩展相邻回波簇，宽墙交给弯道规划；小目标才尝试绕行。 */
+    lo = hi = nearest_bin;
+    while (lo > 0 && navigation_fresh(lo - 1, now) &&
+           fabs(navigation_bins[lo - 1].x - navigation_bins[lo].x) < 120 &&
+           fabs(navigation_bins[lo - 1].y - navigation_bins[lo].y) < 120) lo--;
+    while (hi < 359 && navigation_fresh(hi + 1, now) &&
+           fabs(navigation_bins[hi + 1].x - navigation_bins[hi].x) < 120 &&
+           fabs(navigation_bins[hi + 1].y - navigation_bins[hi].y) < 120) hi++;
+    Navigation.obstacle_width = fabs(navigation_bins[hi].x - navigation_bins[lo].x);
+    if (!NAV_ALLOW_AVOID || closest <= NAV_STOP_MM || Navigation.obstacle_width > 250) return;
+    /* 左右分别验证一条带车宽余量的折线路径，未知扇区直接否决。 */
+    x = Navigation.obstacle_x + NAV_HALF_WIDTH_MM + NAV_MARGIN_MM +
+        Navigation.obstacle_width * 0.5f + 50;
+    if (navigation_path_clear(x, closest, now))
+        Navigation.action = NAV_AVOID_RIGHT;
+    else if (navigation_path_clear(Navigation.obstacle_x - NAV_HALF_WIDTH_MM - NAV_MARGIN_MM -
+                                  Navigation.obstacle_width * 0.5f - 50, closest, now))
+        Navigation.action = NAV_AVOID_LEFT;
+}
+/* ===== 导航缓存结束 ===== */
+
+/* 导航只生成决策，不直接写电机/舵机；主循环与TIM5各自统一执行。 */
+NavigationCommand LEIDA_NavigationCommand(uint8_t valid, uint16_t mode,
+                                          uint8_t pending, uint32_t pending_age)
+{
+    NavigationCommand command = {0, SERVO_PWM_MID, 1, 0};
+    uint8_t bend = mode == 1 || mode == 2 || mode == 3 || mode == 4 || mode == 8 || mode == 9;
+    if (Navigation.action == NAV_AVOID_LEFT || Navigation.action == NAV_AVOID_RIGHT) {
+        command.pwm = Navigation.action == NAV_AVOID_LEFT ? SERVO_PWM_MID + 150 : SERVO_PWM_MID - 150;
+        command.speed_limit = 4;
+        command.reason = 2;
+        command.override_steering = 1;
+    } else if (pending && pending_age >= 200000u) {
+        command.reason = 3; /* 换向一直无法确认，撤驱动而非无限保舵 */
+    } else if (!valid || Navigation.action == NAV_UNKNOWN) {
+        command.reason = 1;
+    } else if (Navigation.action == NAV_OBSTACLE) {
+        command.reason = 2;
+        /* 宽墙可能是弯道外墙，只有远处宽墙+有效弯道允许低速接近。 */
+        if (Navigation.obstacle_width > 250 && Navigation.obstacle_y > NAV_STOP_MM && bend)
+            command.speed_limit = 4;
+    } else if (pending) {
+        command.speed_limit = 4;
+        command.reason = 3;
+    } else {
+        command.speed_limit = bend ? 6 : 8;
+        command.reason = bend ? 4 : 0;
+    }
+    return command;
 }

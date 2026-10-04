@@ -24,6 +24,10 @@ extern volatile uint8_t Radar_stop_latched;
 extern volatile uint32_t Radar_timeout_count;
 extern volatile uint32_t Radar_invalid_inputs;
 void Radar_ControlCompleted(void);
+extern volatile uint8_t Radar_drive_enabled; /* 诊断采集可临时禁止驱动，不解除锁停 */
+extern volatile float Speed_effective; /* 真正送入PI的速度，Speed_mubiao仍是用户请求 */
+extern volatile uint8_t Radar_limit_reason;
+void Radar_SetSpeedLimit(float limit, uint8_t reason);
 void Radar_GuardTick(void);
 
 void TIM5_Int_Init(u16 arr, u16 psc);

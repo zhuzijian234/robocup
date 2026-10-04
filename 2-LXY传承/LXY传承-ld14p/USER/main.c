@@ -69,7 +69,7 @@
  *   3: 测试③ 蓝牙调参链路 (test/test_bluetooth.c)
  * 测试模式的说明与预期现象表见 硬件功能测试方案.md。
  */
-#define HW_TEST_SELECT 2
+#define HW_TEST_SELECT 0
 /* 全局变量 */
 uint16_t RIGHT_duandian;       /* 右边界断点y坐标 */
 uint16_t LEFT_duandian;        /* 左边界断点y坐标 */
@@ -104,6 +104,7 @@ int main(void)
     uint16_t ref_start, ref_end, candidate_pwm;
     uint8_t turn_held, straight_evidence;
     static TurnGuard turn_guard;
+    NavigationCommand navigation_command;
     uint16_t ceshi_cnt = 0;
     uint16_t break_flag = 0;   /* 数据异常标志 */
     uint16_t danbian_flag = 0; /* 单边标志 (用于S弯检测) */
@@ -161,7 +162,7 @@ int main(void)
 #endif
 
     /* ===== 运行参数配置 ===== */
-    Speed_mubiao = 10; /* 目标速度 */
+    Speed_mubiao = 8; /* 目标速度 */
 
     /* 最终舵机PID参数 (覆盖初始值) */
     Midline_PD_Init(&Servo_pd, 0.035, 0.040, 0.0395, 0.035, 0.022, 0.020);
@@ -218,8 +219,11 @@ int main(void)
             Diag_detail_u[3] = input_seq;
             telemetry_mode = BLE_MODE_INVALID;
             Servo_PD_valid = 0;
-            if (last_input_seq && input_seq - last_input_seq != 1u)
+            Servo_reject_reason = 0;
+            if (last_input_seq && input_seq - last_input_seq != 1u) {
                 LEIDA_ParserReset();
+                LEIDA_ScanReset(); /* 输入缺块后不拼接旧空间 */
+            }
             last_input_seq = input_seq;
             forward_fit_ok = side_fit_ok = 0;
             danbian_flag = 0;
@@ -229,9 +233,11 @@ int main(void)
             /* ===== 第1步: 解析雷达数据 ===== */
             parsed_points = LEIDA_DATA_HANDLE1(LEIDA_DATA, lidar_snapshot, DMA_USART2_RX_BUF_LEN);
 
-            /* ===== 第2步: 筛选有效点 (距离>=100mm) ===== */
+            /* ===== 第2步: 更新带年龄的角度缓存，构建本次可用点集 ===== */
             /* ISR can now update its own buffer without invalidating this snapshot. */
-            valid_couter = parsed_points ? LEIDA_DATA_HANDLE3_2(LEIDA_DATA2, LEIDA_DATA, LEIDA_DATA_COUNTER) : 0;
+            LEIDA_ScanUpdate(LEIDA_DATA, parsed_points, input_us);
+            valid_couter = LEIDA_ScanSnapshot(LEIDA_DATA2, Diag_TimeUs());
+            LEIDA_InspectNavigation(Diag_TimeUs());
 
             /* 有效点太少 -> 数据异常，跳过此帧 */
             /* 注意: 不能写break — 这里最内层循环就是while(1)主循环,
@@ -239,6 +245,7 @@ int main(void)
              * 正确做法是continue: 跳过本帧剩余处理, 等下一帧雷达数据 */
             Diag_Field(12, valid_couter, 1);
             if (valid_couter <= 20) {
+                Radar_SetSpeedLimit(0, 1);
                 Radar_invalid_inputs++;
                 (void)TurnGuard_Apply(&turn_guard, BLE_MODE_INVALID, 0, 0,
                                       (uint16_t)TIM3->CCR1, Diag_TimeUs(), &turn_held);
@@ -249,7 +256,7 @@ int main(void)
                 BLE_Tune_Telemetry(Servo_pd.err, (float)TIM3->CCR1, BLE_MODE_INVALID);
                 continue;
             }
-            /* HANDLE3_2内部已掐头去尾各10个点，此处不再重复减去 */
+            /* 点数来自限龄缓存，不再把一个DMA块误当完整视野。 */
 
             /* ===== 第3步: 计算跑道宽度 ===== */
             /* 雷达测距，600-900mm之间才更新 (防止异常值) */
@@ -259,8 +266,20 @@ int main(void)
                                   : paodao_distance;
 
             /* ===== 第4步: 提取左右边界点 ===== */
-            LEFT_cnt = LEIDA_DATA_HANDLE6(LEIDA_DATA_LEFT, LEIDA_DATA2, valid_couter);
-            RIGHT_cnt = LEIDA_DATA_HANDLE7(LEIDA_DATA_RIGHT, LEIDA_DATA2, valid_couter);
+            LEFT_cnt = RIGHT_cnt = 0;
+            {
+                uint16_t point;
+                for (point = 0; point < valid_couter; point++) {
+                    float angle = LEIDA_DATA2[point].angle;
+                    if (angle <= BLUE_ANGLE_LEFT_RIGHT && RIGHT_cnt < LEIDA_DATA_COUNTER / 2)
+                        LEIDA_DATA_RIGHT[RIGHT_cnt++] = LEIDA_DATA2[point];
+                }
+                for (point = valid_couter; point > 0; point--) {
+                    float angle = LEIDA_DATA2[point - 1].angle;
+                    if (angle <= 180 && angle >= 180 - BLUE_ANGLE_LEFT_RIGHT && LEFT_cnt < LEIDA_DATA_COUNTER / 2)
+                        LEIDA_DATA_LEFT[LEFT_cnt++] = LEIDA_DATA2[point - 1];
+                }
+            }
 
             /* ===== 第5步: 前方路径扫描 ===== */
             /* 前方70°-110°扫描，无障碍物则Forward_cnt=0 */
@@ -321,13 +340,13 @@ int main(void)
                     _LEIDA_DATA_plane *boundary = right ? LEIDA_DATA_LEFT_Plane : LEIDA_DATA_RIGHT_Plane;
                     uint16_t count = right ? LEFT_cnt : RIGHT_cnt;
                     LEIDA_DATA_HANDLE2(boundary, right ? LEIDA_DATA_LEFT : LEIDA_DATA_RIGHT, count);
-                    count = LEIDA_DATA_HANDLE10(boundary, count);
+                    /* 使用整段外墙，让PD按物理y跨度与残差验证参考。 */
                     if (right)
                         LEFT_cnt = count;
                     else
                         RIGHT_cnt = count;
-                    ref_start = count >= 10 ? (uint16_t)(count * 0.75f) : 0;
-                    ref_end = count >= 10 ? (uint16_t)(count * 0.95f) : count;
+                    ref_start = 0;
+                    ref_end = count;
                     (void)Midline_fit(boundary, ref_start, ref_end, &Midline);
                     pid_select = right ? 1 : 2;
                     candidate_pwm = Midline_PD_Calculate(boundary, &Servo_pd, &Midline, servo_midpwm,
@@ -353,12 +372,31 @@ int main(void)
             }
             straight_evidence = Servo_PD_valid && CENTER_cnt >= 8 &&
                                 (pid_select == 0 || pid_select == 5) && fabs(Servo_pd.err) <= TURN_EXIT_ERROR_MM;
+            turn_guard.evidence_us = (pid_select == 1 || pid_select == 3 || pid_select == 8)
+                                       ? Navigation.left_stamp : Navigation.right_stamp;
+            Diag_nav_u[0] = Servo_reject_reason;
+            Diag_nav_u[1] = pid_select;
+            Diag_nav_u[2] = candidate_pwm; /* 保留仲裁前的原始候选 */
             candidate_pwm = TurnGuard_Apply(&turn_guard, pid_select, Servo_PD_valid, straight_evidence,
                                             candidate_pwm, Diag_TimeUs(), &turn_held);
+            LEIDA_InspectNavigation(Diag_TimeUs()); /* 决策时再次排除计算期间过期的点 */
+            navigation_command = LEIDA_NavigationCommand(Servo_PD_valid, pid_select,
+                                     turn_guard.pending_direction, Diag_TimeUs() - turn_guard.pending_us);
+            Radar_SetSpeedLimit(navigation_command.speed_limit, navigation_command.reason);
+            if (navigation_command.override_steering) {
+                candidate_pwm = navigation_command.pwm;
+                /* 避障优先，清除旧弯道锚点，最终仍只写一次舵机。 */
+                memset(&turn_guard, 0, sizeof turn_guard);
+                turn_held = 0;
+                Midline_PD_Reset();
+                Servo_PD_valid = 1;
+                Diag_detail_u[4] &= ~1u;
+            }
             if (!Servo_PD_valid)
                 telemetry_mode = BLE_MODE_INVALID;
             else {
-                telemetry_mode = turn_held ? BLE_MODE_HOLD : pid_select;
+                telemetry_mode = (Navigation.action == NAV_AVOID_LEFT || Navigation.action == NAV_AVOID_RIGHT)
+                                 ? BLE_MODE_FORCED : turn_held ? BLE_MODE_HOLD : pid_select;
                 if (turn_held) {
                     /* 候选PD未执行：下一次实际PD重新建立D历史，DETAIL不标记已执行PD。 */
                     Midline_PD_Reset();
@@ -367,6 +405,8 @@ int main(void)
                 }
                 Servo_ChangePwm(candidate_pwm);
             }
+
+            Diag_nav_u[9] = turn_guard.pending_direction;
 
             /* 本帧雷达处理完: 回传8通道波形给手机/VOFA+ (未连接时内部直接返回, 零开销) */
             Diag_detail_f[15] = paodao_distance_r;

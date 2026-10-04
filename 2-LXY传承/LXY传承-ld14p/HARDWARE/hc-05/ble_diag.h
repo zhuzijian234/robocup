@@ -17,6 +17,7 @@ int16_t Diag_Encode(uint8_t index, float v, uint8_t *valid, uint8_t *clipped);
 /* DETAIL schema 1: named wire fields documented in 04-诊断扩展.md. */
 extern uint32_t Diag_detail_u[24];
 extern float Diag_detail_f[16];
+extern uint32_t Diag_nav_u[10]; /* DETAIL schema2：拒绝、候选、覆盖、限速原因 */
 extern volatile float Diag_motor_integral, Diag_motor_prelimit;
 void Diag_MotorTick(uint16_t raw, uint8_t encoder_fresh, uint8_t pi_fresh);
 uint8_t Diag_RadarPacket(const uint8_t *packet);

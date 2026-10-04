@@ -111,6 +111,8 @@ static void Tune_ApplyOne(char *line)
     int iv;
     uint8_t i;
 
+    /* 停止命令不能因回执队列拥堵而被忽略；执行优先于发送ACK。 */
+    if (strcmp(line, "drive 0") == 0) { Diag_Command(line); return; }
     if(BLE_FreeCritical()<2)return;
     if(Diag_Command(line)){get_index=PARAM_NUM;return;}
 

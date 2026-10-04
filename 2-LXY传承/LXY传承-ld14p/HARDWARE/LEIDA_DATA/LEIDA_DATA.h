@@ -93,6 +93,41 @@ extern uint32_t Forward_Distance;
 extern float zhongxian_chuizhi;   /* 中线垂直时的x坐标 */
 extern float zhongxian_junzhi;    /* 中线均值x坐标 */
 
+
+/* ===== LD14P 导航配置：长度为毫米，速度仍为原编码器单位 =====
+ * 用户测量：含轮车宽约250mm、雷达到车头180～200mm，取200mm。
+ * 缓存不是整圈快照：每个角度单独限龄，缺测永远不表示空旷。 */
+#define NAV_CACHE_US 200000u
+#define NAV_HALF_WIDTH_MM 125.0f
+#define NAV_MARGIN_MM 50.0f
+#define NAV_STOP_MM 400.0f
+#define NAV_LOOK_MM 1000.0f
+#define NAV_FRONT_MM 200.0f
+#define NAV_ALLOW_AVOID 1 /* 已按用户尺寸配置；仍须低速验证实际转角/停止距离 */
+#define NAV_CLEAR 0u
+#define NAV_UNKNOWN 1u
+#define NAV_OBSTACLE 2u
+#define NAV_AVOID_LEFT 3u
+#define NAV_AVOID_RIGHT 4u
+typedef struct {
+    uint16_t front_bins, left_bins, right_bins, max_age_ms;
+    uint32_t left_stamp, right_stamp;
+    float obstacle_y, obstacle_x, obstacle_width;
+    uint8_t action; /* 上述NAV_*；0不是“没有数据”，而是前方覆盖足够 */
+} NavigationObservation;
+typedef struct {
+    float speed_limit;
+    uint16_t pwm;
+    uint8_t reason, override_steering;
+} NavigationCommand;
+extern NavigationObservation Navigation;
+NavigationCommand LEIDA_NavigationCommand(uint8_t valid, uint16_t mode,
+                                          uint8_t pending, uint32_t pending_age);
+void LEIDA_ScanReset(void);
+void LEIDA_ScanUpdate(const _LEIDA_DATA *raw, uint16_t count, uint32_t input_us);
+uint16_t LEIDA_ScanSnapshot(_LEIDA_DATA *out, uint32_t now);
+void LEIDA_InspectNavigation(uint32_t now);
+
 /* ============ 雷达数据处理流水线 ============ */
 
 /* HANDLE1: 解析原始字节流为极坐标数据点
@@ -112,8 +147,8 @@ uint16_t LEIDA_DATA_HANDLE3_2(_LEIDA_DATA data[], _LEIDA_DATA arr[], u16 size);
 /* HANDLE4: 配对左右边界点计算中线点，并滤除离群点 */
 uint16_t LEIDA_DATA_HANDLE4(_LEIDA_DATA_plane data_center[], _LEIDA_DATA arr[], u16 size);
 
-/* HANDLE5: 扫描前方路径(70-110度)，检测无障碍的直行点集
- * 如果在86-94度有>=5个点距离>1500mm，则认为有障碍物，返回0 */
+/* HANDLE5: 提取前墙拟合点；近障碍由LEIDA_InspectNavigation独立检测。
+ * 远背景不再清空近处回波。 */
 uint16_t LEIDA_DATA_HANDLE5(_LEIDA_DATA_plane data[], _LEIDA_DATA arr[], u16 size);
 
 /* HANDLE5_2: 同HANDLE5，但角度范围可配置 [start_angle, end_angle] */

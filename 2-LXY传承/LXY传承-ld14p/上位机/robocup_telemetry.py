@@ -1002,6 +1002,7 @@ def cmd_capture_v2(a):
     if os.path.exists(path):raise FileExistsError("日志已存在，请换一个--out文件名："+path)
     parser=StreamParser();hasher=hashlib.sha256();offset=0;events=[]
     start=time.monotonic();formal=None;end_reason="complete";error=None
+    drive_sent=None;post_until=None;drive_cursor=0
     meta={"run_uuid":str(uuid.uuid4()),"started_utc":datetime.now(timezone.utc).isoformat(),
           "host_version":"v2.1","host_sha256":hashlib.sha256(Path(__file__).read_bytes()+Path(v2.__file__).read_bytes()).hexdigest(),"protocol":2,"port":port,"baud":a.baud,"requested_rate":a.rate}
     serial_port=serial.Serial(port,a.baud,timeout=.03)
@@ -1014,16 +1015,30 @@ def cmd_capture_v2(a):
             handshake.start(time.monotonic())
             last_rx=time.monotonic()
             while True:
-                if a.stop_file and os.path.exists(a.stop_file):
-                    end_reason="user_stop";break
+                if a.stop_file and os.path.exists(a.stop_file) and post_until is None:
+                    end_reason="user_stop"
+                    if handshake.info and "drive=1" in handshake.info:
+                        send("drive 0\n");post_until=time.monotonic()+2
+                    else:break
                 chunk=serial_port.read(4096);now=time.monotonic()
                 if chunk:
                     raw.write(chunk);hasher.update(chunk)
                     rx.write(json.dumps({"offset":offset,"length":len(chunk),"t":now-start,"host_monotonic_ns":time.monotonic_ns()})+"\n")
                     offset+=len(chunk);parser.feed(chunk,now-start);last_rx=now
+                if post_until is not None:
+                    if now>=post_until:break
+                    continue
                 if formal is None:
                     handshake.poll(now)
                     if handshake.done:
+                        if handshake.info and "drive=1" in handshake.info:
+                            if drive_sent is None:
+                                raw.flush();rx.flush()  # 文件已打开并落盘后才发放行命令
+                                drive_cursor=len(parser.ascii_lines)
+                                send("drive 1\n");drive_sent=now
+                            if not any(m['text']=="OK drive 1" for m in parser.ascii_lines[drive_cursor:]):
+                                if now-drive_sent>3:raise TimeoutError("驱动放行未确认")
+                                continue
                         formal=now;meta["pre_roll_s"]=now-start
                         meta["session"]=handshake.session;meta["info"]=handshake.info
                         print("V2协商及配置完整，开始正式采集",flush=True)
@@ -1035,10 +1050,17 @@ def cmd_capture_v2(a):
                     if unknown and now-getattr(handshake,"last_config_request",0)>2:
                         send("getcfg\n");handshake.last_config_request=now
                     if now-last_rx>3:raise TimeoutError("链路或设备无响应")
-                    if now-formal>=a.sec:break
+                    if now-formal>=a.sec:
+                        if handshake.info and "drive=1" in handshake.info:
+                            send("drive 0\n");post_until=now+2
+                            meta['post_roll_start_s']=now-start
+                        else:break
     except KeyboardInterrupt:end_reason="user_interrupt"
     except Exception as exc:end_reason="error";error=str(exc)
     finally:
+        if handshake.info and "drive=1" in handshake.info:
+            try:send("drive 0\n")
+            except Exception:pass  # 链路已断时保留原始失败原因；不声称车辆已收到停止
         serial_port.close();duration=time.monotonic()-start
         meta.update(version=1,clock="host_monotonic",duration_s=duration,bytes=offset,
                     sha256=hasher.hexdigest(),ended_utc=datetime.now(timezone.utc).isoformat(),

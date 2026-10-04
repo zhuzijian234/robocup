@@ -16,6 +16,20 @@
 #include "centre_line.h"
 
 /* Shared by main and TIM5; TIM5 is the sole motor-output arbiter. */
+volatile uint8_t Radar_drive_enabled = 1; /* 独立上电循迹兼容；上位机协商时drive 0 */
+volatile float Speed_effective = 0;
+static volatile float navigation_speed_limit = 0;
+volatile uint8_t Radar_limit_reason = 1;
+/* reason：0正常，1感知不足，2障碍，3换向确认，4弯道，5旧观测超时。 */
+void Radar_SetSpeedLimit(float limit, uint8_t reason)
+{
+    uint32_t mask = __get_PRIMASK();
+    __disable_irq();
+    navigation_speed_limit = limit;
+    Radar_limit_reason = reason;
+    __set_PRIMASK(mask);
+}
+
 volatile uint16_t Radar_age_ticks = 0;
 volatile uint8_t Radar_started = 0;
 volatile uint8_t Radar_stop_latched = 0;
@@ -120,17 +134,27 @@ void TIM5_IRQHandler(void)
         uint8_t encoder_fresh=0,pi_fresh=0;
         extern uint16_t Encoder_cnt_temp;
         Radar_GuardTick();
-        if (!Radar_started || Radar_stop_latched) {
+        /* 无新有效控制时100ms开始限速，200ms撤驱动；500ms锁停仍保留。 */
+        {
+            float next = Speed_mubiao < navigation_speed_limit ? Speed_mubiao : navigation_speed_limit;
+            if (Radar_age_ticks >= 10 && next > 4) next = 4;
+            if (Radar_age_ticks >= 20) { next = 0; Radar_limit_reason = 5; }
+            if (!Radar_drive_enabled || next < 0) next = 0;
+            if (next < Speed_effective - 0.5f) Speed_PID_Reset(&Speed_pid);
+            Speed_effective = next;
+        }
+        if (!Radar_started || Radar_stop_latched || Speed_effective <= 0) {
             /* Zero duty removes propulsion; it is not an active brake.
              * Skip PI so its integral cannot accumulate during inhibition. */
             Get_Encoder();encoder_fresh=1;
+            Speed_PID_Reset(&Speed_pid);
             moto_pwm = 0;
             Moto_Speed(0);
         } else if (daoche_flag == 1) {
             TIM_SetCompare1(TIM2, (uint16_t)(100 * 0.5));  /* 50%制动,不足以驱动小车 */
         } else {
             Get_Encoder();encoder_fresh=1;
-            moto_pwm = PID_realize(Speed_now, Speed_mubiao, &Speed_pid);pi_fresh=1;
+            moto_pwm = PID_realize(Speed_now, Speed_effective, &Speed_pid);pi_fresh=1;
             Moto_Speed(moto_pwm);
         }
         Diag_MotorTick(Encoder_cnt_temp,encoder_fresh,pi_fresh);

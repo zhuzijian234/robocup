@@ -70,7 +70,7 @@ uint32_t LEIDA_parse_calls,LEIDA_sync_failures,LEIDA_short_inputs,LEIDA_missing_
 uint16_t LEIDA_speed_dps,LEIDA_raw_count;
 static uint8_t lidar_packet[47];static uint16_t lidar_pending;
 float zhongxian_junzhi,zhongxian_chuizhi;
-uint8_t LEIDA_vertical_valid,Servo_PD_valid;
+uint8_t LEIDA_vertical_valid,Servo_PD_valid,Servo_reject_reason;
 static uint8_t pd_history_valid;static uint16_t pd_previous_mode;static uint32_t pd_previous_us;
 float BLUE_Y_RIGHT=1200,BLUE_Y_LEFT=1350,BLUE_Y_STRA_SEL=0,BLUE_Y_STRA=750;
 float BLUE_DIS_RIGHT=50,BLUE_DIS_LEFT=50,paodao_distance=800;
@@ -87,7 +87,7 @@ functions = [function(diag, 'Diag_RadarPacket')]
 functions += [function(radar, name) for name in ['LEIDA_ParserReset','LEIDA_DATA_HANDLE1',
     'LEIDA_DATA_HANDLE10','LEIDA_DATA_HANDLE4','LEIDA_DATA_HANDLE11']]
 functions += [function(steering, name) for name in ['Midline_fit','Midline_PD_Reset','pd_reject',
-    'turn_direction','turn_rank','Midline_PD_Calculate','Midline_PD','TurnGuard_Apply']]
+    'turn_direction','turn_rank','wall_reference','Midline_PD_Calculate','Midline_PD','TurnGuard_Apply']]
 functions += [function(motor, 'Get_Encoder')]
 
 tests = r'''
@@ -105,8 +105,13 @@ static uint16_t drive(uint16_t mode,float error){
     plane[0]._x=plane[1]._x=mode==1?-error-400:mode==2?400-error:50-error;
     if(mode==3 || mode==4 || mode==8 || mode==9)line.k=fabs(error)>0?175.0f/fabs(error):INFINITY;
     LEIDA_vertical_valid=1;zhongxian_chuizhi=50-error;
-    return deferred ? Midline_PD_Calculate(plane,&pid,&line,144.5f,0,2,mode) :
-                      Midline_PD(plane,&pid,&line,144.5f,0,2,mode);
+    if(mode==1 || mode==2){
+        int i;float target=mode==1?BLUE_Y_RIGHT:BLUE_Y_LEFT;
+        for(i=1;i<6;i++){plane[i]._x=plane[0]._x;plane[i]._y=target-400+i*80;}
+        plane[0]._y=target-400;
+    }
+    return deferred ? Midline_PD_Calculate(plane,&pid,&line,144.5f,0,(mode==1||mode==2)?6:2,mode) :
+                      Midline_PD(plane,&pid,&line,144.5f,0,(mode==1||mode==2)?6:2,mode);
 }
 static int run(void){
     unsigned split,k,total;uint8_t stream[2000],bad[47];Midline_type line;

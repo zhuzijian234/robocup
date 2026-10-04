@@ -7,7 +7,7 @@ import subprocess
 HERE = Path(__file__).resolve().parent
 # Reuse the existing production-C harness and compiler setup, without overwriting
 # its tracked output artifacts.
-os.environ.setdefault('ROBOCUP_CONTROL_TEST_OUT', str(HERE.parents[2] / 'tmp/turn_guard_v2_tests'))
+os.environ.setdefault('ROBOCUP_CONTROL_TEST_OUT', str(HERE.parents[2] / 'tmp/ld14p_navigation/turn_tests'))
 try:
     base = runpy.run_path(str(HERE / 'check_control_fixes.py'))
 except SystemExit as exc:
@@ -20,7 +20,24 @@ selection = main[start:end]
 extra = r"""
 #define BLE_MODE_HOLD 10
 #define BLE_MODE_INVALID 11
+typedef struct {uint32_t left_stamp,right_stamp;uint8_t action;float obstacle_width,obstacle_y;} NavigationObservation;
+static NavigationObservation Navigation;
+typedef struct {float speed_limit;uint16_t pwm;uint8_t reason,override_steering;} NavigationCommand;
+static NavigationCommand navigation_command;
+static void LEIDA_InspectNavigation(uint32_t now){}
+#define NAV_UNKNOWN 1
+#define NAV_OBSTACLE 2
+#define NAV_AVOID_LEFT 3
+#define NAV_AVOID_RIGHT 4
+#define NAV_STOP_MM 400
+#define BLE_MODE_FORCED 12
+static uint32_t Diag_nav_u[10];
+static float speed_limit;
+static void Radar_SetSpeedLimit(float value,uint8_t reason){speed_limit=value;}
 static uint16_t pid_select, candidate_pwm;
+"""
+extra += base['function'](base['radar'], 'LEIDA_NavigationCommand')
+extra += r"""
 static uint8_t turn_held, straight_evidence;
 static TurnGuard turn_guard;
 static uint16_t RIGHT_duandian, LEFT_duandian, duandian_DIStance=550, duandian_distance=600;
@@ -68,7 +85,7 @@ static int checks;
 #define CHECK(c) do{checks++;if(!(c)){printf("FAIL line %d: %s\n",__LINE__,#c);return 1;}}while(0)
 static int tick(uint16_t mode,int valid,uint16_t pwm,float error,uint32_t elapsed){
     unsigned before=servo_writes;
-    clock_us+=elapsed;mock_valid=valid;mock_pwm=pwm;mock_error=error;
+    clock_us+=elapsed;Navigation.left_stamp=Navigation.right_stamp=clock_us;mock_valid=valid;mock_pwm=pwm;mock_error=error;
     RIGHT_duandian=(mode==1 || mode==3 || mode==8)?300:0;
     LEFT_duandian=(mode==2 || mode==4 || mode==9)?300:0;
     forward_fit_ok=mode==3 || mode==4 || mode==8 || mode==9;
@@ -111,7 +128,10 @@ int main(void){
         /* Opposite bend and stronger same-direction commands act immediately. */
         CHECK(tick(large,1,strong,500,115000));
         CHECK(tick(direction?1:2,1,direction?1250:1640,300,115000));
-        CHECK(!turn_held && selected==(direction?1:2));
+        CHECK(turn_held && turn_guard.pending_direction && speed_limit<=4);
+        CHECK(tick(direction?1:2,1,direction?1250:1640,300,115000));
+        CHECK(!turn_held && !turn_guard.pending_direction);
+        CHECK(tick(large,1,strong,500,115000));CHECK(turn_held);
         CHECK(tick(large,1,strong,500,115000));
         CHECK(tick(small,1,direction?1720:1170,450,115000));
         CHECK(!turn_held && timer3.CCR1==(direction?1720:1170));
@@ -139,6 +159,13 @@ int main(void){
     CHECK(tick(2,1,1477,82,115000));CHECK(turn_held); /* microsecond wrap */
     CHECK(tick(2,1,1477,82,235000));CHECK(!turn_held); /* exact timeout */
 
+    /* 独立近障碍在循迹失败时仍可接管，但必须使用已验证的绕行空间。 */
+    Navigation.action=NAV_AVOID_LEFT;
+    clock_us+=115000;mock_valid=0;step();
+    CHECK(Servo_PD_valid && telemetry_mode==BLE_MODE_FORCED && timer3.CCR1==1595 && speed_limit==4);
+    Navigation.action=NAV_OBSTACLE;Navigation.obstacle_y=200;Navigation.obstacle_width=40;
+    mock_valid=1;step();CHECK(speed_limit==0);
+    Navigation.action=0;
     memset(scan,0,sizeof scan);
     CHECK(LEIDA_DATA_HANDLE5(wall,scan,0)==0);
     CHECK(LEIDA_DATA_HANDLE5(wall,scan,1)==0);
