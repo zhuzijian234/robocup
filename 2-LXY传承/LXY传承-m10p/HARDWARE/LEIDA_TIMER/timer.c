@@ -132,7 +132,7 @@ void TIM5_IRQHandler(void)
             moto_pwm = 0;
             Moto_Speed(0);
         } else if (daoche_flag == 1) {
-            TIM_SetCompare1(TIM2, (uint16_t)(100 * 0.5));  /* 50%制动,不足以驱动小车 */
+            Moto_Speed((uint16_t)(100 * 0.5));  /* 50%制动,不足以驱动小车 */
         } else {
             Get_Encoder();encoder_fresh=1;
             {

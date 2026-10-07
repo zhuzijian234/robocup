@@ -8,14 +8,14 @@
  *
  * 硬件平台: STM32F407ZGT6 @ 168MHz
  * 传感器:   M10系列激光雷达 (USART2, 512000bps, DMA接收)
- * 执行器:   舵机 (TIM3 CH1), 直流电机 (TIM2 CH1, 编码器 TIM4)
+ * 执行器:   舵机 (TIM3 CH1), 直流电机 (TIM2 CH3, 编码器 TIM4)
  * 通信:     HC-05蓝牙 (USART6)
  *
  * 引脚复用 (对应谢露版):
  *   雷达:     USART2, PA2(TX) PA3(RX/DMA), DMA1 Stream5 Channel4
  *   蓝牙:     USART6, PC6(TX) PC7(RX)
  *   舵机:     TIM3 CH1, PA6
- *   电机PWM:  TIM2 CH1, PA5  [2026-09-06 PB11杜邦线故障, 临时挪至PA5]
+ *   电机PWM:  TIM2 CH3, PB10  [2026-10-07 改为PB10/AF1，方向脚仍为PB15]
  *   电机方向: PB15 (单IO, 高=正转)  [2026-09-06 PB10杜邦线故障, 临时挪至PB15]
  *   编码器:   TIM4, PD12 PD13
  *   雷达电机: M10P内部驱动；本工程不初始化TIM9雷达PWM

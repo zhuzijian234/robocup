@@ -3,7 +3,7 @@
  * @brief   通用定时器PWM输出与编码器接口驱动
  *
  * 本项目定时器分配（对应谢露版引脚复用）:
- *   TIM2  CH1 (PA5):   电机PWM
+ *   TIM2  CH3 (PB10):   电机PWM
  *   TIM3  CH1 (PA6):   舵机PWM, 同时用作中断定时器
  *   TIM4  (PD12/13):   正交编码器接口
  *   TIM9  CH1 (PA2):   雷达电机转速PWM (1kHz)
@@ -87,10 +87,10 @@ void TIM11_PWM_Init(u32 psc, u32 arr, u32 pulse)
 }
 
 /**
- * @brief  TIM2 CH1 PWM初始化 (PA5) — 电机PWM
+ * @brief  TIM2 CH3 PWM初始化 (PB10) — 电机PWM
  *
  * 对应谢露版: 电机PWM原为PA2(TIM2_CH3), 谢露版移至PB11(TIM2_CH4),
- * 2026-09-06 PB11杜邦线故障, 再临时挪至PA5(TIM2_CH1)
+ * 2026-10-07 电机PWM改为PB10(TIM2_CH3/AF1)，占空比读写同步使用CCR3
  */
 void TIM2_PWM_Init(u32 psc, u32 arr, u32 pulse)
 {
@@ -99,16 +99,16 @@ void TIM2_PWM_Init(u32 psc, u32 arr, u32 pulse)
     TIM_OCInitTypeDef  TIM_OCInitStructure;
 
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_TIM2);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource10, GPIO_AF_TIM2);
 
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_5;           /* PA5 */
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_10;           /* PB10 */
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
     GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
     GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
+    GPIO_Init(GPIOB, &GPIO_InitStructure);
 
     TIM_TimeBaseStructure.TIM_Prescaler       = psc;
     TIM_TimeBaseStructure.TIM_CounterMode     = TIM_CounterMode_Up;
@@ -116,14 +116,14 @@ void TIM2_PWM_Init(u32 psc, u32 arr, u32 pulse)
     TIM_TimeBaseStructure.TIM_ClockDivision   = TIM_CKD_DIV1;
     TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
 
-    /* TIM2 CH1 PWM模式1 */
+    /* TIM2 CH3 PWM模式1 */
     TIM_OCInitStructure.TIM_OCMode      = TIM_OCMode_PWM1;
     TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable; /*使能比较输出,使比较结果输出到引脚上*/
     TIM_OCInitStructure.TIM_OCPolarity  = TIM_OCPolarity_High;   /*输出极性=高有效*/
     TIM_OCInitStructure.TIM_Pulse       = pulse;                 /*初始比较值,即ccr*/
-    TIM_OC1Init(TIM2, &TIM_OCInitStructure);
+    TIM_OC3Init(TIM2, &TIM_OCInitStructure);
 
-    TIM_OC1PreloadConfig(TIM2, TIM_OCPreload_Enable);
+    TIM_OC3PreloadConfig(TIM2, TIM_OCPreload_Enable);
     TIM_ARRPreloadConfig(TIM2, ENABLE);
     TIM_Cmd(TIM2, ENABLE);
 }

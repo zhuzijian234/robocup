@@ -78,8 +78,6 @@ virtualFolder:
         - path: ../HARDWARE/hc-05/ble_tune.c
         - path: ../HARDWARE/hc-05/ble_tune.h
         - path: ../HARDWARE/LEIDA_DATA/LEIDA_DATA.c
-        - path: ../HARDWARE/LEIDA_DATA/m10p.c
-        - path: ../HARDWARE/LEIDA_DATA/m10p_vehicle.c
         - path: ../HARDWARE/LEIDA_DATA/LEIDA_DATA.h
         - path: ../HARDWARE/DSP/arm_cortexM4lf_math.lib
         - path: ../HARDWARE/DSP/arm_math.h
@@ -95,6 +93,11 @@ virtualFolder:
         - path: ../test/test_servo.c
         - path: ../test/test_motor.c
         - path: ../test/test_bluetooth.c
+      folders: []
+    - name: M10P
+      files:
+        - path: ../HARDWARE/LEIDA_DATA/m10p.c
+        - path: ../HARDWARE/LEIDA_DATA/m10p_vehicle.c
       folders: []
 dependenceList: []
 outDir: build_m10p
@@ -162,7 +165,7 @@ targets:
             ro-base: "0x08000000"
             rw-base: "0x20000000"
             xo-base: ""
-        scatterFilePath: "m10p.sct"
+        scatterFilePath: m10p.sct
         storageLayout:
           RAM:
             - id: 1
@@ -227,7 +230,7 @@ targets:
               isStartup: true
               mem:
                 size: "0x100000"
-                startAddr: "0x8000000"
+                startAddr: "0x10000000"
               tag: IROM
             - id: 2
               isChecked: false
