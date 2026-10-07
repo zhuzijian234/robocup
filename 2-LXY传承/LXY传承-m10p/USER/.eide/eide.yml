@@ -133,7 +133,8 @@ targets:
         - .cmsis/include
         - RTE/_Template
       libList: []
-    excludeList: []
+    excludeList:
+      - <virtual_root>/main_test.c
     settings:
       debugger: cortex-debug
     toolchain: AC5

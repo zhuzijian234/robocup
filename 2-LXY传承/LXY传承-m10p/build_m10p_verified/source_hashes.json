@@ -1,5 +1,5 @@
 {
-  "2-LXY传承\\LXY传承-m10p\\USER\\main.c": "d827b531672d9853e78b79cfa73d23ee8d18dd577f2ad8b8e0f0ade0659acb39",
+  "2-LXY传承\\LXY传承-m10p\\USER\\main.c": "94f2153d078cdf8572b73a8e585c9ab66f29165fc09138ea5743f3e991a56456",
   "2-LXY传承\\LXY传承-m10p\\USER\\stm32f4xx_it.c": "94287e93185e253e5d40c379cbffd968d16238decdc5cc2755f69358564ba5aa",
   "2-LXY传承\\LXY传承-m10p\\USER\\system_stm32f4xx.c": "fd655dd3d705bd703c813b7abfdaa409ce4815f5e7cf5705ed6abb94ce79e91c",
   "2-LXY传承\\LXY传承-m10p\\CORE\\startup_stm32f40_41xxx.s": "b3e992360a3bf765bfb86f8a0b3a55807b9a38c58780dbd0893ffe7b84815279",
@@ -203,7 +203,7 @@
   "2-LXY传承\\LXY传承-m10p\\HARDWARE\\hc-05\\ble_tune.h": "d6236fa16e60b7abbdb7dfce60b718e29c1ecacd7484688cec6a78161386c34d",
   "2-LXY传承\\LXY传承-m10p\\HARDWARE\\hc-05\\board.h": "54a606bc42ba0c667f65774f9ef303137d8ba503816f5ef753e11177fb8453e0",
   "2-LXY传承\\LXY传承-m10p\\HARDWARE\\hc-05\\bsp_bluetooth.h": "04e4170d9e28eec47f750436f6beb6fe6f770591aa9708730423c0708996ad9c",
-  "2-LXY传承\\LXY传承-m10p\\HARDWARE\\hc-05\\diag_build_id.h": "1f41814d03f9df5c7ea3ce239ef8ad36e5da961f838c187f02565a3dc8b45262",
+  "2-LXY传承\\LXY传承-m10p\\HARDWARE\\hc-05\\diag_build_id.h": "9a2b49a2781648e243f0fb18febc5754805b20b5b0fb50264b4e59da301e66b5",
   "2-LXY传承\\LXY传承-m10p\\HARDWARE\\LEIDA_DATA\\LEIDA_DATA.h": "4419da790859f37993fcd40d4fcd941dd7a347998e1950cfdb126a51c31af957",
   "2-LXY传承\\LXY传承-m10p\\HARDWARE\\LEIDA_DATA\\m10p.h": "4dbebd7f90c446d9caea2c26efebb6479239f2b37d78c2fafe6afb0561fc570b",
   "2-LXY传承\\LXY传承-m10p\\HARDWARE\\LEIDA_DATA\\m10p_config.h": "a508d9ca52e1d211b105edfe52e786d1869c8fe07c79dd62c640a751ddc3e534",

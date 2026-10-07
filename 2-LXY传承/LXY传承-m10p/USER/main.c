@@ -68,9 +68,11 @@
  *   1: 测试① 舵机往复扫描 (test/test_servo.c)
  *   2: 测试② 电机正反转+测速 (test/test_motor.c)
  *   3: 测试③ 蓝牙调参链路 (test/test_bluetooth.c)
+ *   4: PB10万用表测试：低5秒/高5秒，必须断开电机驱动板PWM信号线
  * 测试模式的说明与预期现象表见 硬件功能测试方案.md。
  */
-#define HW_TEST_SELECT 0
+#define HW_TEST_SELECT 4
+
 /* 全局变量 */
 uint16_t RIGHT_duandian;       /* 右边界断点y坐标 */
 uint16_t LEFT_duandian;        /* 左边界断点y坐标 */
@@ -86,6 +88,37 @@ extern float Speed_now;
 #define duandian_distance 600 
 float duandian_DIStance = 600; /* 断点有效距离阈值 (mm) */
 
+#if HW_TEST_SELECT == 4
+/**
+ * PB10纯GPIO测试：不初始化雷达、蓝牙、舵机及电机定时器。
+ * 烧录前必须断开PB10与驱动板的连接；高电平可能使驱动板全速输出。
+ * 万用表直流电压档：黑表笔接STM32 GND，红表笔接PB10。
+ * 预期：约0V保持5秒，约3.3V保持5秒，循环。
+ */
+int main(void)
+{
+    GPIO_InitTypeDef gpio;
+
+    delay_init(168);
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+    /* 先置低输出锁存器，再打开输出，避免初始化瞬间出现高电平。 */
+    GPIO_ResetBits(GPIOB, GPIO_Pin_10);
+    GPIO_StructInit(&gpio);
+    gpio.GPIO_Pin = GPIO_Pin_10;
+    gpio.GPIO_Mode = GPIO_Mode_OUT; /* 普通推挽输出，不使用AF1/PWM */
+    gpio.GPIO_OType = GPIO_OType_PP;
+    gpio.GPIO_Speed = GPIO_Speed_2MHz;
+    gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_Init(GPIOB, &gpio);
+
+    while (1) {
+        GPIO_ResetBits(GPIOB, GPIO_Pin_10);
+        delay_ms(5000);
+        GPIO_SetBits(GPIOB, GPIO_Pin_10);
+        delay_ms(5000);
+    }
+}
+#else
 int main(void)
 {
     /* 初始化调试串口: USART1(PA9/PA10, 保留备用) + USART3(PC10/PC11, printf已重定向) */
@@ -382,3 +415,5 @@ int main(void)
 #endif
     }
 }
+
+#endif /* HW_TEST_SELECT == 4 */
