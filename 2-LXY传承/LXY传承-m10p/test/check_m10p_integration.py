@@ -94,6 +94,28 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  for(i=0;i<20;i++)pwm=PID_realize(0,10,&pid);CHECK(pwm==100);CHECK(pid.err_sum==200);
  Speed_PID_Reset(&pid);CHECK(pid.err_sum==0 && pid.err_l==0);CHECK(Diag_motor_integral==0);
  CHECK(PID_realize(0,0,&pid)==0);
+ /* Fresh frames arrive every 100ms, but each front observation is already
+  * 90ms old on delivery. The previous observation expires between frames.
+  * That must stop propulsion, without erasing the fresh-frame startup history. */
+ Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;Radar_timeout_count=0;
+ observation_valid=warmup=0;observation_seq=completed_us=0;
+ LidarRx_epoch=observation_epoch=0;clock_us=1000000;
+ for(i=1;i<=3;i++){
+  unsigned tick;
+  Radar_Observe(i,clock_us-90000,0,1);
+  CHECK(warmup==i);CHECK(Radar_Permitted()==(i==3));
+  for(tick=0;tick<9;tick++){clock_us+=10000;Radar_GuardTick();}
+  CHECK(!Radar_Permitted());CHECK(warmup==i);
+  clock_us+=10000;
+ }
+ CHECK(Radar_started && !Radar_stop_latched);
+ Radar_Observe(4,clock_us-90000,0,1);CHECK(Radar_Permitted());
+ Radar_Invalidate();CHECK(!Radar_Permitted() && warmup==0);
+ Radar_Observe(5,clock_us-90000,0,1);CHECK(warmup==1 && !Radar_Permitted());
+ clock_us+=M10P_MAX_AGE_US+1;Radar_GuardTick();CHECK(warmup==0 && !Radar_Permitted());
+ Radar_Observe(6,clock_us-90000,0,1);CHECK(warmup==1);
+ Radar_Observe(8,clock_us-90000,0,1);CHECK(warmup==1 && !Radar_Permitted());
+ Radar_Observe(8,clock_us-90000,0,1);CHECK(warmup==0);
  printf("PASS %u adapter/guard/PI checks\n",checks);return 0;
 }
 '''

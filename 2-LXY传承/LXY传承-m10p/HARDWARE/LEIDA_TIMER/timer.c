@@ -69,10 +69,27 @@ void Radar_GuardTick(void)
             Radar_stop_latched = 1; Radar_timeout_count++;
         }
     }
-    if (observation_epoch != LidarRx_epoch ||
-        (uint32_t)(Diag_TimeUs()-observation_us) > M10P_MAX_AGE_US) {
+    if (observation_epoch != LidarRx_epoch) {
         observation_valid = 0; warmup = 0;
+    } else {
+        uint32_t now = Diag_TimeUs();
+        /* 前方点在整圈发布前已经有年龄，可能在下一圈到来前过期。
+         * 过期立即禁止驱动，但不据此抹掉已通过检查的连续帧历史，
+         * 否则每圈都重回第1帧，始终无法完成3帧启动确认。
+         * 只有有效提交中断超过时限才清历史；坏帧由Invalidate清除，
+         * 跳帧/重复帧由Observe检查，接收故障由上面的epoch检查处理。 */
+        if ((uint32_t)(now-observation_us) > M10P_MAX_AGE_US)
+            observation_valid = 0;
+        if ((uint32_t)(now-completed_us) > M10P_MAX_AGE_US) {
+            observation_valid = 0; warmup = 0;
+        }
     }
+}
+
+/* 仅用于诊断，不改变控制状态。 */
+uint8_t Radar_WarmupCount(void)
+{
+    return warmup;
 }
 
 /**

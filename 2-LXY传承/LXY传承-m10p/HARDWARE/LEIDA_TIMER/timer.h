@@ -24,6 +24,7 @@ extern volatile uint8_t Radar_stop_latched;
 extern volatile uint32_t Radar_timeout_count;
 extern volatile uint32_t Radar_invalid_inputs;
 uint8_t Radar_Permitted(void);
+uint8_t Radar_WarmupCount(void); /* 连续有效提交数，达到3才允许启动 */
 void Radar_Invalidate(void);
 void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale);
 extern volatile float Radar_effective_target;

@@ -71,7 +71,7 @@
  *   4: PA1固定高电平、PB15固定低电平：万用表静态GPIO测试
  * 测试模式的说明与预期现象表见 硬件功能测试方案.md。
  */
-#define HW_TEST_SELECT 4
+#define HW_TEST_SELECT 0
 
 /* 全局变量 */
 uint16_t RIGHT_duandian;       /* 右边界断点y坐标 */

@@ -164,10 +164,27 @@ void Radar_GuardTick(void)
             Radar_stop_latched = 1; Radar_timeout_count++;
         }
     }
-    if (observation_epoch != LidarRx_epoch ||
-        (uint32_t)(Diag_TimeUs()-observation_us) > M10P_MAX_AGE_US) {
+    if (observation_epoch != LidarRx_epoch) {
         observation_valid = 0; warmup = 0;
+    } else {
+        uint32_t now = Diag_TimeUs();
+        /* 前方点在整圈发布前已经有年龄，可能在下一圈到来前过期。
+         * 过期立即禁止驱动，但不据此抹掉已通过检查的连续帧历史，
+         * 否则每圈都重回第1帧，始终无法完成3帧启动确认。
+         * 只有有效提交中断超过时限才清历史；坏帧由Invalidate清除，
+         * 跳帧/重复帧由Observe检查，接收故障由上面的epoch检查处理。 */
+        if ((uint32_t)(now-observation_us) > M10P_MAX_AGE_US)
+            observation_valid = 0;
+        if ((uint32_t)(now-completed_us) > M10P_MAX_AGE_US) {
+            observation_valid = 0; warmup = 0;
+        }
     }
+}
+
+/* 仅用于诊断，不改变控制状态。 */
+uint8_t Radar_WarmupCount(void)
+{
+    return warmup;
 }
 
 float PID_realize(float speed_now, float speed_mubiao, pid_type *speed_pid)
@@ -247,5 +264,27 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  for(i=0;i<20;i++)pwm=PID_realize(0,10,&pid);CHECK(pwm==100);CHECK(pid.err_sum==200);
  Speed_PID_Reset(&pid);CHECK(pid.err_sum==0 && pid.err_l==0);CHECK(Diag_motor_integral==0);
  CHECK(PID_realize(0,0,&pid)==0);
+ /* Fresh frames arrive every 100ms, but each front observation is already
+  * 90ms old on delivery. The previous observation expires between frames.
+  * That must stop propulsion, without erasing the fresh-frame startup history. */
+ Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;Radar_timeout_count=0;
+ observation_valid=warmup=0;observation_seq=completed_us=0;
+ LidarRx_epoch=observation_epoch=0;clock_us=1000000;
+ for(i=1;i<=3;i++){
+  unsigned tick;
+  Radar_Observe(i,clock_us-90000,0,1);
+  CHECK(warmup==i);CHECK(Radar_Permitted()==(i==3));
+  for(tick=0;tick<9;tick++){clock_us+=10000;Radar_GuardTick();}
+  CHECK(!Radar_Permitted());CHECK(warmup==i);
+  clock_us+=10000;
+ }
+ CHECK(Radar_started && !Radar_stop_latched);
+ Radar_Observe(4,clock_us-90000,0,1);CHECK(Radar_Permitted());
+ Radar_Invalidate();CHECK(!Radar_Permitted() && warmup==0);
+ Radar_Observe(5,clock_us-90000,0,1);CHECK(warmup==1 && !Radar_Permitted());
+ clock_us+=M10P_MAX_AGE_US+1;Radar_GuardTick();CHECK(warmup==0 && !Radar_Permitted());
+ Radar_Observe(6,clock_us-90000,0,1);CHECK(warmup==1);
+ Radar_Observe(8,clock_us-90000,0,1);CHECK(warmup==1 && !Radar_Permitted());
+ Radar_Observe(8,clock_us-90000,0,1);CHECK(warmup==0);
  printf("PASS %u adapter/guard/PI checks\n",checks);return 0;
 }
