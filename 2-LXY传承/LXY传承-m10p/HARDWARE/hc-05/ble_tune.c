@@ -94,9 +94,13 @@ uint8_t Tune_ConfigValue(uint16_t i,uint16_t*key,float*value)
 static uint8_t get_index=PARAM_NUM;
 static void Tune_SendAll(void){get_index=0;}
 static void Tune_GetPoll(void){
-    static const int mul[4]={1,10,100,1000};char line[40];int iv;
+    static const int mul[4]={1,10,100,1000};char line[40];int iv;float fv;
     if(get_index>=PARAM_NUM || BLE_FreeCritical()<3)return;
-    iv=(int)(*param_tab[get_index].ptr*mul[param_tab[get_index].scale]+0.5f);
+    /* 半整数远离零取整。原实现固定 +0.5f 再截断，对负值是错的:
+     * cx=-27.0 会显示成 -26(int)(-26.5f)=-26, 实机已出现。
+     * 与 Diag_Encode 的舍入规则保持一致。 */
+    fv=*param_tab[get_index].ptr*mul[param_tab[get_index].scale];
+    iv=(int)(fv>=0?fv+0.5f:fv-0.5f);
     sprintf(line,"%s=%d\r\n",param_tab[get_index].name,iv);Send_Bluetooth_Data(line);get_index++;
 }
 
