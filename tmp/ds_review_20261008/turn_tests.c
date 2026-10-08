@@ -37,10 +37,8 @@ float BLUE_Y_RIGHT=1200,BLUE_Y_LEFT=1350,BLUE_Y_STRA_SEL=0,BLUE_Y_STRA=750;
 float BLUE_DIS_RIGHT=50,BLUE_DIS_LEFT=50,paodao_distance=800;
 /* 20261008 新增的控制口径量(原为硬编码 50/200 和无下限公式) */
 float CENTER_X_TARGET_MM=50.0f,MODE0_ERR_CLAMP_MM=350.0f,TURN_MAG_MIN=250.0f;
-/* 转向稳定化三量: 断点y下限 / 直道判据 / 舵机步进限幅
- * ★必须与 CENTRE_LINE.c 的实际默认值一致 —— 切片用的是桩里的定义, 桩不同步会掩盖真实
- *   行为(曾因这里写 150 而生产代码是 600, 把"桩没同步"误判成"slew 打断了入弯到位")。 */
-float duandian_MIN_Y=200.0f,STRAIGHT_MIN_K=2.0f,SERVO_MAX_STEP=600.0f;
+/* 转向稳定化三量: 断点y下限 / 直道判据 / 舵机步进限幅 */
+float duandian_MIN_Y=200.0f,STRAIGHT_MIN_K=2.0f,SERVO_MAX_STEP=150.0f;
 static uint32_t clock_us;
 uint32_t Diag_TimeUs(void){return clock_us;}
 void Diag_Fit(const void *line,uint8_t valid){}
@@ -500,106 +498,370 @@ void Get_Encoder(void)
     Encoder_cnt /= 5;
     Speed_now = (Encoder_cnt * 100) / (4 * 11 * 6.25);
 }
+void reverse(_LEIDA_DATA_plane a[], int sz)
+{
+    int left = 0;
+    int right = sz - 1;
+    float b;
+
+    /* 反转 _x */
+    while (left < right) {
+        b = a[right]._x;
+        a[right]._x = a[left]._x;
+        a[left]._x = b;
+        left++;
+        right--;
+    }
+
+    /* 反转 _y */
+    left = 0;
+    right = sz - 1;
+    while (left < right) {
+        b = a[right]._y;
+        a[right]._y = a[left]._y;
+        a[left]._y = b;
+        left++;
+        right--;
+    }
+}
+uint16_t LEIDA_DATA_HANDLE5(_LEIDA_DATA_plane data[], _LEIDA_DATA arr[], u16 size)
+{
+    uint16_t i, j;
+    uint16_t counter = 0;
+    uint16_t zhidao_counter = 0;
+    Midline_type midline;
+    float start_angle = 60;
+    uint16_t cnt = 0, near_count = 0;
+
+    float y_max = -4000;
+    float y_max_r = -4000;
+    float y_max_r_r = -4000;
+    float y_min = 4000;
+    float y_min_r = 4000;
+    float y_min_r_r = 4000;
+    float jiange = 0;
+
+    if (size < 2 || size > LEIDA_DATA_COUNTER) return 0;
+    /* 空旷检测: 正前方(86°-94°)有>=5个点距离>1.5m，说明前方空旷(有缺口) */
+    for (i = 0; i < size; i++) {
+        if ((fabs(arr[i].angle - 90) <= 4) && (arr[i].distance > 1500) && (arr[i].distance <= 4000)) {
+            cnt++;
+        }
+        if (fabsf(arr[i].angle - 90) <= 4 && arr[i].distance >= 100 && arr[i].distance <= 1500)
+            near_count++;
+
+    }
+
+    if (cnt >= 12 && !near_count) return 0;
+    /* 前方有墙: 扫描前方弧70°-110°,得到前视数据 */
+    for (start_angle = 70; start_angle <= 110; start_angle += 1) {
+        for (i = 0; i < size; i++) {
+            if ((fabs(arr[i].angle - start_angle) <= 1)                             /*找角度匹配的那个点*/
+                && (arr[i].distance * arm_sin_f32(arr[i].angle * PI / 180) <= 2000) /*太近的是噪声(≥200),且只看前方2米以内*/
+                && (arr[i].distance >= 100)) {
+                if (counter >= 200) return counter;
+                data[counter]._x = arr[i].distance * arm_cos_f32(arr[i].angle * PI / 180);
+                data[counter]._y = arr[i].distance * arm_sin_f32(arr[i].angle * PI / 180);
+                counter++;
+                break;
+            }
+        }
+    }
+    /*得到data[0,counter-1]从70°到110°逐个方向取到的点*/
+    /* 不足六点无法可靠地排除四个极值，保留观测交给调用方检查拟合。 */
+    if (counter < 6)
+        return counter;
+    /* 拟合直线，若k>0则反转（确保近->远顺序） */
+    Midline_fit(data, 1, counter - 1, &midline); /*掐头去尾(1-counter-2),去除边缘噪声*/
+    if (midline.k > 0) {
+        reverse(data, counter);
+    } /*为了让650行的滤除循环在k>0,即y[i]<y[i+1]时有意义*/
+
+    /* 找y极值 (最大/次大/次次大, 最小/次小/次次小) */
+    for (i = 0; i < counter; i++) {
+        if (data[i]._y > y_max)
+            y_max = data[i]._y;
+        if (data[i]._y < y_min)
+            y_min = data[i]._y;
+    }
+    for (i = 0; i < counter; i++) {
+        if ((data[i]._y > y_max_r) && (data[i]._y != y_max))
+            y_max_r = data[i]._y;
+        if ((data[i]._y < y_min_r) && (data[i]._y != y_min))
+            y_min_r = data[i]._y;
+    }
+    for (i = 0; i < counter; i++) {
+        if ((data[i]._y > y_max_r_r) && (data[i]._y != y_max) && (data[i]._y != y_max_r))
+            y_max_r_r = data[i]._y;
+        if ((data[i]._y < y_min_r_r) && (data[i]._y != y_min) && (data[i]._y != y_min_r))
+            y_min_r_r = data[i]._y;
+    }
+
+    /* 水平墙或重复高度可能没有三个不同的极值；不可用哨兵值计算阈值。
+     * 中间跨度为零时也保留点，避免把微小测量差全部判成离群点。 */
+    if (y_max_r_r <= y_min_r_r)
+        return counter;
+    jiange = (y_max_r_r - y_min_r_r) / (counter - 4); /* 排除4个极值点 */
+
+    /* 按y间距一致性滤除离群点 */
+    for (i = 0, j = 0; i < counter - 1; i++) {
+        if (fabs(data[i]._y - data[i + 1]._y) <= 5 * jiange) {
+            data[j]._x = data[i]._x;
+            data[j]._y = data[i]._y;
+            j++;
+        }
+    }
+
+    return j;
+}
+#include "m10p.h"
+static M10P_Scan test_scan={0};
+static M10P_Scan *scan=&test_scan;
+static uint32_t LidarRx_epoch;
+#define BLE_MODE_HOLD 10
+#define BLE_MODE_INVALID 11
+static uint16_t pid_select, candidate_pwm;
+static uint8_t turn_held, straight_evidence;
+static TurnGuard turn_guard;
+static uint16_t RIGHT_duandian, LEFT_duandian, duandian_DIStance=550, duandian_distance=600;
+static uint16_t LEFT_cnt=20, RIGHT_cnt=20, Forward_cnt=20, CENTER_cnt, valid_couter=100;
+static uint16_t ref_start, ref_end, telemetry_mode;
+static uint8_t forward_fit_ok, danbian_flag;
+/* 20261008: main.c 的降级标志与前方斜率分档在切片之外定义, 桩里按同值提供。 */
+static uint8_t degraded=0;
+#define FORWARD_K_BIG 0.35f
+#define FORWARD_K_S_CURVE 2.00f
+static float servo_midpwm=144.5f;
+static pid_type Servo_pd;
+static Midline_type Midline, Midline_forward, Midline_forward_2, Midline_forward_3;
+static _LEIDA_DATA_plane LEIDA_DATA_LEFT_Plane[400], LEIDA_DATA_RIGHT_Plane[400];
+static _LEIDA_DATA_plane LEIDA_DATA_Forward[400], LEIDA_DATA_CENTER[400];
+static _LEIDA_DATA LEIDA_DATA_LEFT[800], LEIDA_DATA_RIGHT[800], LEIDA_DATA2[800];
+static int calls, selected, mock_valid=1, mock_center_count=12;
+static uint16_t mock_pwm;
+static float mock_error;
+static void convert(_LEIDA_DATA_plane *p,_LEIDA_DATA *a,int n){}
+static uint16_t keep(_LEIDA_DATA_plane *p,uint16_t n){return n;}
+static uint16_t center(_LEIDA_DATA_plane *p,_LEIDA_DATA *a,uint16_t n){return mock_center_count;}
+static float vertical(_LEIDA_DATA_plane *p,uint16_t s,uint16_t e){LEIDA_vertical_valid=1;return 50-mock_error;}
+static uint8_t fit(_LEIDA_DATA_plane *p,int s,int e,Midline_type *l){l->k=5;l->b=0;return 1;}
+/* 20261008: 桩里的 k 从 1 改成 5。真实直道中线拟合的 |Midline.k| 实测是 4.3~11.4
+ * (弯道里才掉到 0.1~0.9), 而新增的 straight_evidence 要求 |k| >= STRAIGHT_MIN_K(2.0)
+ * 才算"确实直"。k=1 不再是直道的代表值。 */
+static void Diag_Field(int field,float value,int valid){}
+static uint16_t command(_LEIDA_DATA_plane *p,pid_type *pid,Midline_type *l,float mid,uint16_t s,uint16_t e,uint16_t mode){
+    calls++;selected=mode;Servo_PD_valid=mock_valid;pid->err=mock_error;
+    if(mock_valid)Diag_detail_u[4]|=1;
+    return mock_valid?mock_pwm:timer3.CCR1;
+}
+#define LEIDA_DATA_HANDLE2 convert
+#define LEIDA_DATA_HANDLE10 keep
+#define LEIDA_DATA_HANDLE4 center
+#define LEIDA_DATA_HANDLE11 vertical
+#define Midline_fit fit
+#define Midline_PD_Calculate command
+static void step(void){
+    telemetry_mode=11;Servo_PD_valid=0;
+    memset(Diag_detail_u,0,sizeof Diag_detail_u);
+            scan->front_us = Diag_TimeUs();
+            candidate_pwm = (uint16_t)TIM3->CCR1;
+            CENTER_cnt = 0;
+            if (degraded)
+                Diag_detail_u[4] |= 64; /* bit6: 本帧降级, 未使用断点/转弯模式(主机允许 bit0~11) */
+            if (!degraded &&
+                ((RIGHT_duandian > 0 && RIGHT_duandian < duandian_DIStance) ||
+                 (LEFT_duandian > 0 && LEFT_duandian < duandian_DIStance))) {
+                uint8_t right = (RIGHT_duandian > 0 && RIGHT_duandian < duandian_DIStance);
+                uint16_t breakpoint = right ? RIGHT_duandian : LEFT_duandian;
+                if (forward_fit_ok && breakpoint < duandian_distance && fabs(Midline_forward.k) < FORWARD_K_BIG) {
+                    pid_select = right ? 3 : 4;
+                    candidate_pwm = Midline_PD_Calculate(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward, servo_midpwm,
+                                                        (uint16_t)(Forward_cnt * 0.1f), (uint16_t)(Forward_cnt * 0.9f), pid_select);
+                } else if (forward_fit_ok && breakpoint < duandian_distance &&
+                           fabs(Midline_forward.k) < FORWARD_K_S_CURVE &&
+                           (fabs(Midline_forward.k) >= FORWARD_K_BIG ||
+                            (danbian_flag && (fabs(Midline_forward_2.k) < 0.25f || fabs(Midline_forward_3.k) < 0.25f)))) {
+                    pid_select = right ? 8 : 9;
+                    candidate_pwm = Midline_PD_Calculate(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward, servo_midpwm,
+                                                        (uint16_t)(Forward_cnt * 0.1f), (uint16_t)(Forward_cnt * 0.9f), pid_select);
+                } else {
+                    _LEIDA_DATA_plane *boundary = right ? LEIDA_DATA_LEFT_Plane : LEIDA_DATA_RIGHT_Plane;
+                    uint16_t count = right ? LEFT_cnt : RIGHT_cnt;
+                    LEIDA_DATA_HANDLE2(boundary, right ? LEIDA_DATA_LEFT : LEIDA_DATA_RIGHT, count);
+                    count = LEIDA_DATA_HANDLE10(boundary, count);
+                    if (right)
+                        LEFT_cnt = count;
+                    else
+                        RIGHT_cnt = count;
+                    ref_start = count >= 10 ? (uint16_t)(count * 0.75f) : 0;
+                    ref_end = count >= 10 ? (uint16_t)(count * 0.95f) : count;
+                    (void)Midline_fit(boundary, ref_start, ref_end, &Midline);
+                    pid_select = right ? 1 : 2;
+                    candidate_pwm = Midline_PD_Calculate(boundary, &Servo_pd, &Midline, servo_midpwm,
+                                                        ref_start, ref_end, pid_select);
+                }
+            } else {
+                CENTER_cnt = LEIDA_DATA_HANDLE4(LEIDA_DATA_CENTER, LEIDA_DATA2, valid_couter);
+                Diag_detail_u[10] = CENTER_cnt;
+                Diag_detail_u[4] |= 128;
+                ref_start = CENTER_cnt >= 8 ? (uint16_t)(CENTER_cnt * 0.4f) : 0;
+                ref_end = CENTER_cnt >= 8 ? (uint16_t)(CENTER_cnt * 0.9f) : CENTER_cnt;
+                zhongxian_chuizhi = LEIDA_DATA_HANDLE11(LEIDA_DATA_CENTER, ref_start, ref_end);
+                Diag_Field(25, zhongxian_chuizhi, LEIDA_vertical_valid);
+                if (LEIDA_vertical_valid)
+                    pid_select = 5;
+                else if (Midline_fit(LEIDA_DATA_CENTER, ref_start, ref_end, &Midline))
+                    pid_select = CENTER_cnt >= 8 ? 0 : 7;
+                else
+                    pid_select = 7;
+                /* 近水平中线由Calculate拒绝，不能把无限保舵当作有效感知。 */
+                candidate_pwm = Midline_PD_Calculate(LEIDA_DATA_CENTER, &Servo_pd, &Midline, servo_midpwm,
+                                                    ref_start, ref_end, pid_select);
+            }
+            if (scan->epoch != LidarRx_epoch || (uint32_t)(Diag_TimeUs()-scan->front_us) > M10P_MAX_AGE_US)
+                Servo_PD_valid = 0;
+            /* "直道证据"必须几何上真的直: 弯道里中线是斜的(|Midline.k|很小), 而 |err| 只
+             * 说明"当前偏差小", 不能证明通道是直的。实测 t=26.666 用 |err|=0.9 就把弯道
+             * 判成直道, TurnGuard 放行后舵机一帧内 1644→1444 摆正。 */
+            straight_evidence = Servo_PD_valid && CENTER_cnt >= 8 &&
+                                (pid_select == 0 || pid_select == 5) &&
+                                fabs(Midline.k) >= STRAIGHT_MIN_K &&
+                                fabs(Servo_pd.err) <= TURN_EXIT_ERROR_MM;
+            candidate_pwm = TurnGuard_Apply(&turn_guard, pid_select, Servo_PD_valid, straight_evidence,
+                                            candidate_pwm, Diag_TimeUs(), &turn_held);
+            if (!Servo_PD_valid)
+                telemetry_mode = BLE_MODE_INVALID;
+            else {
+                telemetry_mode = turn_held ? BLE_MODE_HOLD : pid_select;
+                if (turn_held) {
+                    /* 候选PD未执行：下一次实际PD重新建立D历史，DETAIL不标记已执行PD。 */
+                    Midline_PD_Reset();
+                    Servo_PD_valid = 1;
+                    Diag_detail_u[4] &= ~1u;
+                }
+                /* 舵机变化率限幅: 无论方向翻转来自断点左右横跳还是模式跳变, 都不再允许
+                 * 一帧从打满左甩到打满右(实测 1720↔1170)。半行程275, 150/帧≈2帧到位。 */
+                {
+                    int32_t now_pwm = (int32_t)TIM3->CCR1;
+                    int32_t step = (int32_t)candidate_pwm - now_pwm;
+                    if (step > (int32_t)SERVO_MAX_STEP)
+                        candidate_pwm = (uint16_t)(now_pwm + (int32_t)SERVO_MAX_STEP);
+                    else if (step < -(int32_t)SERVO_MAX_STEP)
+                        candidate_pwm = (uint16_t)(now_pwm - (int32_t)SERVO_MAX_STEP);
+                }
+                Servo_ChangePwm(candidate_pwm);
+            }
+
+
+}
+#undef Midline_PD_Calculate
+#undef Midline_fit
+#undef LEIDA_DATA_HANDLE10
+#undef LEIDA_DATA_HANDLE4
+#undef LEIDA_DATA_HANDLE11
 static int checks;
 #define CHECK(c) do{checks++;if(!(c)){printf("FAIL line %d: %s\n",__LINE__,#c);return 1;}}while(0)
-static _LEIDA_DATA points[800];
-static _LEIDA_DATA_plane plane[400];
-static pid_type pid;
-static int deferred;
-static void begin(void){memset(Diag_detail_u,0,sizeof Diag_detail_u);memset(Diag_detail_f,0,sizeof Diag_detail_f);clock_us+=115000;}
-static uint16_t drive(uint16_t mode,float error){
-    Midline_type line={1,650+error};
-    begin();plane[0]._y=plane[1]._y=700;
-    /* 20261008: mode 1/2 的误差口径已统一为 CENTER_X_TARGET_MM-(中线横向估计),
-     * 所以构造点也要跟着挪: mode1 x=50-error-400, mode2 x=50-error+400。 */
-    plane[0]._x=plane[1]._x=mode==1?-error-350:mode==2?450-error:50-error;
-    if(mode==3 || mode==4 || mode==8 || mode==9)line.k=fabs(error)>0?175.0f/fabs(error):INFINITY;
-    LEIDA_vertical_valid=1;zhongxian_chuizhi=50-error;
-    return deferred ? Midline_PD_Calculate(plane,&pid,&line,144.5f,0,2,mode) :
-                      Midline_PD(plane,&pid,&line,144.5f,0,2,mode);
+static int tick(uint16_t mode,int valid,uint16_t pwm,float error,uint32_t elapsed){
+    unsigned before=servo_writes;
+    clock_us+=elapsed;mock_valid=valid;mock_pwm=pwm;mock_error=error;
+    RIGHT_duandian=(mode==1 || mode==3 || mode==8)?300:0;
+    LEFT_duandian=(mode==2 || mode==4 || mode==9)?300:0;
+    forward_fit_ok=mode==3 || mode==4 || mode==8 || mode==9;
+    Midline_forward.k=(mode==3 || mode==4)?.2f:.5f;
+    danbian_flag=1;
+    step();
+    return servo_writes-before==(valid?1u:0u);
 }
-static int run(void){
-    unsigned k;Midline_type line;
-    uint16_t output;float before;
-    TurnGuard guard={0};uint8_t held;unsigned writes;
-    pid.kp=.035f;pid.kd=.035f;pid.kp_2=.040f;pid.kd_2=.022f;pid.kp_3=.0395f;pid.kd_3=.020f;
-    CHECK(LEIDA_DATA_HANDLE10(plane,0)==0);
-    for(k=0;k<8;k++){plane[k]._x=50;plane[k]._y=(float)k*100;}
-    CHECK(LEIDA_DATA_HANDLE10(plane,8)==8);
-    CHECK(LEIDA_DATA_HANDLE11(plane,0,8)==50 && LEIDA_vertical_valid);
-    for(k=0;k<4;k++)plane[k]._x=(float)k*100;
-    CHECK(LEIDA_DATA_HANDLE11(plane,0,4)==0 && !LEIDA_vertical_valid);
-    CHECK(LEIDA_DATA_HANDLE11(plane,0,0)==0 && !LEIDA_vertical_valid);
-    for(k=0;k<4;k++)plane[k]._x=0;
-    CHECK(LEIDA_DATA_HANDLE11(plane,0,4)==0 && LEIDA_vertical_valid);
-    points[0].angle=30;points[0].distance=400;points[1].angle=150;points[1].distance=400;
-    CHECK(LEIDA_DATA_HANDLE4(plane,points,2)>0); /* index zero usable */
-    points[0].angle=30.3f;points[1].angle=149.7f;
-    CHECK(LEIDA_DATA_HANDLE4(plane,points,2)==1); /* overlapping windows, one pair */
-    CHECK(LEIDA_DATA_HANDLE11(plane,0,1)==0 && !LEIDA_vertical_valid);
-    points[0].angle=0;points[1].angle=179;
-    CHECK(LEIDA_DATA_HANDLE4(plane,points,2)==0); /* no cross-angle stale pairing */
-    CHECK(!Midline_fit(plane,0,0,&line));
-    plane[0]._x=plane[1]._x=20;CHECK(!Midline_fit(plane,0,2,&line));
-    before=timer3.CCR1;begin();Midline_PD(plane,&pid,&line,144.5f,0,0,2);
-    CHECK(!Servo_PD_valid && timer3.CCR1==before && (Diag_detail_u[4]&512));
-    Midline_PD_Reset();output=drive(0,-200);CHECK(output==1375);
-    output=drive(5,247.7f);CHECK(output>=1531 && output<=1532 && Diag_detail_f[3]==0);
-    output=drive(0,-102.4f);CHECK(output>=1409 && output<=1410 && Diag_detail_f[3]==0);
-    Midline_PD_Reset();drive(5,421.156f);output=drive(5,71.5988f);
-    CHECK(output>=1445 && fabs(Diag_detail_f[3])<=60); /* old PWM was 1202 */
-    /* 20261008: mode 1/2 退出"不许指到中位另一边"的单向钳位。
-     * 原行为把本该左打的修正直接钉在中位(实机 pwm_unclamped==pwm_mid, 左弯里完全不转)。
-     * 现在 mode 2 允许一路右打到限幅, 且不再置反打标志位 1024。 */
-    Midline_PD_Reset();drive(2,500);output=drive(2,-500);
-    CHECK(output==SERVO_PWM_MIN && !(Diag_detail_u[4]&1024));
-    output=drive(1,100);CHECK(output>=1484 && output<=1485); /* 对侧墙远 -> 允许左打, 不再钉回中位 */
-    output=drive(4,500);CHECK(output>=1445);
-    before=timer3.CCR1;output=drive(4,0);CHECK(!Servo_PD_valid && output==before);
-    /* A reset/invalid observation does not leave a stale D kick. */
-    Midline_PD_Reset();output=drive(7,-20);CHECK(Diag_detail_f[3]==0);
-    /* Real telemetry: large-left e=500 -> side-wall e=82.391 is not a derivative. */
-    drive(4,500);output=drive(2,82.391f);
-    CHECK(output>=1477 && output<=1478 && Diag_detail_f[3]==0);
-    drive(3,-500);output=drive(1,-82.391f);
-    CHECK(output>=1412 && output<=1413 && Diag_detail_f[3]==0);
-    output=drive(1,-182.391f);CHECK(Diag_detail_f[3]<-19.9f); /* same-mode D retained */
-    output=drive(2,200);CHECK(Diag_detail_f[3]==0); /* opposite direction */
-    line.k=1;line.b=650;before=timer3.CCR1;
-    begin();Midline_PD_Calculate(plane,&pid,&line,144.5f,0,2,0);
-    CHECK(Servo_PD_valid && timer3.CCR1==before); /* candidate must not write hardware */
-    /* Replay observed left-turn errors using real PD + real guard, not mocked PD. */
-    deferred=1;drive(0,0);writes=servo_writes;
-    output=drive(2,284.289f);CHECK(output==1632 && Diag_detail_f[3]==0);
-    CHECK(TurnGuard_Apply(&guard,2,1,0,output,clock_us,&held)==1632 && !held);
-    output=drive(2,-49.897f);CHECK(output>=1358 && output<=1359); /* 单向钳位已移除: 真的产生右修正 */
-    CHECK(TurnGuard_Apply(&guard,2,1,0,output,clock_us,&held)==1632 && held);
-    CHECK(guard.pwm==1632); /* 14:45:03 used to overwrite the anchor with 1445 */
-    output=drive(0,50);
-    CHECK(TurnGuard_Apply(&guard,0,1,1,output,clock_us,&held)==1632 && held);
-    output=drive(0,50);
-    CHECK(TurnGuard_Apply(&guard,0,1,1,output,clock_us,&held)==1462 && !held);
-    memset(&guard,0,sizeof guard);
-    output=drive(4,500);CHECK(output==1720 && Diag_detail_f[3]==0);
-    CHECK(TurnGuard_Apply(&guard,4,1,0,output,clock_us,&held)==1720 && !held);
-    for(k=0;k<3;k++){
-        output=drive(4,500);CHECK(output==1645); /* entry compensation not repeated */
-        CHECK(TurnGuard_Apply(&guard,4,1,0,output,clock_us,&held)==1720 && held);
+int main(void){
+    int direction,i;uint16_t n,large,small,strong,weak;
+    _LEIDA_DATA scan[50];_LEIDA_DATA_plane wall[400];
+    for(direction=0;direction<2;direction++){
+        large=direction?4:3;small=direction?2:1;
+        strong=direction?1645:1245;weak=direction?1477:1412;
+        memset(&turn_guard,0,sizeof turn_guard);
+        CHECK(tick(large,1,strong,500,115000));
+        CHECK(!turn_held && timer3.CCR1==strong);
+        CHECK(tick(small,1,weak,82,115000));
+        CHECK(turn_held && timer3.CCR1==strong && telemetry_mode==10 && !(Diag_detail_u[4]&1));
+        CHECK(tick(0,1,1462,50,115000));
+        CHECK(turn_held && turn_guard.straight_frames==1 && timer3.CCR1==strong);
+        CHECK(tick(0,1,1462,50,115000));
+        CHECK(!turn_held && !turn_guard.active && timer3.CCR1==1462);
+
+        /* 20261008: 降级帧(感知判据不全)必须仍然更新舵机 —— 不许把舵角冻结在
+         * 最后一次的值(实机曾冻在右打满 1170 直冲边界)。同时不得使用断点/转弯模式。 */
+        memset(&turn_guard,0,sizeof turn_guard);
+        degraded=1;
+        CHECK(tick(large,1,strong,500,115000));   /* tick 内部要求正好写一次舵机 */
+        CHECK(selected==5 && timer3.CCR1==strong);
+        CHECK(Diag_detail_u[4]&64);               /* bit6: 本帧降级标记 */
+        degraded=0;
+
+        /* Invalid geometry interrupts exit confirmation and never writes/renews. */
+        CHECK(tick(large,1,strong,500,50000));
+        CHECK(tick(0,1,1462,50,50000));CHECK(turn_guard.straight_frames==1);
+        CHECK(tick(0,0,1462,50,50000));
+        CHECK(turn_guard.active && !turn_guard.straight_frames && !Servo_PD_valid && telemetry_mode==11);
+        CHECK(tick(0,1,1462,50,50000));CHECK(turn_held);
+        CHECK(tick(0,1,1462,50,50000));CHECK(turn_guard.active && turn_held);
+        /* At 20Hz two observations are only 50ms apart. Require >=60ms. */
+        CHECK(tick(0,1,1462,50,50000));CHECK(!turn_guard.active);
+
+        /* M10P at 12Hz: two straight frames must release without a third scan. */
+        CHECK(tick(large,1,strong,500,83000));
+        CHECK(tick(0,1,1462,50,83000));CHECK(turn_held);
+        CHECK(tick(0,1,1462,50,83000));CHECK(!turn_held && !turn_guard.active);
+
+        /* Downgraded measurements cannot rearm the 350ms deadline. */
+        CHECK(tick(large,1,strong,500,115000));
+        for(i=0;i<3;i++){CHECK(tick(small,1,weak,82,115000));CHECK(turn_held);}
+        CHECK(tick(small,1,weak,82,115000));CHECK(!turn_held && timer3.CCR1==weak);
+        CHECK(tick(large,1,strong,500,115000));
+        CHECK(tick(0,0,weak,0,350000));CHECK(!turn_guard.active && !Servo_PD_valid);
+
+        /* Opposite bend and stronger same-direction commands act immediately. */
+        CHECK(tick(large,1,strong,500,115000));
+        CHECK(tick(direction?1:2,1,direction?1250:1640,300,115000));
+        CHECK(!turn_held && selected==(direction?1:2));
+        CHECK(tick(large,1,strong,500,115000));
+        CHECK(tick(small,1,direction?1720:1170,450,115000));
+        CHECK(!turn_held && timer3.CCR1==(direction?1720:1170));
+
+        /* Large center offset is not evidence of a completed turn. */
+        CHECK(tick(large,1,strong,500,115000));
+        CHECK(tick(0,1,1515,200,115000));CHECK(turn_held && !turn_guard.straight_frames);
+        CHECK(tick(0,1,1515,200,115000));CHECK(turn_held && !turn_guard.straight_frames);
+        CHECK(tick(0,1,1515,200,120000));CHECK(!turn_held && !turn_guard.active);
+        /* Too few center points cannot confirm straight exit either. */
+        CHECK(tick(large,1,strong,500,115000));mock_center_count=4;
+        CHECK(tick(0,1,1462,50,115000));CHECK(turn_held && !turn_guard.straight_frames);
+        mock_center_count=12;
+        /* Same-mode abrupt retraction and center cannot overwrite or renew anchor. */
+        memset(&turn_guard,0,sizeof turn_guard);
+        CHECK(tick(small,1,strong,300,115000));
+        CHECK(tick(small,1,1445,0,115000));CHECK(turn_held && turn_guard.pwm==strong);
+        CHECK(tick(small,1,weak,82,115000));CHECK(turn_held && turn_guard.pwm==strong);
+        CHECK(tick(small,1,1445,0,120000));CHECK(!turn_held && !turn_guard.active);
+        CHECK(tick(small,1,1445,0,115000));CHECK(!turn_guard.active);
+        CHECK(tick(0,1,1462,50,115000));CHECK(!turn_held && timer3.CCR1==1462);
     }
-    output=drive(4,500);
-    CHECK(TurnGuard_Apply(&guard,4,1,0,output,clock_us,&held)==1645 && !held);
-    drive(0,0);output=drive(2,83.583f);CHECK(output==1523); /* 入弯首帧补力现取 clamp(|P|,45,75) */
-    drive(0,0);output=drive(2,-50);CHECK(output==1425); /* 反向误差不加补力, 也不再被钳回中位 */
-    drive(0,0);output=drive(3,-500);CHECK(output==1170);
-    CHECK(servo_writes==writes);deferred=0; /* whole candidate replay leaves hardware untouched */
-    /* Encoder forward, reverse and modulo wrap: no huge unsigned speed. */
-    for(k=0;k<5;k++){encoder_counter+=28;Get_Encoder();}
-    CHECK(fabs(Speed_now-10.181818f)<.001f);
-    for(k=0;k<5;k++){encoder_counter-=1;Get_Encoder();}
-    CHECK(Encoder_cnt_temp==65535 && Speed_now<0 && Speed_now> -1);
-    for(k=0;k<5;k++){encoder_counter=(uint16_t)(encoder_counter+30000);Get_Encoder();}
-    CHECK(Encoder_cnt_temp==30000);
-    printf("PASS %d checks (production C, mocked hardware)\n",checks);
+    memset(&turn_guard,0,sizeof turn_guard);clock_us=0xffff0000u;
+    CHECK(tick(4,1,1645,500,0));
+    CHECK(tick(2,1,1477,82,115000));CHECK(turn_held); /* microsecond wrap */
+    CHECK(tick(2,1,1477,82,235000));CHECK(!turn_held); /* exact timeout */
+
+    memset(scan,0,sizeof scan);
+    CHECK(LEIDA_DATA_HANDLE5(wall,scan,0)==0);
+    CHECK(LEIDA_DATA_HANDLE5(wall,scan,1)==0);
+    scan[0].angle=80;scan[0].distance=600;
+    n=LEIDA_DATA_HANDLE5(wall,scan,2);CHECK(n>0 && n<6);
+    for(i=0;i<41;i++){
+        scan[i].angle=70.0f+i;
+        scan[i].distance=700.0f/sinf(scan[i].angle*PI/180);
+    }
+    n=LEIDA_DATA_HANDLE5(wall,scan,42);CHECK(n>=30);
+    CHECK(Midline_fit(wall,0,n,&Midline_forward));
+    CHECK(fabs(Midline_forward.k)<.01f);
+    printf("PASS %d turn/filter regression checks (production C, mocked geometry/hardware)\n",checks);
     return 0;
 }
-int main(void){return run();}

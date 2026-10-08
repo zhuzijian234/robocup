@@ -22,6 +22,8 @@ typedef struct {float angle,distance;} _LEIDA_DATA;
 static int16_t angle_heads[720], angle_next[LEIDA_DATA_COUNTER];
 static unsigned visits;
 float BLUE_ANGLE_LEFT_RIGHT=90;
+/* 20261008: 断点y投影下限。0 = 旧契约(不过滤); HANDLE8/9 在搜索内部跳过 min<下限 的候选。 */
+float duandian_MIN_Y=0.0f;
 static unsigned checks;
 #define CHECK(x) do{++checks;if(!(x)){printf("FAIL %d: %s\n",__LINE__,#x);return 1;}}while(0)
 '''
@@ -91,7 +93,20 @@ int main(void){unsigned i,n;uint16_t right,left;
  angle_index_build(points,720);visits=0;
  for(i=0;i<250;i++)(void)angle_nearest(points,(i%125)*.6f);
  CHECK(visits==1250); /* Brute force: 250*720=180000 distance checks. */
- printf("Indexed nearest: %u candidate visits vs 180000 exhaustive visits\n",visits);
+ /* 20261008 断点y下限回归: HANDLE8/9 必须在**搜索内部**跳过"贴车身的突变"并继续找
+ * 后面的真开口。复核复现过: first=60 → 主循环事后清零 → later=281 被整侧丢掉。
+ * 构造: 角度0..19, 距离 300(i<=3) / 1000(4..14) / 2000(i>=15) → 两处突变:
+ *   i=3  处 y = 300*sin(2°)  ≈ 10   (贴车身, 应被跳过)
+ *   i=14 处 y = 1000*sin(13°) ≈ 225 (真开口, 应被报出) */
+for(i=0;i<20;i++){points[i].angle=(float)i;points[i].distance=(i<=3)?300.0f:((i<=14)?1000.0f:2000.0f);}
+duandian_MIN_Y=0.0f;
+{uint16_t a=LEIDA_DATA_HANDLE9(points,20);CHECK(a>0 && a<30);}      /* 旧契约: 报最近那个 */
+duandian_MIN_Y=200.0f;
+{uint16_t b=LEIDA_DATA_HANDLE9(points,20);CHECK(b>=200 && b<300);}  /* 新契约: 跳过它, 继续找到后面的 */
+duandian_MIN_Y=5.0f;
+{uint16_t c=LEIDA_DATA_HANDLE9(points,20);CHECK(c>0 && c<30);}      /* 下限放宽后又报最近的 */
+duandian_MIN_Y=0.0f;                                                /* 还原 */
+printf("Indexed nearest: %u candidate visits vs 180000 exhaustive visits\n",visits);
  printf("PASS %u nearest-boundary/gap checks\n",checks);return 0;
 }
 '''

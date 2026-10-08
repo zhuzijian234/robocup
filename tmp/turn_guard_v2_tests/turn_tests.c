@@ -29,14 +29,18 @@ static unsigned servo_writes;
 uint16_t TIM_GetCounter(int ignored){return encoder_counter;}
 void TIM_SetCounter(int ignored,uint16_t value){encoder_counter=value;}
 uint32_t Diag_detail_u[24];float Diag_detail_f[16];
-uint32_t LEIDA_parse_calls,LEIDA_sync_failures,LEIDA_short_inputs,LEIDA_missing_packets;
 uint16_t LEIDA_speed_dps,LEIDA_raw_count;
-static uint8_t lidar_packet[47];static uint16_t lidar_pending;
 float zhongxian_junzhi,zhongxian_chuizhi;
 uint8_t LEIDA_vertical_valid,Servo_PD_valid;
 static uint8_t pd_history_valid;static uint16_t pd_previous_mode;static uint32_t pd_previous_us;
 float BLUE_Y_RIGHT=1200,BLUE_Y_LEFT=1350,BLUE_Y_STRA_SEL=0,BLUE_Y_STRA=750;
 float BLUE_DIS_RIGHT=50,BLUE_DIS_LEFT=50,paodao_distance=800;
+/* 20261008 新增的控制口径量(原为硬编码 50/200 和无下限公式) */
+float CENTER_X_TARGET_MM=50.0f,MODE0_ERR_CLAMP_MM=350.0f,TURN_MAG_MIN=250.0f;
+/* 转向稳定化三量: 断点y下限 / 直道判据 / 舵机步进限幅
+ * ★必须与 CENTRE_LINE.c 的实际默认值一致 —— 切片用的是桩里的定义, 桩不同步会掩盖真实
+ *   行为(曾因这里写 150 而生产代码是 600, 把"桩没同步"误判成"slew 打断了入弯到位")。 */
+float duandian_MIN_Y=200.0f,STRAIGHT_MIN_K=2.0f,SERVO_MAX_STEP=600.0f;
 static uint32_t clock_us;
 uint32_t Diag_TimeUs(void){return clock_us;}
 void Diag_Fit(const void *line,uint8_t valid){}
@@ -45,11 +49,21 @@ float Encoder_cnt,Speed_now;int16_t Encoder_cnt_arr[5];uint16_t Encoder_cnt_temp
 uint16_t LEIDA_DATA_HANDLE10(_LEIDA_DATA_plane *,u16);
 #define TURN_GUARD_US 350000u
 #define TURN_EXIT_FRAMES 2u
-#define TURN_EXIT_MIN_US 100000u
+#define TURN_EXIT_MIN_US 60000u /* 两帧直道证据间隔至少一圈下限，避免83ms扫描被迫等第三帧 */
 #define TURN_EXIT_ERROR_MM 100.0f
 #define TURN_ENTRY_PWM 75.0f /* 入弯附加量同时不超过本帧|P|，不放大小误差噪声 */
+#define TURN_ENTRY_MIN_PWM 45.0f /* 入弯首帧的最小补力(原为0): 刚识别到急弯时P往往很小，
+                                  * 没有下限就等于没有入弯补偿。约占单边行程275的16%。 */
 #define TURN_MIN_OFFSET 20  /* 接近中位的候选不能成为弯道保持依据 */
 #define TURN_RETRACT_PWM 60 /* 同模式单次明显收舵，需要出弯确认或期限到达 */
+
+/* ==================== 20261008 转向稳定化 (实车日志归因) ====================
+ * 实测 v2_1008_175104: 弯中 LEFT/RIGHT_duandian 只有 19~130mm 且左右逐帧翻转,
+ * 造成 mode 9→0→4→3→4→3 跳变、舵机 1643→1444→1609→1720→1170 甩动。
+ * 下面三个量分别针对: ①假的断点 ②把弯道误判成直道 ③甩舵幅度。 */
+extern float duandian_MIN_Y;  /* 断点y投影下限(mm): 小于此值的目标贴在车侧, 不是弯道开口 */
+extern float STRAIGHT_MIN_K;  /* 判定"通道确实直"所需的最小 |Midline.k|: 弯里中线是斜的, |k|很小 */
+extern float SERVO_MAX_STEP;  /* 每帧舵机PWM最大变化量(计数): 限幅甩舵 */
 typedef struct {
     uint32_t observed_us, straight_since_us;
     uint16_t mode, pwm;
@@ -88,90 +102,6 @@ static int angle_nearest(const _LEIDA_DATA *points, float angle)
     }
     return best;
 }
-uint8_t Diag_RadarPacket(const uint8_t *a)
-{
-    uint8_t crc = 0, b;
-    uint16_t i, start = (uint16_t)(a[4] | a[5] << 8), end = (uint16_t)(a[42] | a[43] << 8);
-    Diag_detail_u[12]++;
-    for (i = 0; i < 46; i++) {
-        crc ^= a[i];
-        for (b = 0; b < 8; b++)
-            crc = (uint8_t)((crc << 1) ^ ((crc & 0x80) ? 0x4d : 0));
-    }
-    if (crc != a[46])
-        Diag_detail_u[13]++;
-    if (a[1] != 0x2c)
-        Diag_detail_u[14]++;
-    if (start >= 36000 || end >= 36000)
-        Diag_detail_u[15]++;
-    return a[0] == 0x54 && a[1] == 0x2c && start < 36000 && end < 36000 && crc == a[46];
-}
-void LEIDA_ParserReset(void)
-{
-    lidar_pending = 0;
-}
-uint16_t LEIDA_DATA_HANDLE1(_LEIDA_DATA data[], u8 arr[], u16 size)
-{
-    uint16_t i, j = 0, k, skip;
-    float start, end, angle;
-    LEIDA_parse_calls++;
-    LEIDA_raw_count = 0;
-    Diag_detail_u[4] |= 64;
-    Diag_detail_u[17] = 0xffffffffu;
-    /* 先全清: 同一个 800 槽数组被前后两块数据复用, 上一块写过的槽位这一块可能不再
-     * 被写到, 残留旧点会被 HANDLE3_2 当成有效点混进 valid_couter。 */
-    memset(data, 0, LEIDA_DATA_COUNTER * sizeof(*data));
-    if (!size) {
-        LEIDA_short_inputs++;
-        return 0;
-    }
-    for (i = 0; i < size; i++) {
-        if (!lidar_pending && arr[i] != 0x54)
-            continue;
-        lidar_packet[lidar_pending++] = arr[i];
-        if (lidar_pending < 47)
-            continue;
-        if (Diag_RadarPacket(lidar_packet)) {
-            if (Diag_detail_u[17] == 0xffffffffu)
-                Diag_detail_u[17] = i >= 46 ? i - 46 : 0;
-            LEIDA_speed_dps = (uint16_t)(lidar_packet[2] | lidar_packet[3] << 8);
-            start = (lidar_packet[4] | lidar_packet[5] << 8) / 100.0f;
-            end = (lidar_packet[42] | lidar_packet[43] << 8) / 100.0f;
-            if (end < start)
-                end += 360.0f;
-            for (k = 0; k < 12 && j < LEIDA_DATA_COUNTER; k++, j++) {
-                data[j].distance = (float)(lidar_packet[6 + 3 * k] | lidar_packet[7 + 3 * k] << 8);
-                /* LD14P 一包 47 字节: [0]0x54 [1]0x2C [2..3]转速 [4..5]起始角
-                 * [6..41]12 个点, 每点 3 字节(前 2 字节=距离, 小端; 第 3 字节本代码不用)
-                 * [42..43]结束角 [44..45]时间戳 [46]CRC8。点角度不读包内的, 用起止角插值:
-                 * 12 个点把首尾两端都算进去了, 所以除 11 而不是 12。 */
-                angle = start + (end - start) * k / 11.0f;
-                angle = 360.0f - angle + LEIDA_ANGLE_CENTER;
-                while (angle >= 360.0f)
-                    angle -= 360.0f;
-                while (angle < 0)
-                    angle += 360.0f;
-                data[j].angle = angle;
-                if (data[j].distance > 0)
-                    Diag_detail_u[18] |= 1u << (uint16_t)(angle / 30.0f);
-            }
-            lidar_pending = 0;
-        } else {
-            LEIDA_missing_packets++;
-            Diag_detail_u[16]++;
-            /* Resynchronize bytewise; preserve a potential header inside a bad packet. */
-            for (skip = 1; skip < 47 && lidar_packet[skip] != 0x54; skip++) {
-            }
-            lidar_pending = (uint16_t)(47 - skip);
-            if (lidar_pending)
-                memmove(lidar_packet, lidar_packet + skip, lidar_pending);
-        }
-    }
-    if (!j && size >= 47)
-        LEIDA_sync_failures++;
-    LEIDA_raw_count = j;
-    return j;
-}
 uint16_t LEIDA_DATA_HANDLE10(_LEIDA_DATA_plane arr[], u16 size)
 {
     uint16_t i, n = 0;
@@ -205,6 +135,7 @@ uint16_t LEIDA_DATA_HANDLE10(_LEIDA_DATA_plane arr[], u16 size)
 uint16_t LEIDA_DATA_HANDLE4(_LEIDA_DATA_plane data_center[], _LEIDA_DATA arr[], u16 size)
 {
     uint16_t i, n = 0;
+    uint8_t used[(LEIDA_DATA_COUNTER + 7) / 8] = {0};
     int right, left;
     float a, b, x, y;
     zhongxian_junzhi = 0;
@@ -216,9 +147,15 @@ uint16_t LEIDA_DATA_HANDLE4(_LEIDA_DATA_plane data_center[], _LEIDA_DATA arr[], 
         left = angle_nearest(arr, b);
         if (right < 0 || left < 0)
             continue;
+        /* Overlapping query windows must not count one physical return twice
+         * as independent support for a straight line or turn-exit decision. */
+        if ((used[right / 8] & (1u << (right % 8))) ||
+            (used[left / 8] & (1u << (left % 8)))) continue;
         x = (arr[right].distance * arm_cos_f32(arr[right].angle * PI / 180) + arr[left].distance * arm_cos_f32(arr[left].angle * PI / 180)) / 2;
         y = (arr[right].distance * arm_sin_f32(arr[right].angle * PI / 180) + arr[left].distance * arm_sin_f32(arr[left].angle * PI / 180)) / 2;
         if (y >= 0 && y <= 800 && n < LEIDA_DATA_COUNTER / 2) {
+            used[right / 8] |= (uint8_t)(1u << (right % 8));
+            used[left / 8] |= (uint8_t)(1u << (left % 8));
             data_center[n]._x = x;
             data_center[n++]._y = y;
         }
@@ -338,12 +275,12 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
         if (!(fabs(line->k) > 0.1f && fabs(line->k) <= FLT_MAX && fabs(line->b) <= FLT_MAX))
             return pd_reject();
         target = BLUE_Y_STRA_SEL == 1 ? BLUE_Y_STRA : points[end - 1]._y;
-        e = -((target - line->b) / line->k - 50);
+        e = -((target - line->b) / line->k - CENTER_X_TARGET_MM);
         if (BLUE_Y_STRA_SEL != 1) {
-            if (e > 200)
-                e = 200;
-            if (e < -200)
-                e = -200;
+            if (e > MODE0_ERR_CLAMP_MM)
+                e = MODE0_ERR_CLAMP_MM;
+            if (e < -MODE0_ERR_CLAMP_MM)
+                e = -MODE0_ERR_CLAMP_MM;
         }
     } else if (mode == 1 || mode == 2) {
         target = mode == 1 ? BLUE_Y_RIGHT : BLUE_Y_LEFT;
@@ -362,20 +299,30 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
             Diag_detail_u[4] |= 8;
             return pd_reject();
         }
-        /* 期望: 墙保持在车侧 paodao*BLUE_DIS/100 mm 处。x 是"离该墙的点"的横向坐标,
-         * e<0 = 车离墙太远, 该往右打 (mode1); e>0 = 该往左打 (mode2)。 */
-        e = mode == 1 ? -(x + paodao_distance * BLUE_DIS_RIGHT / 100) : -(x - paodao_distance * BLUE_DIS_LEFT / 100);
+        /* 期望: 通道中线落在车体系 x = CENTER_X_TARGET_MM 处。
+         * x 是边界点的横向坐标; 由此反推通道中线的横向位置:
+         *   mode1 用对侧(左)墙: centre = x + paodao*BLUE_DIS_RIGHT/100
+         *   mode2 用对侧(右)墙: centre = x - paodao*BLUE_DIS_LEFT/100
+         * 20261008: 原来 mode1/2 写成 -(x±T), 少了 CENTER_X_TARGET_MM 这个偏置,
+         * 而 mode0/5/7 是 50-x —— 两种口径差 50mm, 模式一跳变车就横移 5cm。
+         * 在单侧余量只有 120mm 的通道里这足以刮锥桶, 现统一成同一口径。 */
+        e = mode == 1 ? CENTER_X_TARGET_MM - (x + paodao_distance * BLUE_DIS_RIGHT / 100)
+                      : CENTER_X_TARGET_MM - (x - paodao_distance * BLUE_DIS_LEFT / 100);
     } else if (mode == 3 || mode == 4 || mode == 8 || mode == 9) {
         if (!(fabs(line->k) <= FLT_MAX))
             return pd_reject();
         /* 转弯力度: 线越斜(弯越急)|k| 越小, 给的固定误差越大; |k|<0.35 直接顶到 500。
-         * 方向由模式决定, 不看 k 的符号 —— 拟合退化时也不给反向指令。 */
+         * 方向由模式决定, 不看 k 的符号 —— 拟合退化时也不给反向指令。
+         * 20261008: 原式 175/|k| 无下限, 急弯(|k|≈2)只剩 87, 反而给最小转向力;
+         * 加 TURN_MAG_MIN 下限后, |k|∈[0.35,0.7] 区间连续, 更陡也保持 250。 */
         mag = fabs(line->k) < 0.35f ? 500.0f : 175.0f / fabs(line->k);
+        if (mag < TURN_MAG_MIN)
+            mag = TURN_MAG_MIN;
         e = (mode == 3 || mode == 8) ? -mag : mag;
     } else if (mode == 5) {
         if (!LEIDA_vertical_valid)
             return pd_reject();
-        e = 50 - zhongxian_chuizhi;
+        e = CENTER_X_TARGET_MM - zhongxian_chuizhi;
     } else {
         if (end - start < 2)
             return pd_reject();
@@ -385,7 +332,7 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
             x += points[i]._x;
         }
         x /= end - start;
-        e = 50 - x;
+        e = CENTER_X_TARGET_MM - x;
         Diag_detail_f[14] = x;
         Diag_detail_u[4] |= 256;
     }
@@ -399,9 +346,9 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
                                                                                         : pid->kp_2;
     kd = (mode == 1 || mode == 2) ? pid->kd_3 : (mode == 0 || (mode >= 5 && mode <= 7)) ? pid->kd
                                                                                         : pid->kd_2;
-    /* 不同模式的误差来自不同测量目标，不能直接相减当作运动变化。
-     * 例如大左转500 -> 侧墙左转82，会产生假的负D并把舵机拉回中位。
-     * 切模式首帧只用P；弯道延续由主循环的有界TurnGuard负责。 */
+    /* 不同模式的误差来自不同测量目标(中线外推/垂线段/均值/合成力度)，
+     * 不能直接相减当作运动变化。例如大左转500 -> 侧墙左转82，会产生假的负D并把舵机拉回中位。
+     * 切模式首帧只用P；弯道延续由主循环的有界TurnGuard负责，急弯的快速响应由入弯前馈负责。 */
     if (!pd_history_valid || !dt || dt > 250000u || mode != pd_previous_mode) {
         pid->err_l = e;
         Diag_detail_u[4] |= 4;
@@ -427,17 +374,27 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
     if (turn_direction(mode) &&
         (turn_direction(mode) != turn_direction(pd_previous_mode) || turn_rank(mode) > turn_rank(pd_previous_mode)) &&
         ((turn_direction(mode) == 1 && p < 0) || (turn_direction(mode) == 2 && p > 0))) {
-        entry = fabs(p) < TURN_ENTRY_PWM ? fabs(p) : TURN_ENTRY_PWM;
+        /* 入弯补一脚: 原来 entry=min(|P|,75)，P 很弱时这一脚也几乎为 0，
+         * 于是"刚识别到急弯"的那一帧反而没有力度。改成 clamp(|P|, 45, 75)，
+         * 保证入弯首帧至少有一次有界的方向性补偿(单边行程 275, 45 约 16%)。 */
+        entry = fabs(p);
+        if (entry < TURN_ENTRY_MIN_PWM)
+            entry = TURN_ENTRY_MIN_PWM;
+        if (entry > TURN_ENTRY_PWM)
+            entry = TURN_ENTRY_PWM;
         if (p < 0)
             entry = -entry;
     }
     output = 10 * mid + p + d + entry;
-    /* 打方向的模式(1/3/8 往右, 2/4/9 往左)不许把舵机指到中位的另一边, 防反打 */
-    if ((mode == 1 || mode == 3 || mode == 8) && output > 10 * mid) {
+    /* 合成的转弯模式(3/4/8/9)误差方向由模式固定, 不许把舵机指到中位的另一边, 防反打。
+     * 20261008: mode 1/2 退出这个钳位 —— 它们实际是"用对侧墙/锥桶做通道居中",
+     * 原始符号就是正确的横向修正方向。钳位会把本该左打的修正直接钉在中位
+     * (实机日志 pwm_unclamped==pwm_mid, 车在左弯里完全不转), 方向正确性由上游模式选择负责。 */
+    if ((mode == 3 || mode == 8) && output > 10 * mid) {
         output = 10 * mid;
         Diag_detail_u[4] |= 1024;
     }
-    if ((mode == 2 || mode == 4 || mode == 9) && output < 10 * mid) {
+    if ((mode == 4 || mode == 9) && output < 10 * mid) {
         output = 10 * mid;
         Diag_detail_u[4] |= 1024;
     }
@@ -672,6 +629,10 @@ static uint16_t RIGHT_duandian, LEFT_duandian, duandian_DIStance=550, duandian_d
 static uint16_t LEFT_cnt=20, RIGHT_cnt=20, Forward_cnt=20, CENTER_cnt, valid_couter=100;
 static uint16_t ref_start, ref_end, telemetry_mode;
 static uint8_t forward_fit_ok, danbian_flag;
+/* 20261008: main.c 的降级标志与前方斜率分档在切片之外定义, 桩里按同值提供。 */
+static uint8_t degraded=0;
+#define FORWARD_K_BIG 0.35f
+#define FORWARD_K_S_CURVE 2.00f
 static float servo_midpwm=144.5f;
 static pid_type Servo_pd;
 static Midline_type Midline, Midline_forward, Midline_forward_2, Midline_forward_3;
@@ -685,7 +646,10 @@ static void convert(_LEIDA_DATA_plane *p,_LEIDA_DATA *a,int n){}
 static uint16_t keep(_LEIDA_DATA_plane *p,uint16_t n){return n;}
 static uint16_t center(_LEIDA_DATA_plane *p,_LEIDA_DATA *a,uint16_t n){return mock_center_count;}
 static float vertical(_LEIDA_DATA_plane *p,uint16_t s,uint16_t e){LEIDA_vertical_valid=1;return 50-mock_error;}
-static uint8_t fit(_LEIDA_DATA_plane *p,int s,int e,Midline_type *l){l->k=1;l->b=0;return 1;}
+static uint8_t fit(_LEIDA_DATA_plane *p,int s,int e,Midline_type *l){l->k=5;l->b=0;return 1;}
+/* 20261008: 桩里的 k 从 1 改成 5。真实直道中线拟合的 |Midline.k| 实测是 4.3~11.4
+ * (弯道里才掉到 0.1~0.9), 而新增的 straight_evidence 要求 |k| >= STRAIGHT_MIN_K(2.0)
+ * 才算"确实直"。k=1 不再是直道的代表值。 */
 static void Diag_Field(int field,float value,int valid){}
 static uint16_t command(_LEIDA_DATA_plane *p,pid_type *pid,Midline_type *l,float mid,uint16_t s,uint16_t e,uint16_t mode){
     calls++;selected=mode;Servo_PD_valid=mock_valid;pid->err=mock_error;
@@ -704,16 +668,21 @@ static void step(void){
             scan->front_us = Diag_TimeUs();
             candidate_pwm = (uint16_t)TIM3->CCR1;
             CENTER_cnt = 0;
-            if ((RIGHT_duandian > 0 && RIGHT_duandian < duandian_DIStance) ||
-                (LEFT_duandian > 0 && LEFT_duandian < duandian_DIStance)) {
+            if (degraded)
+                Diag_detail_u[4] |= 64; /* bit6: 本帧降级, 未使用断点/转弯模式(主机允许 bit0~11) */
+            if (!degraded &&
+                ((RIGHT_duandian > 0 && RIGHT_duandian < duandian_DIStance) ||
+                 (LEFT_duandian > 0 && LEFT_duandian < duandian_DIStance))) {
                 uint8_t right = (RIGHT_duandian > 0 && RIGHT_duandian < duandian_DIStance);
                 uint16_t breakpoint = right ? RIGHT_duandian : LEFT_duandian;
-                if (forward_fit_ok && breakpoint < duandian_distance && fabs(Midline_forward.k) < 0.35f) {
+                if (forward_fit_ok && breakpoint < duandian_distance && fabs(Midline_forward.k) < FORWARD_K_BIG) {
                     pid_select = right ? 3 : 4;
                     candidate_pwm = Midline_PD_Calculate(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward, servo_midpwm,
                                                         (uint16_t)(Forward_cnt * 0.1f), (uint16_t)(Forward_cnt * 0.9f), pid_select);
-                } else if (forward_fit_ok && breakpoint < duandian_distance && fabs(Midline_forward.k) < 0.7f &&
-                           danbian_flag && (fabs(Midline_forward_2.k) < 0.25f || fabs(Midline_forward_3.k) < 0.25f)) {
+                } else if (forward_fit_ok && breakpoint < duandian_distance &&
+                           fabs(Midline_forward.k) < FORWARD_K_S_CURVE &&
+                           (fabs(Midline_forward.k) >= FORWARD_K_BIG ||
+                            (danbian_flag && (fabs(Midline_forward_2.k) < 0.25f || fabs(Midline_forward_3.k) < 0.25f)))) {
                     pid_select = right ? 8 : 9;
                     candidate_pwm = Midline_PD_Calculate(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward, servo_midpwm,
                                                         (uint16_t)(Forward_cnt * 0.1f), (uint16_t)(Forward_cnt * 0.9f), pid_select);
@@ -753,8 +722,16 @@ static void step(void){
             }
             if (scan->epoch != LidarRx_epoch || (uint32_t)(Diag_TimeUs()-scan->front_us) > M10P_MAX_AGE_US)
                 Servo_PD_valid = 0;
+            /* "直道证据"必须几何上真的直: 弯道里中线是斜的(|Midline.k|很小), 而 |err| 只
+             * 说明"当前偏差小", 不能证明通道是直的。实测 t=26.666 用 |err|=0.9 就把弯道
+             * 判成直道, TurnGuard 放行后舵机一帧内 1644→1444 摆正。 */
+            /* mode5 不做直线拟合(它用 HANDLE11 的垂线判据), 此时 Midline.k 是**上一帧别的
+             * 模式留下的陈旧值** —— 复核已复现: 同一 mode5 帧, 残留 k=0.2 判"非直道"、
+             * 残留 k=5.0 判"直道", 结果由残留值决定。所以 mode5 改用 LEIDA_vertical_valid。 */
             straight_evidence = Servo_PD_valid && CENTER_cnt >= 8 &&
-                                (pid_select == 0 || pid_select == 5) && fabs(Servo_pd.err) <= TURN_EXIT_ERROR_MM;
+                                ((pid_select == 0 && fabs(Midline.k) >= STRAIGHT_MIN_K) ||
+                                 (pid_select == 5 && LEIDA_vertical_valid)) &&
+                                fabs(Servo_pd.err) <= TURN_EXIT_ERROR_MM;
             candidate_pwm = TurnGuard_Apply(&turn_guard, pid_select, Servo_PD_valid, straight_evidence,
                                             candidate_pwm, Diag_TimeUs(), &turn_held);
             if (!Servo_PD_valid)
@@ -766,6 +743,16 @@ static void step(void){
                     Midline_PD_Reset();
                     Servo_PD_valid = 1;
                     Diag_detail_u[4] &= ~1u;
+                }
+                /* 舵机变化率限幅: 无论方向翻转来自断点左右横跳还是模式跳变, 都不再允许
+                 * 一帧从打满左甩到打满右(实测 1720↔1170)。半行程275, 150/帧≈2帧到位。 */
+                {
+                    int32_t now_pwm = (int32_t)TIM3->CCR1;
+                    int32_t step = (int32_t)candidate_pwm - now_pwm;
+                    if (step > (int32_t)SERVO_MAX_STEP)
+                        candidate_pwm = (uint16_t)(now_pwm + (int32_t)SERVO_MAX_STEP);
+                    else if (step < -(int32_t)SERVO_MAX_STEP)
+                        candidate_pwm = (uint16_t)(now_pwm - (int32_t)SERVO_MAX_STEP);
                 }
                 Servo_ChangePwm(candidate_pwm);
             }
@@ -806,6 +793,15 @@ int main(void){
         CHECK(tick(0,1,1462,50,115000));
         CHECK(!turn_held && !turn_guard.active && timer3.CCR1==1462);
 
+        /* 20261008: 降级帧(感知判据不全)必须仍然更新舵机 —— 不许把舵角冻结在
+         * 最后一次的值(实机曾冻在右打满 1170 直冲边界)。同时不得使用断点/转弯模式。 */
+        memset(&turn_guard,0,sizeof turn_guard);
+        degraded=1;
+        CHECK(tick(large,1,strong,500,115000));   /* tick 内部要求正好写一次舵机 */
+        CHECK(selected==5 && timer3.CCR1==strong);
+        CHECK(Diag_detail_u[4]&64);               /* bit6: 本帧降级标记 */
+        degraded=0;
+
         /* Invalid geometry interrupts exit confirmation and never writes/renews. */
         CHECK(tick(large,1,strong,500,50000));
         CHECK(tick(0,1,1462,50,50000));CHECK(turn_guard.straight_frames==1);
@@ -813,8 +809,13 @@ int main(void){
         CHECK(turn_guard.active && !turn_guard.straight_frames && !Servo_PD_valid && telemetry_mode==11);
         CHECK(tick(0,1,1462,50,50000));CHECK(turn_held);
         CHECK(tick(0,1,1462,50,50000));CHECK(turn_guard.active && turn_held);
-        /* At 20Hz two observations are only 50ms apart. Require >=100ms. */
+        /* At 20Hz two observations are only 50ms apart. Require >=60ms. */
         CHECK(tick(0,1,1462,50,50000));CHECK(!turn_guard.active);
+
+        /* M10P at 12Hz: two straight frames must release without a third scan. */
+        CHECK(tick(large,1,strong,500,83000));
+        CHECK(tick(0,1,1462,50,83000));CHECK(turn_held);
+        CHECK(tick(0,1,1462,50,83000));CHECK(!turn_held && !turn_guard.active);
 
         /* Downgraded measurements cannot rearm the 350ms deadline. */
         CHECK(tick(large,1,strong,500,115000));

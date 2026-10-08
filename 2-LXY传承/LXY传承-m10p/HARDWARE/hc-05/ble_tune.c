@@ -131,12 +131,14 @@ static void Tune_ApplyOne(char *line)
      * clear_mm=M10P_MAX_MM表示未发现更近的走廊回波；gap按0.5度桶计数。
      * why 是判据失败原因位图(m10p_vehicle.h), src 是本帧实际使用的转向来源:
      *   0=双侧中线 1=仅左侧跟线 2=仅右侧跟线 3=降级(有回波但判据不全) 4=保持(无回波)
-     * pd=1 才表示本帧真的执行了PD, 此时 mode 为 0/5/7 时的 err 才是"中线横向偏差"。
+     * pd=1 才表示本帧真的执行了PD。pmode 是**上一帧成功执行的PD模式**(DETAIL 里叫
+     * previous_mode): 本帧PD被拒或走降级分支时它不更新, 判断"本帧模式"要连看两帧或
+     * 对照 detail.csv。pmode 为 0/5/7 时 err 才是"中线横向偏差"。
      * ★标定: 车摆在通道正中并摆平, 反复读 cal=, 直接发 "cx <cal>" 即可;
      *   标定后 err 应≈0。cal = cx - err = 当前常数下测出的真实中线横向位置。 */
     if (strcmp(line,"perception")==0) {
         char status[256];
-        sprintf(status,"perception seq=%lu ok=%u src=%u why=0x%02x pd=%u points=%u front=%u left=%u right=%u gap=%u clear_mm=%lu age_us=%lu err=%.1f cx=%.1f cal=%.1f mode=%u\r\n",
+        sprintf(status,"perception seq=%lu ok=%u src=%u why=0x%02x pd=%u points=%u front=%u left=%u right=%u gap=%u clear_mm=%lu age_us=%lu err=%.1f cx=%.1f cal=%.1f pmode=%u\r\n",
             (unsigned long)M10P_control_seq,(unsigned)M10P_perception_ok,
             (unsigned)M10P_steer_source,(unsigned)M10P_perception_why,
             (unsigned)Servo_PD_valid,(unsigned)valid_couter,

@@ -1,0 +1,8 @@
+single-side: input=60 center=0 pd=0 writes=0 pwm=1645
+vertical-real: prior_k=0.2 mode=5 vertical=1 center=72 straight=0 held=1 pwm=1645
+vertical-real: prior_k=5.0 mode=5 vertical=1 center=72 straight=1 held=0 pwm=1445
+guard-expiry: straight=0 held=0 pwm=1445
+mode1-real: error=250.0 candidate=1543 final=1245 held=1
+break-right: first=60 after_main_filter=0 later=281
+break-left: first=60 after_main_filter=0 later=281
+mode-diagnostic: requested=5 printed_field6=1 current_internal=5

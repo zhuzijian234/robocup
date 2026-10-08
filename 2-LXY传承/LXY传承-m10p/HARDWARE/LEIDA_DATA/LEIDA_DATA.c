@@ -231,7 +231,11 @@ uint16_t LEIDA_DATA_HANDLE8(_LEIDA_DATA arr[], u16 size)
                         else
                             min = arr[i - 1].distance * arm_sin_f32(arr[i - 1].angle * PI / 180);
 
-                        if (min < 1000) /* 仅报告1米以内的突变 */
+                        /* 20261008: y投影太小的突变是"贴着车身的锥桶/墙头", 不是弯道开口。
+                         * 必须在搜索内部跳过它并继续往后找真开口 —— 原来在主循环里事后清零,
+                         * 会把整侧断点直接丢掉(复核复现: first=60, 事后清零=0, 后面的 281 被漏)。
+                         * duandian_MIN_Y=0 时行为与旧代码完全一致。 */
+                        if (min >= duandian_MIN_Y && min < 1000) /* 仅报告1米以内的突变 */
                             return min;
                     }
     }
@@ -268,7 +272,7 @@ uint16_t LEIDA_DATA_HANDLE9(_LEIDA_DATA arr[], u16 size)
                         else
                             min = arr[i - 1].distance * arm_sin_f32(arr[i - 1].angle * PI / 180);
 
-                        if (min < 1000)
+                        if (min >= duandian_MIN_Y && min < 1000) /* 同上: 跳过贴车身的突变 */
                             return min;
                     }
     }

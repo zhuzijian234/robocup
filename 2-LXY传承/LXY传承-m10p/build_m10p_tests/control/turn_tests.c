@@ -37,8 +37,10 @@ float BLUE_Y_RIGHT=1200,BLUE_Y_LEFT=1350,BLUE_Y_STRA_SEL=0,BLUE_Y_STRA=750;
 float BLUE_DIS_RIGHT=50,BLUE_DIS_LEFT=50,paodao_distance=800;
 /* 20261008 新增的控制口径量(原为硬编码 50/200 和无下限公式) */
 float CENTER_X_TARGET_MM=50.0f,MODE0_ERR_CLAMP_MM=350.0f,TURN_MAG_MIN=250.0f;
-/* 转向稳定化三量: 断点y下限 / 直道判据 / 舵机步进限幅 */
-float duandian_MIN_Y=200.0f,STRAIGHT_MIN_K=2.0f,SERVO_MAX_STEP=150.0f;
+/* 转向稳定化三量: 断点y下限 / 直道判据 / 舵机步进限幅
+ * ★必须与 CENTRE_LINE.c 的实际默认值一致 —— 切片用的是桩里的定义, 桩不同步会掩盖真实
+ *   行为(曾因这里写 150 而生产代码是 600, 把"桩没同步"误判成"slew 打断了入弯到位")。 */
+float duandian_MIN_Y=200.0f,STRAIGHT_MIN_K=2.0f,SERVO_MAX_STEP=600.0f;
 static uint32_t clock_us;
 uint32_t Diag_TimeUs(void){return clock_us;}
 void Diag_Fit(const void *line,uint8_t valid){}
@@ -723,9 +725,12 @@ static void step(void){
             /* "直道证据"必须几何上真的直: 弯道里中线是斜的(|Midline.k|很小), 而 |err| 只
              * 说明"当前偏差小", 不能证明通道是直的。实测 t=26.666 用 |err|=0.9 就把弯道
              * 判成直道, TurnGuard 放行后舵机一帧内 1644→1444 摆正。 */
+            /* mode5 不做直线拟合(它用 HANDLE11 的垂线判据), 此时 Midline.k 是**上一帧别的
+             * 模式留下的陈旧值** —— 复核已复现: 同一 mode5 帧, 残留 k=0.2 判"非直道"、
+             * 残留 k=5.0 判"直道", 结果由残留值决定。所以 mode5 改用 LEIDA_vertical_valid。 */
             straight_evidence = Servo_PD_valid && CENTER_cnt >= 8 &&
-                                (pid_select == 0 || pid_select == 5) &&
-                                fabs(Midline.k) >= STRAIGHT_MIN_K &&
+                                ((pid_select == 0 && fabs(Midline.k) >= STRAIGHT_MIN_K) ||
+                                 (pid_select == 5 && LEIDA_vertical_valid)) &&
                                 fabs(Servo_pd.err) <= TURN_EXIT_ERROR_MM;
             candidate_pwm = TurnGuard_Apply(&turn_guard, pid_select, Servo_PD_valid, straight_evidence,
                                             candidate_pwm, Diag_TimeUs(), &turn_held);

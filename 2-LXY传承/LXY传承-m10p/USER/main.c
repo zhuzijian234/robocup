@@ -315,18 +315,12 @@ int main(void)
             RIGHT_duandian = LEIDA_DATA_HANDLE9(LEIDA_DATA_RIGHT, RIGHT_cnt);
             LEFT_duandian = LEIDA_DATA_HANDLE8(LEIDA_DATA_LEFT, LEFT_cnt);
 
-            /* 20261008: HANDLE8/9 报的是"距离跳变点", 不是"弯道开口"。锥桶或墙头贴在
-             * 车身侧面时 y投影只有 20~130mm, 实测两侧都会报、而且谁赢逐帧翻转 →
-             * 转向方向跟着翻转 → 舵机打满左↔打满右(实测 1720↔1170)。
-             * 加下限: 只有明显在车前方的跳变才算转弯入口。 */
-            if (RIGHT_duandian < duandian_MIN_Y)
-                RIGHT_duandian = 0;
-            if (LEFT_duandian < duandian_MIN_Y)
-                LEFT_duandian = 0;
-
+            /* 20261008: 下限 duandian_MIN_Y 已在 HANDLE8/9 **搜索内部**生效(跳过贴车身的
+             * 锥桶/墙头突变, 并继续往后找真开口)。这里不再事后清零 —— 事后清零会把整侧
+             * 断点丢掉, 连后面的有效开口一起漏掉(复核复现: first=60 → 清零 → later=281 被漏)。 */
             /* 左右同时命中同一窗口时，保留较近的一个（防止T字路口误判） */
-            if ((LEFT_duandian > duandian_MIN_Y) && (LEFT_duandian < duandian_DIStance) &&
-                (RIGHT_duandian > duandian_MIN_Y) && (RIGHT_duandian < duandian_DIStance)) {
+            if ((LEFT_duandian > 0) && (LEFT_duandian < duandian_DIStance) &&
+                (RIGHT_duandian > 0) && (RIGHT_duandian < duandian_DIStance)) {
                 if (LEFT_duandian > RIGHT_duandian)
                     LEFT_duandian = 0;
                 else
@@ -393,9 +387,12 @@ int main(void)
             /* "直道证据"必须几何上真的直: 弯道里中线是斜的(|Midline.k|很小), 而 |err| 只
              * 说明"当前偏差小", 不能证明通道是直的。实测 t=26.666 用 |err|=0.9 就把弯道
              * 判成直道, TurnGuard 放行后舵机一帧内 1644→1444 摆正。 */
+            /* mode5 不做直线拟合(它用 HANDLE11 的垂线判据), 此时 Midline.k 是**上一帧别的
+             * 模式留下的陈旧值** —— 复核已复现: 同一 mode5 帧, 残留 k=0.2 判"非直道"、
+             * 残留 k=5.0 判"直道", 结果由残留值决定。所以 mode5 改用 LEIDA_vertical_valid。 */
             straight_evidence = Servo_PD_valid && CENTER_cnt >= 8 &&
-                                (pid_select == 0 || pid_select == 5) &&
-                                fabs(Midline.k) >= STRAIGHT_MIN_K &&
+                                ((pid_select == 0 && fabs(Midline.k) >= STRAIGHT_MIN_K) ||
+                                 (pid_select == 5 && LEIDA_vertical_valid)) &&
                                 fabs(Servo_pd.err) <= TURN_EXIT_ERROR_MM;
             candidate_pwm = TurnGuard_Apply(&turn_guard, pid_select, Servo_PD_valid, straight_evidence,
                                             candidate_pwm, Diag_TimeUs(), &turn_held);
