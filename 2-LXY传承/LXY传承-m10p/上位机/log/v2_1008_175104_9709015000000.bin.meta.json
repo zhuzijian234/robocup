@@ -1,0 +1,79 @@
+{
+  "run_uuid": "d35ddd77-0a59-49a6-aacb-c8da24697b59",
+  "started_utc": "2026-10-08T09:51:05.072636+00:00",
+  "host_version": "v2.1",
+  "host_sha256": "44d8789939997ca34b3eb12b0f5ab2af05fcf54773a0406d8a1b15789bbae85e",
+  "protocol": 2,
+  "port": "COM13",
+  "baud": 115200,
+  "requested_rate": 1,
+  "pre_roll_s": 1.875,
+  "session": 2040804426,
+  "info": "INFO proto=1,2 layout=rc26-mask31-v2.1 fw=sha256-ef47a83ee48ee4d8 lidar=3 algorithm=3 input=1 atomic=0 detail=1 motor=1",
+  "version": 1,
+  "clock": "host_monotonic",
+  "duration_s": 27.79700000000048,
+  "bytes": 191091,
+  "sha256": "2582a1fc12430a79fe2d84afd728ee400a3c98e9d808ca2f6c4343054953c48e",
+  "ended_utc": "2026-10-08T09:51:32.878358+00:00",
+  "end_reason": "user_stop",
+  "error": null,
+  "commands": [
+    {
+      "t": 0.0,
+      "command": "info"
+    },
+    {
+      "t": 0.14099999999962165,
+      "command": "session 2040804426"
+    },
+    {
+      "t": 0.28100000000085856,
+      "command": "tele 3"
+    },
+    {
+      "t": 0.6880000000001019,
+      "command": "rate 1"
+    },
+    {
+      "t": 1.375,
+      "command": "getcfg"
+    }
+  ],
+  "configs": {
+    "2040804426:3": {
+      "layout": "rc26-mask31-v2.1",
+      "build": "sha256-ef47a83ee48ee4d8",
+      "lidar": 3,
+      "algorithm": 3,
+      "input_kind": 1,
+      "baud": 115200,
+      "rate": 1,
+      "timeout_ms": 0,
+      "health_ms": 1000,
+      "units": "mm;CCR;encoder_units;slope;PD=mode-reset-Dcap150;entry=min(75,abs(P));turn=350ms-exit2+60ms;spd=race-fixed;request=CFG108",
+      "dma_bytes": 1024,
+      "point_capacity": 800,
+      "geometry": "break=550/600mm;width=600..900mm;PWM=1170/1445/1720;PDmid=1445;fit=checked;center=paired",
+      "lidar_config": "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720",
+      "kp": 0.03500000014901161,
+      "kp2": 0.03999999910593033,
+      "kp3": 0.039500001817941666,
+      "kd": 0.03500000014901161,
+      "kd2": 0.02199999988079071,
+      "kd3": 0.019999999552965164,
+      "sp_kp": 8.5,
+      "sp_ki": 0.5049999952316284,
+      "spd": 10.0,
+      "disr": 50.0,
+      "disl": 50.0,
+      "yr": 700.0,
+      "yl": 700.0,
+      "ystra": 750.0,
+      "ysel": 0.0,
+      "angle": 90.0,
+      "cx": -27.0,
+      "eclamp": 350.0
+    }
+  }
+}

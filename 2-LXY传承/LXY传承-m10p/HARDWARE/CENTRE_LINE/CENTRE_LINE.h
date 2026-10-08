@@ -109,6 +109,14 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
                                   * 没有下限就等于没有入弯补偿。约占单边行程275的16%。 */
 #define TURN_MIN_OFFSET 20  /* 接近中位的候选不能成为弯道保持依据 */
 #define TURN_RETRACT_PWM 60 /* 同模式单次明显收舵，需要出弯确认或期限到达 */
+
+/* ==================== 20261008 转向稳定化 (实车日志归因) ====================
+ * 实测 v2_1008_175104: 弯中 LEFT/RIGHT_duandian 只有 19~130mm 且左右逐帧翻转,
+ * 造成 mode 9→0→4→3→4→3 跳变、舵机 1643→1444→1609→1720→1170 甩动。
+ * 下面三个量分别针对: ①假的断点 ②把弯道误判成直道 ③甩舵幅度。 */
+extern float duandian_MIN_Y;  /* 断点y投影下限(mm): 小于此值的目标贴在车侧, 不是弯道开口 */
+extern float STRAIGHT_MIN_K;  /* 判定"通道确实直"所需的最小 |Midline.k|: 弯里中线是斜的, |k|很小 */
+extern float SERVO_MAX_STEP;  /* 每帧舵机PWM最大变化量(计数): 限幅甩舵 */
 typedef struct {
     uint32_t observed_us, straight_since_us;
     uint16_t mode, pwm;

@@ -50,7 +50,10 @@ static void convert(_LEIDA_DATA_plane *p,_LEIDA_DATA *a,int n){}
 static uint16_t keep(_LEIDA_DATA_plane *p,uint16_t n){return n;}
 static uint16_t center(_LEIDA_DATA_plane *p,_LEIDA_DATA *a,uint16_t n){return mock_center_count;}
 static float vertical(_LEIDA_DATA_plane *p,uint16_t s,uint16_t e){LEIDA_vertical_valid=1;return 50-mock_error;}
-static uint8_t fit(_LEIDA_DATA_plane *p,int s,int e,Midline_type *l){l->k=1;l->b=0;return 1;}
+static uint8_t fit(_LEIDA_DATA_plane *p,int s,int e,Midline_type *l){l->k=5;l->b=0;return 1;}
+/* 20261008: 桩里的 k 从 1 改成 5。真实直道中线拟合的 |Midline.k| 实测是 4.3~11.4
+ * (弯道里才掉到 0.1~0.9), 而新增的 straight_evidence 要求 |k| >= STRAIGHT_MIN_K(2.0)
+ * 才算"确实直"。k=1 不再是直道的代表值。 */
 static void Diag_Field(int field,float value,int valid){}
 static uint16_t command(_LEIDA_DATA_plane *p,pid_type *pid,Midline_type *l,float mid,uint16_t s,uint16_t e,uint16_t mode){
     calls++;selected=mode;Servo_PD_valid=mock_valid;pid->err=mock_error;

@@ -72,8 +72,10 @@ uint8_t LEIDA_vertical_valid,Servo_PD_valid;
 static uint8_t pd_history_valid;static uint16_t pd_previous_mode;static uint32_t pd_previous_us;
 float BLUE_Y_RIGHT=1200,BLUE_Y_LEFT=1350,BLUE_Y_STRA_SEL=0,BLUE_Y_STRA=750;
 float BLUE_DIS_RIGHT=50,BLUE_DIS_LEFT=50,paodao_distance=800;
-/* 20261008 新增的三个控制口径量(原为硬编码 50/200 和无下限公式) */
+/* 20261008 新增的控制口径量(原为硬编码 50/200 和无下限公式) */
 float CENTER_X_TARGET_MM=50.0f,MODE0_ERR_CLAMP_MM=350.0f,TURN_MAG_MIN=250.0f;
+/* 转向稳定化三量: 断点y下限 / 直道判据 / 舵机步进限幅 */
+float duandian_MIN_Y=200.0f,STRAIGHT_MIN_K=2.0f,SERVO_MAX_STEP=150.0f;
 static uint32_t clock_us;
 uint32_t Diag_TimeUs(void){return clock_us;}
 void Diag_Fit(const void *line,uint8_t valid){}

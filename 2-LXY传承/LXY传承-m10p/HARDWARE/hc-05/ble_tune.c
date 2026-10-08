@@ -66,6 +66,10 @@ static const Param_t param_tab[] = {
     /* 20261008 新增: 车体几何标定与直道修正权限(实车必须在赛道上重标) */
     {"cx",    &CENTER_X_TARGET_MM, -300, 300, 0},    /* 车体系里"通道中线"应在的横向位置(mm): 发 cx 0 */
     {"eclamp",&MODE0_ERR_CLAMP_MM,  100, 500, 0},    /* mode0 误差限幅(mm): 原200, 现350 */
+    /* 20261008 转向稳定化(依据 log/v2_1008_175104 实测, 见 CENTRE_LINE.h 注释) */
+    {"dy",    &duandian_MIN_Y,        0, 550, 0},    /* 断点y投影下限(mm): 小于此值的目标贴在车侧, 不是弯道开口 */
+    {"sk",    &STRAIGHT_MIN_K,        5, 100, 1},    /* "确实直"的最小 |Midline.k|, 发送值÷10: 发 20 → 2.0 */
+    {"slew",  &SERVO_MAX_STEP,       40, 600, 0},    /* 每帧舵机PWM最大步进(计数): 600≈不限幅 */
 };
 #define PARAM_NUM (sizeof(param_tab) / sizeof(param_tab[0]))
 

@@ -1,0 +1,79 @@
+{
+  "run_uuid": "76fb09c2-dedd-404d-8d6f-fe7dbbb56312",
+  "started_utc": "2026-10-08T09:54:07.339829+00:00",
+  "host_version": "v2.1",
+  "host_sha256": "44d8789939997ca34b3eb12b0f5ab2af05fcf54773a0406d8a1b15789bbae85e",
+  "protocol": 2,
+  "port": "COM13",
+  "baud": 115200,
+  "requested_rate": 1,
+  "pre_roll_s": 2.0780000000013388,
+  "session": 3607169665,
+  "info": "INFO proto=1,2 layout=rc26-mask31-v2.1 fw=sha256-ef47a83ee48ee4d8 lidar=3 algorithm=3 input=1 atomic=0 detail=1 motor=1",
+  "version": 1,
+  "clock": "host_monotonic",
+  "duration_s": 13.484000000000378,
+  "bytes": 90257,
+  "sha256": "e641c9fa333b565c6b38e4efa2fb0149c7be14bc935eebc4894a1b344d4f5fe4",
+  "ended_utc": "2026-10-08T09:54:20.825142+00:00",
+  "end_reason": "error",
+  "error": "GetOverlappedResult failed (PermissionError(13, '拒绝访问。', None, 5))",
+  "commands": [
+    {
+      "t": 0.0,
+      "command": "info"
+    },
+    {
+      "t": 0.1720000000004802,
+      "command": "session 3607169665"
+    },
+    {
+      "t": 0.3430000000007567,
+      "command": "tele 3"
+    },
+    {
+      "t": 1.0,
+      "command": "rate 1"
+    },
+    {
+      "t": 1.625,
+      "command": "getcfg"
+    }
+  ],
+  "configs": {
+    "3607169665:5": {
+      "layout": "rc26-mask31-v2.1",
+      "build": "sha256-ef47a83ee48ee4d8",
+      "lidar": 3,
+      "algorithm": 3,
+      "input_kind": 1,
+      "baud": 115200,
+      "rate": 1,
+      "timeout_ms": 0,
+      "health_ms": 1000,
+      "units": "mm;CCR;encoder_units;slope;PD=mode-reset-Dcap150;entry=min(75,abs(P));turn=350ms-exit2+60ms;spd=race-fixed;request=CFG108",
+      "dma_bytes": 1024,
+      "point_capacity": 800,
+      "geometry": "break=550/600mm;width=600..900mm;PWM=1170/1445/1720;PDmid=1445;fit=checked;center=paired",
+      "lidar_config": "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720",
+      "kp": 0.03500000014901161,
+      "kp2": 0.03999999910593033,
+      "kp3": 0.039500001817941666,
+      "kd": 0.03500000014901161,
+      "kd2": 0.02199999988079071,
+      "kd3": 0.019999999552965164,
+      "sp_kp": 8.5,
+      "sp_ki": 0.5049999952316284,
+      "spd": 10.0,
+      "disr": 50.0,
+      "disl": 50.0,
+      "yr": 700.0,
+      "yl": 700.0,
+      "ystra": 750.0,
+      "ysel": 0.0,
+      "angle": 90.0,
+      "cx": -27.0,
+      "eclamp": 350.0
+    }
+  }
+}

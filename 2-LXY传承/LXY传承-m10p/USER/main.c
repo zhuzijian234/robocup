@@ -315,9 +315,18 @@ int main(void)
             RIGHT_duandian = LEIDA_DATA_HANDLE9(LEIDA_DATA_RIGHT, RIGHT_cnt);
             LEFT_duandian = LEIDA_DATA_HANDLE8(LEIDA_DATA_LEFT, LEFT_cnt);
 
-            /* 如果左右两边同时检测到断点(都在100-550mm之间)，
-             * 保留较近的一个，丢弃较远的那个（防止T字路口误判） */
-            if ((LEFT_duandian > 100) && (LEFT_duandian < duandian_DIStance) && (RIGHT_duandian > 100) && (RIGHT_duandian < duandian_DIStance)) {
+            /* 20261008: HANDLE8/9 报的是"距离跳变点", 不是"弯道开口"。锥桶或墙头贴在
+             * 车身侧面时 y投影只有 20~130mm, 实测两侧都会报、而且谁赢逐帧翻转 →
+             * 转向方向跟着翻转 → 舵机打满左↔打满右(实测 1720↔1170)。
+             * 加下限: 只有明显在车前方的跳变才算转弯入口。 */
+            if (RIGHT_duandian < duandian_MIN_Y)
+                RIGHT_duandian = 0;
+            if (LEFT_duandian < duandian_MIN_Y)
+                LEFT_duandian = 0;
+
+            /* 左右同时命中同一窗口时，保留较近的一个（防止T字路口误判） */
+            if ((LEFT_duandian > duandian_MIN_Y) && (LEFT_duandian < duandian_DIStance) &&
+                (RIGHT_duandian > duandian_MIN_Y) && (RIGHT_duandian < duandian_DIStance)) {
                 if (LEFT_duandian > RIGHT_duandian)
                     LEFT_duandian = 0;
                 else
@@ -381,8 +390,13 @@ int main(void)
             }
             if (scan->epoch != LidarRx_epoch || (uint32_t)(Diag_TimeUs()-scan->front_us) > M10P_MAX_AGE_US)
                 Servo_PD_valid = 0;
+            /* "直道证据"必须几何上真的直: 弯道里中线是斜的(|Midline.k|很小), 而 |err| 只
+             * 说明"当前偏差小", 不能证明通道是直的。实测 t=26.666 用 |err|=0.9 就把弯道
+             * 判成直道, TurnGuard 放行后舵机一帧内 1644→1444 摆正。 */
             straight_evidence = Servo_PD_valid && CENTER_cnt >= 8 &&
-                                (pid_select == 0 || pid_select == 5) && fabs(Servo_pd.err) <= TURN_EXIT_ERROR_MM;
+                                (pid_select == 0 || pid_select == 5) &&
+                                fabs(Midline.k) >= STRAIGHT_MIN_K &&
+                                fabs(Servo_pd.err) <= TURN_EXIT_ERROR_MM;
             candidate_pwm = TurnGuard_Apply(&turn_guard, pid_select, Servo_PD_valid, straight_evidence,
                                             candidate_pwm, Diag_TimeUs(), &turn_held);
             if (!Servo_PD_valid)
@@ -394,6 +408,16 @@ int main(void)
                     Midline_PD_Reset();
                     Servo_PD_valid = 1;
                     Diag_detail_u[4] &= ~1u;
+                }
+                /* 舵机变化率限幅: 无论方向翻转来自断点左右横跳还是模式跳变, 都不再允许
+                 * 一帧从打满左甩到打满右(实测 1720↔1170)。半行程275, 150/帧≈2帧到位。 */
+                {
+                    int32_t now_pwm = (int32_t)TIM3->CCR1;
+                    int32_t step = (int32_t)candidate_pwm - now_pwm;
+                    if (step > (int32_t)SERVO_MAX_STEP)
+                        candidate_pwm = (uint16_t)(now_pwm + (int32_t)SERVO_MAX_STEP);
+                    else if (step < -(int32_t)SERVO_MAX_STEP)
+                        candidate_pwm = (uint16_t)(now_pwm - (int32_t)SERVO_MAX_STEP);
                 }
                 Servo_ChangePwm(candidate_pwm);
             }

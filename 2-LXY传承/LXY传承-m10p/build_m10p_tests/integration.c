@@ -33,6 +33,17 @@ uint32_t M10P_build_age_us;
 uint8_t M10P_front_seen,M10P_build_epoch_ok;
 float M10P_clearance_mm;
 uint8_t M10P_perception_ok;
+/* 20261008 感知分级: 原因位枚举与分级结果。宏取自 m10p_vehicle.h,
+ * 主机侧不能直接包含它(会拉进 LEIDA_DATA.h/arm_math.h), 故按同值重复定义。 */
+#define M10P_WHY_FRONT_SEEN 1u
+#define M10P_WHY_FRONT_BINS 2u
+#define M10P_WHY_FRONT_GAP  4u
+#define M10P_WHY_LEFT_BINS  8u
+#define M10P_WHY_RIGHT_BINS 16u
+#define M10P_WHY_EPOCH      32u
+#define M10P_WHY_AGE        64u
+#define M10P_WHY_CAPACITY   128u
+uint8_t M10P_front_ok,M10P_left_ok,M10P_right_ok,M10P_perception_why,M10P_steer_source;
 typedef struct {float kp,ki,kd,err,err_l,err_sum;} pid_type;
 volatile float Diag_motor_integral,Diag_motor_prelimit;
 uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
@@ -42,6 +53,9 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
     M10P_clearance_mm = (float)M10P_MAX_MM; /* 先当"啥也没看见", 下面扫到更近的再改 */
     M10P_perception_ok = 0;
     M10P_front_gap_bins = 0;
+    /* 提前 return(装不下)时留下确定的原因位, 不沿用上一帧的结果。 */
+    M10P_front_ok = M10P_left_ok = M10P_right_ok = 0;
+    M10P_perception_why = M10P_WHY_CAPACITY;
     M10P_front_seen = scan->front_seen;
     M10P_build_epoch_ok = scan->epoch == LidarRx_epoch;
     M10P_build_age_us = (uint32_t)(Diag_TimeUs() - scan->front_us);
@@ -81,14 +95,27 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
         if (y > 0 && fabsf(x) < M10P_CORRIDOR_HALF_MM && y < M10P_clearance_mm)
             M10P_clearance_mm = y;
     }
-    /* 感知可信的全部条件, 缺一不可 */
+    /* 感知分级: 三个扇区分别判定, 再合成总判据。
+     * 分级的意义: 锥桶赛道经常只有单侧可见, 旧的二值判据会整帧作废并冻结舵角;
+     * 现在把"能不能用哪种来源"告诉 main.c, 由它决定双侧中线 / 单侧跟线 / 降级。 */
     M10P_build_age_us = (uint32_t)(Diag_TimeUs() - scan->front_us);
     M10P_build_epoch_ok = scan->epoch == LidarRx_epoch;
-    M10P_perception_ok = scan->front_seen && M10P_front_bins >= 40 &&
-        max_missing <= M10P_FRONT_MAX_MISSING_BINS &&
-        M10P_left_bins >= 16 && M10P_right_bins >= 16 &&
-        scan->epoch == LidarRx_epoch &&
-        (uint32_t)(Diag_TimeUs() - scan->front_us) <= M10P_MAX_AGE_US;
+    M10P_front_ok = (M10P_front_bins >= M10P_FRONT_MIN_BINS) &&
+                    (max_missing <= M10P_FRONT_MAX_MISSING_BINS);
+    M10P_left_ok = M10P_left_bins >= M10P_SIDE_MIN_BINS;
+    M10P_right_ok = M10P_right_bins >= M10P_SIDE_MIN_BINS;
+    {
+        uint8_t why = 0;
+        if (!scan->front_seen) why |= M10P_WHY_FRONT_SEEN;
+        if (M10P_front_bins < M10P_FRONT_MIN_BINS) why |= M10P_WHY_FRONT_BINS;
+        if (max_missing > M10P_FRONT_MAX_MISSING_BINS) why |= M10P_WHY_FRONT_GAP;
+        if (!M10P_left_ok) why |= M10P_WHY_LEFT_BINS;
+        if (!M10P_right_ok) why |= M10P_WHY_RIGHT_BINS;
+        if (scan->epoch != LidarRx_epoch) why |= M10P_WHY_EPOCH;
+        if (M10P_build_age_us > M10P_MAX_AGE_US) why |= M10P_WHY_AGE;
+        M10P_perception_why = why;
+        M10P_perception_ok = (uint8_t)(why == 0u);
+    }
     return n;
 }void M10P_Poll(void)
 {
