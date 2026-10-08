@@ -71,7 +71,6 @@ extern Midline_type Midline3;
 extern Midline_type Midline_forward;
 extern Midline_type Midline_forward_2;
 extern Midline_type Midline_forward_3;
-extern float SPEED_ERR;
 
 extern float BLUE_DIS_LEFT;
 extern float BLUE_DIS_RIGHT;
@@ -96,7 +95,7 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
 
 #define TURN_GUARD_US 350000u
 #define TURN_EXIT_FRAMES 2u
-#define TURN_EXIT_MIN_US 100000u
+#define TURN_EXIT_MIN_US 60000u /* 两帧直道证据间隔至少一圈下限，避免83ms扫描被迫等第三帧 */
 #define TURN_EXIT_ERROR_MM 100.0f
 #define TURN_ENTRY_PWM 75.0f /* 入弯附加量同时不超过本帧|P|，不放大小误差噪声 */
 #define TURN_MIN_OFFSET 20  /* 接近中位的候选不能成为弯道保持依据 */
@@ -108,7 +107,6 @@ typedef struct {
 } TurnGuard;
 uint16_t TurnGuard_Apply(TurnGuard *state, uint16_t mode, uint8_t valid,
                         uint8_t straight, uint16_t pwm, uint32_t now, uint8_t *held);
-uint16_t Speed_PID(float speed_now, float speed_mubiao, pid_type *speed_pid, uint16_t moto_pwm_now);
 
 void Midline_PD_Init(pid_type *midline_pid, float kp, float kp_2, float kp_3, float kd, float kd_2, float kd_3);
 void Speed_PID_Init(pid_type *midline_pid, float kp, float ki, float kd);
@@ -121,5 +119,4 @@ uint8_t Midline_fit(_LEIDA_DATA_plane *centerline, int startline, int endline, M
 float curvity_cal(_LEIDA_DATA_plane LEIDA_DATA_CENTER[], uint16_t counter);
 float curvity_cal1(float x1, float y1, float x2, float y2, float x3, float y3);
 
-void Speed_PID_Reset(pid_type *pid);
 #endif

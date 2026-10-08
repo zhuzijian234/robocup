@@ -1,4 +1,4 @@
-"""Execute production adapter, safety guard, PI and DMA ISR with hardware mocks."""
+"""Execute production adapter, race speed loop, PI and DMA ISR with hardware mocks."""
 from pathlib import Path
 import re, json
 from check_m10p import P, OUT, run
@@ -35,11 +35,10 @@ program=prefix+'\n#include "m10p.c"\n'+r'''
 uint32_t LidarRx_epoch;
 static uint16_t bins[720];
 static uint8_t rx[512];
-static uint32_t seen_epoch,seen_discontinuities,seen_rejected;
+static uint32_t seen_epoch;
 typedef struct{uint32_t start_us,end_us,epoch;} LidarRxStamp;
 void LidarRx_Service(void){}
 uint16_t LidarRx_Read(uint8_t *p,uint16_t n,LidarRxStamp *s){(void)p;(void)n;(void)s;return 0;}
-void Radar_Invalidate(void);
 uint32_t M10P_control_seq,M10P_control_front_us,M10P_control_epoch;
 uint16_t M10P_front_bins,M10P_left_bins,M10P_right_bins;
 uint16_t M10P_front_gap_bins;
@@ -47,16 +46,12 @@ uint32_t M10P_build_age_us;
 uint8_t M10P_front_seen,M10P_build_epoch_ok;
 float M10P_clearance_mm;
 uint8_t M10P_perception_ok;
-#define RADAR_TIMEOUT_TICKS 50u
-volatile uint16_t Radar_age_ticks;
-volatile uint8_t Radar_started,Radar_stop_latched;
-volatile uint32_t Radar_timeout_count;
 typedef struct {float kp,ki,kd,err,err_l,err_sum;} pid_type;
 volatile float Diag_motor_integral,Diag_motor_prelimit;
 '''
 program+=function(vehicle,'M10P_Build')+function(vehicle,'M10P_Poll')
-program+=timer[timer.index('static volatile uint32_t observation_us'):timer.index('/**',timer.index('static volatile uint32_t observation_us'))]
-program+=function(centre,'PID_realize')+'\n'+function(centre,'Speed_PID_Reset')
+program+=timer[timer.index('volatile uint32_t Radar_invalid_inputs'):timer.index('/**',timer.index('volatile uint32_t Radar_invalid_inputs'))]
+program+=function(centre,'PID_realize')
 program+=r'''
 #define TIM5 5
 #define TIM_IT_Update 1
@@ -84,123 +79,48 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  for(i=0;i<720;i++)s.points[i].range_mm=1000;
  M10P_Build(&s,out,720);CHECK(M10P_perception_ok);
  CHECK(!M10P_Build(&s,out,719));CHECK(!M10P_perception_ok);
- s.points[0].range_mm=200;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);CHECK(M10P_clearance_mm<201);
- s.points[0].range_mm=80;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);CHECK(M10P_clearance_mm<81);
+ s.points[0].range_mm=200;M10P_Build(&s,out,720);CHECK(M10P_perception_ok);CHECK(M10P_clearance_mm<201);
+ s.points[0].range_mm=80;M10P_Build(&s,out,720);CHECK(M10P_perception_ok);CHECK(M10P_clearance_mm<81);
  s.points[0].range_mm=1000;clock_us=s.front_us+M10P_MAX_AGE_US+1;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);
  clock_us=100000;s.count=0;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);
  s.count=720;s.epoch=1;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);s.epoch=0;
- Radar_Observe(1,50000,0,clock_us);CHECK(!observation_valid && !Radar_started);
- clock_us+=83000;Radar_Observe(2,clock_us-50000,0,clock_us);CHECK(!observation_valid);
- clock_us+=83000;Radar_Observe(3,clock_us-50000,0,clock_us);CHECK(observation_valid && Radar_started);
- Radar_Observe(3,clock_us-50000,0,clock_us);CHECK(!observation_valid);CHECK(warmup==0);
- for(i=4;i<=6;i++){clock_us+=83000;Radar_Observe(i,clock_us-50000,0,clock_us);}CHECK(observation_valid);
- clock_us=observation_end_us+M10P_CONTROL_GAP_US+1;Radar_GuardTick();CHECK(!observation_valid);
- for(i=0;i<50;i++)Radar_GuardTick();CHECK(Radar_stop_latched && Radar_timeout_count==1);
- Radar_Observe(7,clock_us,0,clock_us);CHECK(!observation_valid);CHECK(Radar_stop_latched);
- Radar_stop_latched=Radar_started=0;warmup=0;observation_seq=0;clock_us=100000;
- for(i=1;i<=3;i++){clock_us+=83000;Radar_Observe(i,clock_us-50000,0,clock_us);}CHECK(observation_valid);
- LidarRx_epoch++;Radar_GuardTick();CHECK(!observation_valid);CHECK(warmup==0);
- Radar_Invalidate();CHECK(!observation_valid);
- /* Rejecting a newly completed circle revokes the prior driving permission
-  * immediately, without waiting for its age timeout. */
- seen_epoch=LidarRx_epoch;seen_discontinuities=M10P_stats.discontinuities;
- seen_rejected=M10P_stats.rejected;observation_valid=1;warmup=3;
- M10P_stats.rejected++;M10P_Poll();CHECK(!observation_valid && !warmup);
- observation_valid=1;warmup=3;M10P_stats.discontinuities++;
- M10P_Poll();CHECK(!observation_valid && !warmup);
- for(i=0;i<20;i++)pwm=PID_realize(0,10,&pid);CHECK(pwm==100);CHECK(pid.err_sum==200);
- Speed_PID_Reset(&pid);CHECK(pid.err_sum==0 && pid.err_l==0);CHECK(Diag_motor_integral==0);
- CHECK(PID_realize(0,0,&pid)==0);
- /* Fresh frames arrive every 100ms, but each front observation is already
-  * 90ms old on delivery. The previous observation expires between frames.
-  * After warmup, permission must remain continuous until the next scan. */
- Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;Radar_timeout_count=0;
- observation_valid=warmup=0;observation_seq=observation_end_us=0;
- LidarRx_epoch=observation_epoch=0;clock_us=1000000;
- for(i=1;i<=3;i++){
-  unsigned tick;
-  Radar_Observe(i,clock_us-90000,0,clock_us);
-  CHECK(warmup==i);CHECK(Radar_Permitted()==(i==3));
-  for(tick=0;tick<9;tick++){clock_us+=10000;Radar_GuardTick();}
-  CHECK(Radar_Permitted()==(i==3));CHECK(warmup==i);
+ /* Actual ISR runs immediately, even before the first radar frame. */
+ CHECK(Radar_ControlAgeUs()==0xffffffffu);
+ TIM5_IRQHandler();CHECK(Radar_effective_target==10 && hardware_pwm>0);
+ {uint16_t previous=hardware_pwm;Speed_now=8;TIM5_IRQHandler();
+  CHECK(Radar_effective_target==10 && hardware_pwm<previous);}
+ Speed_now=0;
+ /* Invalid geometry, epoch changes, rejected scans and complete radar loss
+  * must not interrupt PI or change the fixed speed target. */
+ for(i=0;i<1000;i++){
   clock_us+=10000;
+  if(i==1){LidarRx_epoch++;M10P_Poll();}
+  if(i==2){M10P_stats.rejected++;M10P_Poll();}
+  if(i==3){M10P_stats.discontinuities++;M10P_Poll();}
+  s.count=0;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);
+  TIM5_IRQHandler();CHECK(Radar_effective_target==10 && hardware_pwm>0);
  }
- CHECK(Radar_started && !Radar_stop_latched);
- Radar_Observe(4,clock_us-90000,0,clock_us);CHECK(Radar_Permitted());
- Radar_Invalidate();CHECK(!Radar_Permitted() && warmup==0);
- Radar_Observe(5,clock_us-90000,0,clock_us);CHECK(warmup==1 && !Radar_Permitted());
- clock_us+=M10P_MAX_AGE_US+1;Radar_GuardTick();CHECK(warmup==0 && !Radar_Permitted());
- Radar_Observe(6,clock_us-90000,0,clock_us);CHECK(warmup==1);
- Radar_Observe(8,clock_us-90000,0,clock_us);CHECK(warmup==1 && !Radar_Permitted());
- Radar_Observe(8,clock_us-90000,0,clock_us);CHECK(warmup==0);
- /* Exercise the actual 10ms motor ISR, not just the permission helper.
-  * 100ms scans with 100ms-old front points must accelerate continuously. */
- Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;
- Radar_Invalidate();observation_seq=0;clock_us=2000000;
- Radar_effective_target=0;Speed_PID_Reset(&Speed_pid);
- for(i=1;i<=20;i++){
-  unsigned tick;
-  Radar_Observe(i,clock_us-100000,0,clock_us);
-  for(tick=0;tick<10;tick++){
-   TIM5_IRQHandler();
-   if(i>=3){CHECK(Radar_Permitted());CHECK(hardware_pwm>0);CHECK(Radar_effective_target==Speed_mubiao);}
-   clock_us+=10000;
-  }
- }
- CHECK(Radar_effective_target==10);CHECK(!Radar_stop_latched);
- /* Missing next scan: keep output only through the bounded receive window,
-  * then clear PWM/target/PI on the next 10ms tick and latch after 500ms. */
- clock_us=observation_end_us+M10P_CONTROL_GAP_US;TIM5_IRQHandler();CHECK(hardware_pwm>0);
- clock_us+=10000;TIM5_IRQHandler();CHECK(!Radar_Permitted() && hardware_pwm==0);
- CHECK(Radar_effective_target==0 && Speed_pid.err_sum==0 && warmup==0);
- {uint32_t expired=Radar_ExpiredCount();
-  for(i=0;i<50;i++){clock_us+=10000;TIM5_IRQHandler();CHECK(hardware_pwm==0);}
-  CHECK(Radar_stop_latched);CHECK(Radar_ExpiredCount()==expired);
- }
- /* Old/future timestamps cannot be made fresh by submitting them now. */
- Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;Radar_Invalidate();observation_seq=0;
- Radar_Observe(1,clock_us-M10P_MAX_AGE_US-1,0,clock_us);CHECK(warmup==0);
- Radar_Observe(1,clock_us-M10P_CONTROL_GAP_US-1,0,clock_us-M10P_CONTROL_GAP_US-1);CHECK(warmup==0);
- Radar_Observe(1,clock_us+1,0,clock_us);CHECK(warmup==0);
- /* Continuous 60/80/100/120ms scans across uint32 time wrap. */
- {unsigned period,frame,tick;
-  for(period=60000;period<=120000;period+=20000){
-   Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;Radar_Invalidate();observation_seq=0;
-   clock_us=0xffff0000u;Radar_effective_target=0;Speed_PID_Reset(&Speed_pid);
-   for(frame=1;frame<=12;frame++){
-    Radar_Observe(frame,clock_us-101000,0,clock_us-10000);
-    for(tick=0;tick<period;tick+=10000){
-     TIM5_IRQHandler();if(frame>=3){CHECK(Radar_Permitted());CHECK(hardware_pwm>0);CHECK(Radar_effective_target==Speed_mubiao);}
-     clock_us+=10000;
-    }
-   }
-   CHECK(!Radar_stop_latched && Radar_effective_target==10);
-  }
- }
- /* Even a permissible 150ms-old new observation must not be held past270ms. */
- Radar_Observe(observation_seq+1,clock_us-M10P_MAX_AGE_US,0,clock_us);
- clock_us+=M10P_MAX_PERIOD_US+1;TIM5_IRQHandler();CHECK(hardware_pwm==0 && !Radar_Permitted());
- /* Explicit unsafe input still stops immediately, rather than holding output. */
- for(i=1;i<=3;i++){clock_us+=100000;Radar_Observe(observation_seq+1,clock_us-90000,0,clock_us);}
- TIM5_IRQHandler();CHECK(hardware_pwm>0);
- Radar_Invalidate();TIM5_IRQHandler();CHECK(hardware_pwm==0 && Speed_pid.err_sum==0);
- /* Close but outside the stop line: fixed target, with real encoder PI.
-  * At/below the stop line: the same invalidation path must still stop. */
- Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;Radar_Invalidate();
- Speed_now=0;Speed_mubiao=10;Speed_PID_Reset(&Speed_pid);
+ CHECK(Speed_pid.err_sum==200);
+ Radar_RecordControl(clock_us-90000);CHECK(Radar_ControlAgeUs()==90000);
+ clock_us=0xfffffff0u;Radar_RecordControl(clock_us);clock_us+=100;
+ CHECK(Radar_ControlAgeUs()==100);
+ /* Near-wall ranges from the reported corner failure are diagnostic only. */
  s.count=720;s.front_seen=1;s.epoch=LidarRx_epoch;
  for(i=0;i<720;i++){s.points[i].angle_cdeg=(uint16_t)(i*50);s.points[i].range_mm=1000;}
- s.points[0].range_mm=351;s.front_us=clock_us-90000;
- M10P_Build(&s,out,720);CHECK(M10P_perception_ok);
- for(i=0;i<3;i++){clock_us+=100000;Radar_Observe(observation_seq+1,clock_us-90000,0,clock_us);}
- TIM5_IRQHandler();CHECK(Radar_effective_target==10 && hardware_pwm>0);
- {uint16_t starting_pwm=hardware_pwm;Speed_now=8;clock_us+=10000;TIM5_IRQHandler();
-  CHECK(Radar_effective_target==10 && hardware_pwm<starting_pwm);
+ {unsigned ranges[]={351,350,200,80,76};unsigned j;
+  for(j=0;j<5;j++){
+   s.points[0].range_mm=ranges[j];s.front_us=clock_us;
+   M10P_Build(&s,out,720);CHECK(M10P_perception_ok);
+   CHECK(M10P_clearance_mm<=ranges[j]+1);
+   TIM5_IRQHandler();CHECK(Radar_effective_target==10 && hardware_pwm>0);
+  }
  }
- s.points[0].range_mm=350;s.front_us=clock_us-90000;
- M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);
- Radar_Invalidate();TIM5_IRQHandler();CHECK(hardware_pwm==0 && Radar_effective_target==0);
- printf("PASS %u adapter/guard/PI checks\n",checks);return 0;
+ /* Changed target still uses encoder feedback instead of fixed duty. */
+ Speed_mubiao=12;TIM5_IRQHandler();CHECK(Radar_effective_target==12);
+ for(i=0;i<20;i++)pwm=PID_realize(0,10,&pid);CHECK(pwm==100);CHECK(pid.err_sum==200);
+ memset(&pid,0,sizeof pid);
+ CHECK(PID_realize(0,0,&pid)==0);
+ printf("PASS %u adapter/race/PI checks\n",checks);return 0;
 }
 '''
 p=OUT/'integration.c';p.write_text(program,encoding='utf-8');results=[run('integration',p)]

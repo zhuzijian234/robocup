@@ -266,8 +266,7 @@ void Midline_PD_Reset(void)
 }
 /* 本帧数据不可用时统一的出口: 记诊断位、清历史(下次重新学 err_l)、
  * 舵机保持原位(返回当前 CCR, 不写 PWM)。
- * Servo_PD_valid=0时，main.c调用Radar_Invalidate撤销驱动许可；
- * 有效结果由Radar_Observe提交，驱动恢复需重新积累3帧。 */
+ * 无效结果仅跳过舵机更新；电机速度闭环不受影响。 */
 static uint16_t pd_reject(void)
 {
     Diag_detail_u[4] &= ~1u;
@@ -503,48 +502,6 @@ uint16_t TurnGuard_Apply(TurnGuard *state, uint16_t mode, uint8_t valid,
 
 /* ======================== 速度控制 ======================== */
 
-float SPEED_ERR = 0;
-
-/**
- * @brief  增量式PD速度控制器
- *
- * @param  speed_now:    当前速度
- * @param  speed_mubiao: 目标速度
- * @param  speed_pid:    PID参数块
- * @param  moto_pwm_now: 当前电机PWM值
- * @return 新的电机PWM值 (0-100)
- *
- * 公式: pwm += kp*err + ki*err_sum + kd*(err - err_last)
- */
-uint16_t Speed_PID(float speed_now, float speed_mubiao, pid_type *speed_pid, uint16_t moto_pwm_now)
-{
-    float moto_pwm = 0;
-
-
-    speed_pid->err = speed_mubiao - speed_now;
-    speed_pid->err_sum += speed_pid->err;
-
-    /* 积分抗饱和 */
-    if (speed_pid->err_sum >= 200)
-        speed_pid->err_sum = 200;
-    if (speed_pid->err_sum <= -200)
-        speed_pid->err_sum = -200;
-
-    moto_pwm = moto_pwm_now + speed_pid->kp * speed_pid->err + speed_pid->ki * speed_pid->err_sum + speed_pid->kd * (speed_pid->err - speed_pid->err_l);
-
-    speed_pid->err_l = speed_pid->err;
-
-    Diag_motor_integral = speed_pid->err_sum;
-    Diag_motor_prelimit = moto_pwm;
-    /* 输出限幅 [0, 100] */
-    if (moto_pwm >= 100)
-        moto_pwm = 100;
-    if (moto_pwm <= 0)
-        moto_pwm = 0;
-
-    return (uint16_t)moto_pwm;
-}
-
 /**
  * @brief  位置式PI速度控制器（主速度控制回路，TIM5中断中调用）
  *
@@ -585,10 +542,4 @@ float PID_realize(float speed_now, float speed_mubiao, pid_type *speed_pid)
         moto_pwm = 0;
 
     return moto_pwm;
-}
-
-void Speed_PID_Reset(pid_type *pid)
-{
-    pid->err_sum = pid->err = pid->err_l = 0;
-    Diag_motor_integral = Diag_motor_prelimit = 0;
 }

@@ -162,26 +162,15 @@ int main(void)
     /* 电机初始化: 预分频42, 周期100 */
     moto_pwm = 0;
 #if HW_TEST_SELECT == 0
-    Moto_Init(42, 100, moto_pwm); /* 等首个有效输入处理完成后才允许速度环驱动 */
+    Moto_Init(42, 100, moto_pwm); /* 初始化为零，参数配置完成后启动速度环 */
 #else
     Moto_Init(42, 100, 0); /* 测试模式: 初始0%, 防止上电轮子就转 */
 #endif
 
     Encoder_Init(); /* 编码器初始化 (TIM4) */
 
-    /* 速度定时器初始化: 84MHz/8400=10kHz, 周期100=10ms */
-    TIM5_Int_Init(100 - 1, 8400 - 1);
-
-#if HW_TEST_SELECT != 0
-    /* 测试模式: 关闭速度环中断。
-     * TIM5每10ms会写一次电机PWM(Moto_Speed), 会覆盖测试代码的输出,
-     * 所以测试模式下必须关掉, 电机PWM完全交给测试代码控制。
-     * (舵机测试也不受影响: 关掉后电机保持0%占空比, 车原地不动) */
-    TIM_ITConfig(TIM5, TIM_IT_Update, DISABLE);
-#endif
-
     /* ===== 运行参数配置 ===== */
-    Speed_mubiao = 10; /* 固定目标速度（现有编码器单位）；直道/弯道相同，必要时停车。 */
+    Speed_mubiao = 10; /* 固定目标速度（现有编码器单位）；直道/弯道相同，不设自动停车。 */
 
     /* 最终舵机PID参数 (覆盖初始值) */
     Midline_PD_Init(&Servo_pd, 0.035, 0.040, 0.0395, 0.035, 0.022, 0.020);
@@ -205,6 +194,10 @@ int main(void)
     /* 断点判断距离阈值 */
     duandian_DIStance = 550;
 
+#if HW_TEST_SELECT == 0
+    /* 参数就绪即启动竞速速度环；无需等待雷达，不设置自动停车。 */
+    TIM5_Int_Init(100 - 1, 8400 - 1);
+#endif
     CONTROL_TRACE("Start\r\n");
 
     /* ======================== 主循环 ======================== */
@@ -244,7 +237,6 @@ int main(void)
             Diag_Field(12, valid_couter, 1);
             if (valid_couter <= 20 || !M10P_perception_ok) {
                 Radar_invalid_inputs++;
-                Radar_Invalidate();
                 (void)TurnGuard_Apply(&turn_guard, BLE_MODE_INVALID, 0, 0,
                                       (uint16_t)TIM3->CCR1, Diag_TimeUs(), &turn_held);
                 Midline_PD_Reset();
@@ -389,14 +381,12 @@ int main(void)
             Diag_Field(22, state_right_cnt, 1);
             Diag_Field(23, state_left_cnt_2, 1);
             Diag_Field(24, state_right_cnt_2, 1);
-            /* 雷达看门狗: TIM5(10ms) 里 50 个 tick(500ms) 等不到这个调用, 就置
-             * Radar_stop_latched 永久清零电机(只能复位)。
-             * 有新鲜有效候选的有界HOLD也算有效；感知无效不能借保舵续命。 */
+            /* 有效转向立即执行并记录来源；坏帧保持舵角，速度环始终独立运行。
+             * 清D历史仅用于防止恢复时微分突跳，不清舵角或电机PI积分。 */
             if (Servo_PD_valid)
-                Radar_Observe(scan->seq, scan->front_us, scan->epoch, scan->end_us);
+                Radar_RecordControl(scan->end_us);
             else {
                 Radar_invalid_inputs++;
-                Radar_Invalidate();
                 Midline_PD_Reset();
             }
             Diag_Submit(telemetry_mode, parsed_points, LEIDA_speed_dps, Servo_PD_valid);

@@ -131,26 +131,20 @@ static void Tune_ApplyOne(char *line)
         Send_Bluetooth_Data(status);return;
     }
 
-    /* radar命令保持兼容；独立短行补充启动计数及实际PWM，便于现场定位。 */
+    /* 竞速模式不再输出已删除的启动许可、锁停和超时计数。 */
     if (strcmp(line,"motor")==0) {
-        char status[224];
-        sprintf(status,"motor warmup=%u permit=%u start=%u stop=%u pwm=%u target_x100=%ld speed_x100=%ld frame_age_us=%lu expired=%lu\r\n",
-            (unsigned)Radar_WarmupCount(),(unsigned)Radar_Permitted(),
-            (unsigned)Radar_started,(unsigned)Radar_stop_latched,
+        char status[192];
+        sprintf(status,"motor race=1 pwm=%u target_x100=%ld speed_x100=%ld frame_age_us=%lu\r\n",
             (unsigned)TIM2->CCR2,(long)(Radar_effective_target*100),
-            (long)(Speed_now*100),(unsigned long)Radar_ControlAgeUs(),
-            (unsigned long)Radar_ExpiredCount());
+            (long)(Speed_now*100),(unsigned long)Radar_ControlAgeUs());
         Send_Bluetooth_Data(status);return;
     }
-
     if (strcmp(line,"radar")==0) {
-        char status[224];
-        sprintf(status,"radar packets=%lu discontinuities=%lu rejected=%lu overflow=%lu raw=%u invalid=%lu age10ms=%u start=%u stop=%u timeouts=%lu\r\n",
+        char status[192];
+        sprintf(status,"radar packets=%lu discontinuities=%lu rejected=%lu overflow=%lu raw=%u invalid=%lu\r\n",
             (unsigned long)M10P_stats.packets,(unsigned long)M10P_stats.discontinuities,
             (unsigned long)M10P_stats.rejected,(unsigned long)M10P_stats.scan_overflow,
-            (unsigned)LEIDA_raw_count,(unsigned long)Radar_invalid_inputs,
-            (unsigned)Radar_age_ticks,(unsigned)Radar_started,(unsigned)Radar_stop_latched,
-            (unsigned long)Radar_timeout_count);
+            (unsigned)LEIDA_raw_count,(unsigned long)Radar_invalid_inputs);
         Send_Bluetooth_Data(status);return;
     }
 

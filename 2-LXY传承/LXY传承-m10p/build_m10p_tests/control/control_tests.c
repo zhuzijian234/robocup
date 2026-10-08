@@ -43,7 +43,7 @@ float Encoder_cnt,Speed_now;int16_t Encoder_cnt_arr[5];uint16_t Encoder_cnt_temp
 uint16_t LEIDA_DATA_HANDLE10(_LEIDA_DATA_plane *,u16);
 #define TURN_GUARD_US 350000u
 #define TURN_EXIT_FRAMES 2u
-#define TURN_EXIT_MIN_US 100000u
+#define TURN_EXIT_MIN_US 60000u /* 两帧直道证据间隔至少一圈下限，避免83ms扫描被迫等第三帧 */
 #define TURN_EXIT_ERROR_MM 100.0f
 #define TURN_ENTRY_PWM 75.0f /* 入弯附加量同时不超过本帧|P|，不放大小误差噪声 */
 #define TURN_MIN_OFFSET 20  /* 接近中位的候选不能成为弯道保持依据 */

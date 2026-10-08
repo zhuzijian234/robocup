@@ -19,7 +19,6 @@ uint32_t M10P_control_seq=12,M10P_control_front_us=950000;
 uint16_t M10P_front_bins=81,M10P_left_bins=121,M10P_right_bins=121;
 float M10P_clearance_mm=1200,Radar_effective_target=6.25f;
 uint32_t Diag_TimeUs(void){return 1000000;}
-uint8_t Radar_Permitted(void){return 1;}
 uint8_t BLE_NormalSpace(void){return 1;}
 void Diag_Finalize(uint8_t *,uint16_t);
 static unsigned emitted;

@@ -12,21 +12,11 @@
 
 extern uint16_t moto_pwm;
 
-/* TIM5每10ms仲裁一次电机输出；500ms无有效观测后锁存停机，复位才能清除。 */
-#define RADAR_TIMEOUT_TICKS 50u
-extern volatile uint16_t Radar_age_ticks;
-extern volatile uint8_t Radar_started;
-extern volatile uint8_t Radar_stop_latched;
-extern volatile uint32_t Radar_timeout_count;
+/* 雷达诊断与电机控制相互独立，没有启动许可、超时停车或锁停状态。 */
 extern volatile uint32_t Radar_invalid_inputs;
-uint8_t Radar_Permitted(void);
-uint8_t Radar_WarmupCount(void); /* 连续有效提交数，达到3才允许启动 */
-void Radar_Invalidate(void);
-void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, uint32_t end_us);
-uint32_t Radar_ControlAgeUs(void); /* 最近接纳整圈的接收结束年龄(us)，尚无帧返回UINT32_MAX */
-uint32_t Radar_ExpiredCount(void); /* 时效/代次失效次数，不按定时器tick重复累计 */
 extern volatile float Radar_effective_target;
-void Radar_GuardTick(void);
+void Radar_RecordControl(uint32_t end_us);
+uint32_t Radar_ControlAgeUs(void); /* 最近有效转向帧的年龄；无帧返回UINT32_MAX */
 
 void TIM5_Int_Init(u16 arr, u16 psc);
 

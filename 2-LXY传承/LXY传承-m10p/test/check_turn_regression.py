@@ -106,8 +106,13 @@ int main(void){
         CHECK(turn_guard.active && !turn_guard.straight_frames && !Servo_PD_valid && telemetry_mode==11);
         CHECK(tick(0,1,1462,50,50000));CHECK(turn_held);
         CHECK(tick(0,1,1462,50,50000));CHECK(turn_guard.active && turn_held);
-        /* At 20Hz two observations are only 50ms apart. Require >=100ms. */
+        /* At 20Hz two observations are only 50ms apart. Require >=60ms. */
         CHECK(tick(0,1,1462,50,50000));CHECK(!turn_guard.active);
+
+        /* M10P at 12Hz: two straight frames must release without a third scan. */
+        CHECK(tick(large,1,strong,500,83000));
+        CHECK(tick(0,1,1462,50,83000));CHECK(turn_held);
+        CHECK(tick(0,1,1462,50,83000));CHECK(!turn_held && !turn_guard.active);
 
         /* Downgraded measurements cannot rearm the 350ms deadline. */
         CHECK(tick(large,1,strong,500,115000));

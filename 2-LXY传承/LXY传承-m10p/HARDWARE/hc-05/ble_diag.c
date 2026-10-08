@@ -63,7 +63,7 @@ void Diag_MotorTick(uint16_t raw, uint8_t fresh, uint8_t pi)
     s->integral = Diag_motor_integral;
     s->prelimit = Diag_motor_prelimit;
     /* 原倒车标志位bit4保留为0，保持上位机协议布局兼容。 */
-    s->flags = (fresh ? 1u : 0u) | (pi ? 2u : 0u) | (Radar_started ? 4u : 0u) | (Radar_stop_latched ? 8u : 0u);
+    s->flags = (fresh ? 1u : 0u) | (pi ? 2u : 0u) | 4u; /* 竞速闭环始终启用；原锁停位保留为0 */
     __DMB();
     motor_head++;
 }
@@ -345,8 +345,7 @@ void Diag_Submit(uint16_t mode, uint16_t raw, uint16_t speed, uint8_t ok)
     __disable_irq();
     Diag_Field(18, Speed_now, 1);
     Diag_Field(19, Radar_effective_target, 1);
-    motor = Radar_stop_latched ? 3 : Radar_Permitted() ? 2
-                                                   : 1;
+    motor = 2; /* 竞速速度闭环运行状态 */
     __set_PRIMASK(p);
     /* Snapshot final main-context line values, including sign normalization. */
     fields[3] = Midline.k;
@@ -457,13 +456,13 @@ static void config_poll(void)
             number = Diag_rate;
             break;
         case 8:
-            number = RADAR_TIMEOUT_TICKS * 10;
+            number = 0; /* 保留协议配置项：0表示竞速模式无自动停车超时。 */
             break;
         case 9:
             number = 1000;
             break;
         case 10:
-            text = "mm;CCR;encoder_units;slope;PD=mode-reset-Dcap150;entry=min(75,abs(P));turn=350ms-exit2+100ms;spd=effective;request=CFG108";
+            text = "mm;CCR;encoder_units;slope;PD=mode-reset-Dcap150;entry=min(75,abs(P));turn=350ms-exit2+60ms;spd=race-fixed;request=CFG108";
             break;
         case 11:
             number = DMA_USART2_RX_BUF_LEN;
@@ -636,7 +635,7 @@ static void m10p_health(uint32_t now)
     v[19]=M10P_control_seq ? Diag_TimeUs()-M10P_control_front_us : 0xffffffffu;
     v[20]=M10P_front_bins; v[21]=M10P_left_bins; v[22]=M10P_right_bins;
     v[23]=(uint32_t)M10P_clearance_mm;
-    v[24]=Radar_Permitted(); v[25]=(uint32_t)(Radar_effective_target*1000.0f);
+    v[24]=1u; v[25]=(uint32_t)(Radar_effective_target*1000.0f);
     header(7,120);
     for(i=0;i<26;i++)put32(frame+14+4*i,v[i]);
     BLE_Queue(frame,120,0);
@@ -645,7 +644,6 @@ void Diag_Poll(void)
 {
     uint32_t now = Diag_TimeMs(), flags = 128, values[16], p, input_ms, seq;
     uint8_t i;
-    static uint8_t previous_stop = 255;
     static uint32_t reported_drop;
     char event_text[64];
     BLE_TxPoll();
@@ -655,17 +653,13 @@ void Diag_Poll(void)
     motor_poll();
     m10p_health(now);
     if (Diag_mode == 3 && BLE_FreeCritical() >= 3) {
-        if (previous_stop != Radar_stop_latched) {
-            sprintf(event_text, "motor_stop_latched=%u", (unsigned)Radar_stop_latched);
-            text_event(3, event_text);
-            previous_stop = Radar_stop_latched;
-        } else if (reported_drop != Diag_tx_drop) {
+        if (reported_drop != Diag_tx_drop) {
             sprintf(event_text, "tx_drop_total=%lu", (unsigned long)Diag_tx_drop);
             text_event(4, event_text);
             reported_drop = Diag_tx_drop;
         }
     }
-    if (Diag_mode != 3 || now - last_health < (Radar_stop_latched ? 200u : 1000u))
+    if (Diag_mode != 3 || now - last_health < 1000u)
         return;
     last_health = now;
     p = __get_PRIMASK();
@@ -673,8 +667,6 @@ void Diag_Poll(void)
     input_ms = Diag_input_ms;
     seq = Diag_input_seq;
     __set_PRIMASK(p);
-    if (Radar_stop_latched)
-        flags |= 1;
     if (!have_valid || !last_ok)
         flags |= 2;
     if (Diag_tx_drop)

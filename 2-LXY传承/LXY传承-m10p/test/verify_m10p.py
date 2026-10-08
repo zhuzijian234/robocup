@@ -39,7 +39,11 @@ disabled=['LEIDA_DATA','LEIDA_ParserReset','LEIDA_DATA_HANDLE1','LEIDA_DATA_HAND
           'LEIDA_PWM_Init','TIM14_Int_Init','TIM14_Init','TIM3_Int_Init',
           'TIM11_PWM_Init','PWM_Init_leida','PWM_SetCompare_leida',
           'M10P_speed_scale','observation_scale','daoche_flag',
-          'ENCODER_TIM','TIM_IRQ_COUNTER']
+          'ENCODER_TIM','TIM_IRQ_COUNTER',
+          'Radar_stop_latched','Radar_started','Radar_age_ticks','Radar_timeout_count',
+          'Radar_Permitted','Radar_Invalidate','Radar_Observe','Radar_GuardTick',
+          'Radar_WarmupCount','Radar_ExpiredCount','observation_valid','warmup',
+          'Speed_PID','Speed_PID_Reset','SPEED_ERR']
 for name in disabled:
  assert not re.search(r'^\s*'+re.escape(name)+r'\s+0x[0-9a-fA-F]+',linked,re.M),name
 records.append({'disabled_legacy_symbols':disabled,'result':'absent from linked symbol table'})
