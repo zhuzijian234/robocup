@@ -9,7 +9,7 @@
  *   1) M10P_Poll()  把 DMA 环形队列里的块取出来喂给解析器, 顺手处理断流/过期/跳变
  *   2) M10P_Build() 把一帧扫描转成 LEIDA_DATA2[](算法角系: 0=右, 90=前, 180=左)
  *   3) 判健康度: 正前方有没有盲区、左右侧够不够点数、正前方走廊净空多少
- *      -> M10P_perception_ok(能不能信) / M10P_speed_scale(该跑多快)
+ *      -> M10P_perception_ok(是否允许控制)，运行速度由固定目标决定
  *
  * main.c 的用法: M10P_Poll() -> M10P_Acquire() -> M10P_Build() -> ... -> M10P_Release()。
  * 扫描帧在 Build 期间一直由 main 持有, 所以这里的转换逻辑是"只读"的, 不碰缓冲状态。
@@ -25,7 +25,7 @@ static uint8_t rx[LIDAR_RX_BLOCK]; /* 从 DMA 队列取块的暂存区(一块 51
 static uint32_t seen_epoch, seen_discontinuities, seen_rejected; /* 本地快照, 用来发现"统计又涨了" */
 uint32_t M10P_control_seq, M10P_control_front_us, M10P_control_epoch; /* 本帧的来源标记, 给遥测对账用 */
 uint16_t M10P_front_bins, M10P_left_bins, M10P_right_bins; /* 三个扇区的点数(按桶数算) */
-float M10P_clearance_mm, M10P_speed_scale; /* 正前方走廊净空(mm) / 限速系数 0.25~1 */
+float M10P_clearance_mm; /* 正前方走廊净空(mm)，只作必要停车判据 */
 uint8_t M10P_perception_ok;                /* 本帧感知是否可信(0=不可信, 控制与电机都会让路) */
 uint16_t M10P_front_gap_bins; /* 前方最大连续空桶数，每桶0.5度 */
 uint32_t M10P_build_age_us;   /* 感知检查时，前方观测已经过去的微秒数 */
@@ -89,15 +89,14 @@ void M10P_Poll(void)
  * 第二段是另一条独立的安全判据: 用**全部原始点**(不受 100mm 下限过滤影响, 因为
  * 贴在车头的东西更要命)算正前方走廊(|x| < 180mm, y > 0)里最近的障碍距离,
  * 存进 M10P_clearance_mm。后半圈的点 y <= 0, 不可能落进走廊, 直接跳过省时间。
- * 最后综合出感知可信标志与限速系数: 净空 350mm 以下判不可信(= 停车线),
- * 350~1000mm 之间线性降速, 最慢保底 0.25 倍。
+ * 最后综合出感知可信标志：净空不超过350mm时停车；通过则按固定目标速度行驶。
  */
 uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
 {
     uint16_t i, n = 0, missing = 0, max_missing = 0;
     M10P_front_bins = M10P_left_bins = M10P_right_bins = 0;
     M10P_clearance_mm = (float)M10P_MAX_MM; /* 先当"啥也没看见", 下面扫到更近的再改 */
-    M10P_perception_ok = 0; M10P_speed_scale = 0;
+    M10P_perception_ok = 0;
     M10P_front_gap_bins = 0;
     M10P_front_seen = scan->front_seen;
     M10P_build_epoch_ok = scan->epoch == LidarRx_epoch;
@@ -148,11 +147,5 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
         scan->epoch == LidarRx_epoch &&
         (uint32_t)(Diag_TimeUs() - scan->front_us) <= M10P_MAX_AGE_US &&
         M10P_clearance_mm > M10P_STOP_Y_MM;
-    if (M10P_perception_ok) {
-        /* 净空越近越慢: 350mm -> 0.25 倍, 1000mm 及以上 -> 满速 */
-        M10P_speed_scale = (M10P_clearance_mm - M10P_STOP_Y_MM) / (M10P_SLOW_Y_MM - M10P_STOP_Y_MM);
-        if (M10P_speed_scale > 1) M10P_speed_scale = 1;
-        if (M10P_speed_scale < 0.25f) M10P_speed_scale = 0.25f;
-    }
     return n;
 }

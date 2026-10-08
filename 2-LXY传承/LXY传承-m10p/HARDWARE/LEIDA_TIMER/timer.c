@@ -6,8 +6,6 @@
  *   时钟: 84MHz / 8400预分频 = 10kHz计数
  *   周期: 100 -> 100/10000 = 10ms
  *   每10ms: 读编码器 -> 计算速度 -> 位置式PI -> 更新电机PWM
- *
- * TIM14: 辅助定时器（预留）
  */
 
 #include "timer.h"
@@ -26,7 +24,6 @@ volatile uint32_t Radar_invalid_inputs = 0;
 
 static volatile uint32_t observation_us, observation_epoch, observation_seq, observation_end_us;
 static volatile uint32_t control_expired;
-static volatile float observation_scale;
 static volatile uint8_t observation_valid, warmup;
 volatile float Radar_effective_target;
 /* 诊断和定时器共用一套时效判断，均以接收时间计时，不以解析/查询时间续期。 */
@@ -48,7 +45,7 @@ void Radar_Invalidate(void)
     observation_valid = 0; warmup = 0;
     __set_PRIMASK(p);
 }
-void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale, uint32_t end_us)
+void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, uint32_t end_us)
 {
     /* 只有已完成几何/控制计算的新鲜扫描才能提交；串口收到字节不等于有效观测。 */
     uint32_t p = __get_PRIMASK(), now = Diag_TimeUs();
@@ -62,7 +59,6 @@ void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale,
         if (seq != observation_seq + 1u || !Radar_ObservationFresh(now)) warmup = 0;
         observation_seq = seq; observation_us = front_us; observation_epoch = epoch;
         observation_end_us = end_us;
-        observation_scale = scale < 0 ? 0 : scale > 1 ? 1 : scale;
         if (warmup < 3) warmup++;
         observation_valid = warmup >= 3;
         if (observation_valid) { Radar_age_ticks = 0; Radar_started = 1; }
@@ -128,16 +124,12 @@ void TIM5_Int_Init(u16 arr, u16 psc)
     NVIC_Init(&NVIC_InitStructure);
 }
 
-uint16_t daoche_flag     = 0;  /* 倒车标志 */
-uint8_t  ENCODER_TIM     = 0;
-uint8_t  TIM_IRQ_COUNTER = 0;
-
 /**
  * @brief  TIM5中断服务函数 — 主速度控制循环（10ms周期）
  *
  * 每次中断:
- *   1. 如果倒车标志=1: 施加50%制动PWM
- *   2. 否则: 读编码器 -> 计算速度 -> 位置式PI -> 更新电机PWM
+ *   1. 无有效驱动许可：目标/PWM/积分清零。
+ *   2. 有效运行：直接使用固定目标Speed_mubiao，由编码器反馈和PI调整PWM。
  */
 void TIM5_IRQHandler(void)
 {
@@ -155,16 +147,11 @@ void TIM5_IRQHandler(void)
             Speed_PID_Reset(&Speed_pid);
             moto_pwm = 0;
             Moto_Speed(0);
-        } else if (daoche_flag == 1) {
-            Moto_Speed((uint16_t)(100 * 0.5));  /* 50%制动,不足以驱动小车 */
         } else {
             Get_Encoder();encoder_fresh=1;
-            {
-                float requested = Speed_mubiao * observation_scale;
-                /* Native encoder units, 0.25/tick acceleration; deceleration immediate. */
-                if (requested > Radar_effective_target + 0.25f) requested = Radar_effective_target + 0.25f;
-                Radar_effective_target = requested;
-            }
+            /* 定速闭环：不做起步缓升、弯道比例或近障渐进降速。
+             * 固定的是速度目标，不是占空比；近障/失效仍由上面的许可分支停车。 */
+            Radar_effective_target = Speed_mubiao;
             moto_pwm = PID_realize(Speed_now, Radar_effective_target, &Speed_pid);pi_fresh=1;
             Moto_Speed(moto_pwm);
         }

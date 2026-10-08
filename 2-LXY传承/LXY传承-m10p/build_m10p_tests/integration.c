@@ -32,7 +32,7 @@ uint16_t M10P_front_bins,M10P_left_bins,M10P_right_bins;
 uint16_t M10P_front_gap_bins;
 uint32_t M10P_build_age_us;
 uint8_t M10P_front_seen,M10P_build_epoch_ok;
-float M10P_clearance_mm,M10P_speed_scale;
+float M10P_clearance_mm;
 uint8_t M10P_perception_ok;
 #define RADAR_TIMEOUT_TICKS 50u
 volatile uint16_t Radar_age_ticks;
@@ -45,7 +45,7 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
     uint16_t i, n = 0, missing = 0, max_missing = 0;
     M10P_front_bins = M10P_left_bins = M10P_right_bins = 0;
     M10P_clearance_mm = (float)M10P_MAX_MM; /* 先当"啥也没看见", 下面扫到更近的再改 */
-    M10P_perception_ok = 0; M10P_speed_scale = 0;
+    M10P_perception_ok = 0;
     M10P_front_gap_bins = 0;
     M10P_front_seen = scan->front_seen;
     M10P_build_epoch_ok = scan->epoch == LidarRx_epoch;
@@ -96,12 +96,6 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
         scan->epoch == LidarRx_epoch &&
         (uint32_t)(Diag_TimeUs() - scan->front_us) <= M10P_MAX_AGE_US &&
         M10P_clearance_mm > M10P_STOP_Y_MM;
-    if (M10P_perception_ok) {
-        /* 净空越近越慢: 350mm -> 0.25 倍, 1000mm 及以上 -> 满速 */
-        M10P_speed_scale = (M10P_clearance_mm - M10P_STOP_Y_MM) / (M10P_SLOW_Y_MM - M10P_STOP_Y_MM);
-        if (M10P_speed_scale > 1) M10P_speed_scale = 1;
-        if (M10P_speed_scale < 0.25f) M10P_speed_scale = 0.25f;
-    }
     return n;
 }void M10P_Poll(void)
 {
@@ -131,7 +125,6 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
     }
 }static volatile uint32_t observation_us, observation_epoch, observation_seq, observation_end_us;
 static volatile uint32_t control_expired;
-static volatile float observation_scale;
 static volatile uint8_t observation_valid, warmup;
 volatile float Radar_effective_target;
 /* 诊断和定时器共用一套时效判断，均以接收时间计时，不以解析/查询时间续期。 */
@@ -153,7 +146,7 @@ void Radar_Invalidate(void)
     observation_valid = 0; warmup = 0;
     __set_PRIMASK(p);
 }
-void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale, uint32_t end_us)
+void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, uint32_t end_us)
 {
     /* 只有已完成几何/控制计算的新鲜扫描才能提交；串口收到字节不等于有效观测。 */
     uint32_t p = __get_PRIMASK(), now = Diag_TimeUs();
@@ -167,7 +160,6 @@ void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale,
         if (seq != observation_seq + 1u || !Radar_ObservationFresh(now)) warmup = 0;
         observation_seq = seq; observation_us = front_us; observation_epoch = epoch;
         observation_end_us = end_us;
-        observation_scale = scale < 0 ? 0 : scale > 1 ? 1 : scale;
         if (warmup < 3) warmup++;
         observation_valid = warmup >= 3;
         if (observation_valid) { Radar_age_ticks = 0; Radar_started = 1; }
@@ -247,7 +239,7 @@ void Speed_PID_Reset(pid_type *pid)
 #define SET 1
 int TIM_GetITStatus(int t,int f){(void)t;(void)f;return SET;}
 void TIM_ClearITPendingBit(int t,int f){(void)t;(void)f;}
-uint16_t Encoder_cnt_temp,moto_pwm,daoche_flag,hardware_pwm;
+uint16_t Encoder_cnt_temp,moto_pwm,hardware_pwm;
 float Speed_now,Speed_mubiao=10;
 pid_type Speed_pid={8.5f,.505f,0};
 void Get_Encoder(void){}
@@ -269,16 +261,11 @@ void TIM5_IRQHandler(void)
             Speed_PID_Reset(&Speed_pid);
             moto_pwm = 0;
             Moto_Speed(0);
-        } else if (daoche_flag == 1) {
-            Moto_Speed((uint16_t)(100 * 0.5));  /* 50%制动,不足以驱动小车 */
         } else {
             Get_Encoder();encoder_fresh=1;
-            {
-                float requested = Speed_mubiao * observation_scale;
-                /* Native encoder units, 0.25/tick acceleration; deceleration immediate. */
-                if (requested > Radar_effective_target + 0.25f) requested = Radar_effective_target + 0.25f;
-                Radar_effective_target = requested;
-            }
+            /* 定速闭环：不做起步缓升、弯道比例或近障渐进降速。
+             * 固定的是速度目标，不是占空比；近障/失效仍由上面的许可分支停车。 */
+            Radar_effective_target = Speed_mubiao;
             moto_pwm = PID_realize(Speed_now, Radar_effective_target, &Speed_pid);pi_fresh=1;
             Moto_Speed(moto_pwm);
         }
@@ -302,16 +289,16 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  s.points[0].range_mm=1000;clock_us=s.front_us+M10P_MAX_AGE_US+1;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);
  clock_us=100000;s.count=0;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);
  s.count=720;s.epoch=1;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);s.epoch=0;
- Radar_Observe(1,50000,0,1,clock_us);CHECK(!observation_valid && !Radar_started);
- clock_us+=83000;Radar_Observe(2,clock_us-50000,0,.6f,clock_us);CHECK(!observation_valid);
- clock_us+=83000;Radar_Observe(3,clock_us-50000,0,.6f,clock_us);CHECK(observation_valid && Radar_started);CHECK(observation_scale==.6f);
- Radar_Observe(3,clock_us-50000,0,1,clock_us);CHECK(!observation_valid);CHECK(warmup==0);
- for(i=4;i<=6;i++){clock_us+=83000;Radar_Observe(i,clock_us-50000,0,1,clock_us);}CHECK(observation_valid);
+ Radar_Observe(1,50000,0,clock_us);CHECK(!observation_valid && !Radar_started);
+ clock_us+=83000;Radar_Observe(2,clock_us-50000,0,clock_us);CHECK(!observation_valid);
+ clock_us+=83000;Radar_Observe(3,clock_us-50000,0,clock_us);CHECK(observation_valid && Radar_started);
+ Radar_Observe(3,clock_us-50000,0,clock_us);CHECK(!observation_valid);CHECK(warmup==0);
+ for(i=4;i<=6;i++){clock_us+=83000;Radar_Observe(i,clock_us-50000,0,clock_us);}CHECK(observation_valid);
  clock_us=observation_end_us+M10P_CONTROL_GAP_US+1;Radar_GuardTick();CHECK(!observation_valid);
  for(i=0;i<50;i++)Radar_GuardTick();CHECK(Radar_stop_latched && Radar_timeout_count==1);
- Radar_Observe(7,clock_us,0,1,clock_us);CHECK(!observation_valid);CHECK(Radar_stop_latched);
+ Radar_Observe(7,clock_us,0,clock_us);CHECK(!observation_valid);CHECK(Radar_stop_latched);
  Radar_stop_latched=Radar_started=0;warmup=0;observation_seq=0;clock_us=100000;
- for(i=1;i<=3;i++){clock_us+=83000;Radar_Observe(i,clock_us-50000,0,1,clock_us);}CHECK(observation_valid);
+ for(i=1;i<=3;i++){clock_us+=83000;Radar_Observe(i,clock_us-50000,0,clock_us);}CHECK(observation_valid);
  LidarRx_epoch++;Radar_GuardTick();CHECK(!observation_valid);CHECK(warmup==0);
  Radar_Invalidate();CHECK(!observation_valid);
  /* Rejecting a newly completed circle revokes the prior driving permission
@@ -332,20 +319,20 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  LidarRx_epoch=observation_epoch=0;clock_us=1000000;
  for(i=1;i<=3;i++){
   unsigned tick;
-  Radar_Observe(i,clock_us-90000,0,1,clock_us);
+  Radar_Observe(i,clock_us-90000,0,clock_us);
   CHECK(warmup==i);CHECK(Radar_Permitted()==(i==3));
   for(tick=0;tick<9;tick++){clock_us+=10000;Radar_GuardTick();}
   CHECK(Radar_Permitted()==(i==3));CHECK(warmup==i);
   clock_us+=10000;
  }
  CHECK(Radar_started && !Radar_stop_latched);
- Radar_Observe(4,clock_us-90000,0,1,clock_us);CHECK(Radar_Permitted());
+ Radar_Observe(4,clock_us-90000,0,clock_us);CHECK(Radar_Permitted());
  Radar_Invalidate();CHECK(!Radar_Permitted() && warmup==0);
- Radar_Observe(5,clock_us-90000,0,1,clock_us);CHECK(warmup==1 && !Radar_Permitted());
+ Radar_Observe(5,clock_us-90000,0,clock_us);CHECK(warmup==1 && !Radar_Permitted());
  clock_us+=M10P_MAX_AGE_US+1;Radar_GuardTick();CHECK(warmup==0 && !Radar_Permitted());
- Radar_Observe(6,clock_us-90000,0,1,clock_us);CHECK(warmup==1);
- Radar_Observe(8,clock_us-90000,0,1,clock_us);CHECK(warmup==1 && !Radar_Permitted());
- Radar_Observe(8,clock_us-90000,0,1,clock_us);CHECK(warmup==0);
+ Radar_Observe(6,clock_us-90000,0,clock_us);CHECK(warmup==1);
+ Radar_Observe(8,clock_us-90000,0,clock_us);CHECK(warmup==1 && !Radar_Permitted());
+ Radar_Observe(8,clock_us-90000,0,clock_us);CHECK(warmup==0);
  /* Exercise the actual 10ms motor ISR, not just the permission helper.
   * 100ms scans with 100ms-old front points must accelerate continuously. */
  Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;
@@ -353,10 +340,10 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  Radar_effective_target=0;Speed_PID_Reset(&Speed_pid);
  for(i=1;i<=20;i++){
   unsigned tick;
-  Radar_Observe(i,clock_us-100000,0,1,clock_us);
+  Radar_Observe(i,clock_us-100000,0,clock_us);
   for(tick=0;tick<10;tick++){
    TIM5_IRQHandler();
-   if(i>=3){CHECK(Radar_Permitted());CHECK(hardware_pwm>0);}
+   if(i>=3){CHECK(Radar_Permitted());CHECK(hardware_pwm>0);CHECK(Radar_effective_target==Speed_mubiao);}
    clock_us+=10000;
   }
  }
@@ -372,18 +359,18 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  }
  /* Old/future timestamps cannot be made fresh by submitting them now. */
  Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;Radar_Invalidate();observation_seq=0;
- Radar_Observe(1,clock_us-M10P_MAX_AGE_US-1,0,1,clock_us);CHECK(warmup==0);
- Radar_Observe(1,clock_us-M10P_CONTROL_GAP_US-1,0,1,clock_us-M10P_CONTROL_GAP_US-1);CHECK(warmup==0);
- Radar_Observe(1,clock_us+1,0,1,clock_us);CHECK(warmup==0);
+ Radar_Observe(1,clock_us-M10P_MAX_AGE_US-1,0,clock_us);CHECK(warmup==0);
+ Radar_Observe(1,clock_us-M10P_CONTROL_GAP_US-1,0,clock_us-M10P_CONTROL_GAP_US-1);CHECK(warmup==0);
+ Radar_Observe(1,clock_us+1,0,clock_us);CHECK(warmup==0);
  /* Continuous 60/80/100/120ms scans across uint32 time wrap. */
  {unsigned period,frame,tick;
   for(period=60000;period<=120000;period+=20000){
    Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;Radar_Invalidate();observation_seq=0;
    clock_us=0xffff0000u;Radar_effective_target=0;Speed_PID_Reset(&Speed_pid);
    for(frame=1;frame<=12;frame++){
-    Radar_Observe(frame,clock_us-101000,0,1,clock_us-10000);
+    Radar_Observe(frame,clock_us-101000,0,clock_us-10000);
     for(tick=0;tick<period;tick+=10000){
-     TIM5_IRQHandler();if(frame>=3){CHECK(Radar_Permitted());CHECK(hardware_pwm>0);}
+     TIM5_IRQHandler();if(frame>=3){CHECK(Radar_Permitted());CHECK(hardware_pwm>0);CHECK(Radar_effective_target==Speed_mubiao);}
      clock_us+=10000;
     }
    }
@@ -391,11 +378,27 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
   }
  }
  /* Even a permissible 150ms-old new observation must not be held past270ms. */
- Radar_Observe(observation_seq+1,clock_us-M10P_MAX_AGE_US,0,1,clock_us);
+ Radar_Observe(observation_seq+1,clock_us-M10P_MAX_AGE_US,0,clock_us);
  clock_us+=M10P_MAX_PERIOD_US+1;TIM5_IRQHandler();CHECK(hardware_pwm==0 && !Radar_Permitted());
  /* Explicit unsafe input still stops immediately, rather than holding output. */
- for(i=1;i<=3;i++){clock_us+=100000;Radar_Observe(observation_seq+1,clock_us-90000,0,1,clock_us);}
+ for(i=1;i<=3;i++){clock_us+=100000;Radar_Observe(observation_seq+1,clock_us-90000,0,clock_us);}
  TIM5_IRQHandler();CHECK(hardware_pwm>0);
  Radar_Invalidate();TIM5_IRQHandler();CHECK(hardware_pwm==0 && Speed_pid.err_sum==0);
+ /* Close but outside the stop line: fixed target, with real encoder PI.
+  * At/below the stop line: the same invalidation path must still stop. */
+ Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;Radar_Invalidate();
+ Speed_now=0;Speed_mubiao=10;Speed_PID_Reset(&Speed_pid);
+ s.count=720;s.front_seen=1;s.epoch=LidarRx_epoch;
+ for(i=0;i<720;i++){s.points[i].angle_cdeg=(uint16_t)(i*50);s.points[i].range_mm=1000;}
+ s.points[0].range_mm=351;s.front_us=clock_us-90000;
+ M10P_Build(&s,out,720);CHECK(M10P_perception_ok);
+ for(i=0;i<3;i++){clock_us+=100000;Radar_Observe(observation_seq+1,clock_us-90000,0,clock_us);}
+ TIM5_IRQHandler();CHECK(Radar_effective_target==10 && hardware_pwm>0);
+ {uint16_t starting_pwm=hardware_pwm;Speed_now=8;clock_us+=10000;TIM5_IRQHandler();
+  CHECK(Radar_effective_target==10 && hardware_pwm<starting_pwm);
+ }
+ s.points[0].range_mm=350;s.front_us=clock_us-90000;
+ M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);
+ Radar_Invalidate();TIM5_IRQHandler();CHECK(hardware_pwm==0 && Radar_effective_target==0);
  printf("PASS %u adapter/guard/PI checks\n",checks);return 0;
 }

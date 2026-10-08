@@ -62,7 +62,8 @@ void Diag_MotorTick(uint16_t raw, uint8_t fresh, uint8_t pi)
     s->target = Radar_effective_target;
     s->integral = Diag_motor_integral;
     s->prelimit = Diag_motor_prelimit;
-    s->flags = (fresh ? 1u : 0u) | (pi ? 2u : 0u) | (Radar_started ? 4u : 0u) | (Radar_stop_latched ? 8u : 0u) | (daoche_flag ? 16u : 0u);
+    /* 原倒车标志位bit4保留为0，保持上位机协议布局兼容。 */
+    s->flags = (fresh ? 1u : 0u) | (pi ? 2u : 0u) | (Radar_started ? 4u : 0u) | (Radar_stop_latched ? 8u : 0u);
     __DMB();
     motor_head++;
 }

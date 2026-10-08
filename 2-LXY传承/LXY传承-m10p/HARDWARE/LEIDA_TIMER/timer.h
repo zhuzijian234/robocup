@@ -3,7 +3,6 @@
  * @brief   系统定时器模块 — 定时测速与速度PID计算
  *
  * TIM5: 10ms定时中断，读取编码器 -> 计算速度 -> 位置式PI -> 更新电机PWM
- * TIM14: 辅助定时器（预留）
  */
 
 #ifndef _TIMER_H
@@ -11,10 +10,7 @@
 #include "sys.h"
 #include "DMA.h"
 
-extern uint8_t ENCODER_TIM;
-extern uint8_t TIM_IRQ_COUNTER;
 extern uint16_t moto_pwm;
-extern uint16_t daoche_flag;   /* 倒车标志 */
 
 /* TIM5每10ms仲裁一次电机输出；500ms无有效观测后锁存停机，复位才能清除。 */
 #define RADAR_TIMEOUT_TICKS 50u
@@ -26,7 +22,7 @@ extern volatile uint32_t Radar_invalid_inputs;
 uint8_t Radar_Permitted(void);
 uint8_t Radar_WarmupCount(void); /* 连续有效提交数，达到3才允许启动 */
 void Radar_Invalidate(void);
-void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale, uint32_t end_us);
+void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, uint32_t end_us);
 uint32_t Radar_ControlAgeUs(void); /* 最近接纳整圈的接收结束年龄(us)，尚无帧返回UINT32_MAX */
 uint32_t Radar_ExpiredCount(void); /* 时效/代次失效次数，不按定时器tick重复累计 */
 extern volatile float Radar_effective_target;

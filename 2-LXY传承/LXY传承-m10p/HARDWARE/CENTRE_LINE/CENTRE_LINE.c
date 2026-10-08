@@ -266,9 +266,8 @@ void Midline_PD_Reset(void)
 }
 /* 本帧数据不可用时统一的出口: 记诊断位、清历史(下次重新学 err_l)、
  * 舵机保持原位(返回当前 CCR, 不写 PWM)。
- * 代价: 它会留下 Servo_PD_valid = 0 —— main.c 里只有 Servo_PD_valid=1 才会调
- * Radar_ControlCompleted(), 而 TIM5 里 500ms 等不到该调用就会永久锁电机,
- * 所以"拒绝"只能偶发, 不能变成常态。 */
+ * Servo_PD_valid=0时，main.c调用Radar_Invalidate撤销驱动许可；
+ * 有效结果由Radar_Observe提交，驱动恢复需重新积累3帧。 */
 static uint16_t pd_reject(void)
 {
     Diag_detail_u[4] &= ~1u;

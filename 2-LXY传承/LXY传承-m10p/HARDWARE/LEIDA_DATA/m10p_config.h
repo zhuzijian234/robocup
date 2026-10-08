@@ -37,6 +37,5 @@
  * 用法: |x| < 走廊半宽 且 y > 0 的点算"挡在正前方"的障碍, 取最近的 y 当净空。 */
 #define M10P_CORRIDOR_HALF_MM 180.0f /* 走廊半宽(mm), 约等于半个车宽 */
 #define M10P_STOP_Y_MM 350.0f        /* 净空小于它 -> M10P_perception_ok 置 0 (= 停车线) */
-#define M10P_SLOW_Y_MM 1000.0f       /* 净空到它就允许跑满速(中间线性降速, 见 speed_scale) */
 
 #endif

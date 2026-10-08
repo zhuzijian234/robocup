@@ -181,7 +181,7 @@ int main(void)
 #endif
 
     /* ===== 运行参数配置 ===== */
-    Speed_mubiao = 10; /* 目标速度 */
+    Speed_mubiao = 10; /* 固定目标速度（现有编码器单位）；直道/弯道相同，必要时停车。 */
 
     /* 最终舵机PID参数 (覆盖初始值) */
     Midline_PD_Init(&Servo_pd, 0.035, 0.040, 0.0395, 0.035, 0.022, 0.020);
@@ -393,9 +393,7 @@ int main(void)
              * Radar_stop_latched 永久清零电机(只能复位)。
              * 有新鲜有效候选的有界HOLD也算有效；感知无效不能借保舵续命。 */
             if (Servo_PD_valid)
-                Radar_Observe(scan->seq, scan->front_us, scan->epoch,
-                              M10P_speed_scale * ((!turn_held && (pid_select == 0 || pid_select == 5 || pid_select == 7)) ? 1.0f : 0.6f),
-                              scan->end_us);
+                Radar_Observe(scan->seq, scan->front_us, scan->epoch, scan->end_us);
             else {
                 Radar_invalid_inputs++;
                 Radar_Invalidate();

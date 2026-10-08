@@ -36,7 +36,10 @@ linked=(P/'build_m10p_verified/robocup_m10p.map').read_text(errors='replace')
 disabled=['LEIDA_DATA','LEIDA_ParserReset','LEIDA_DATA_HANDLE1','LEIDA_DATA_HANDLE3',
           'LEIDA_DATA_HANDLE3_2','LEIDA_ANGLE_jiuzheng','LEIDA_DATA_HANDLE12',
           'LEIDA_DATA_HANDLE13','LEIDA_PrintAll','LEIDA_PrintSample','LEIDA_PrintHead',
-          'LEIDA_PWM_Init','TIM14_Int_Init']
+          'LEIDA_PWM_Init','TIM14_Int_Init','TIM14_Init','TIM3_Int_Init',
+          'TIM11_PWM_Init','PWM_Init_leida','PWM_SetCompare_leida',
+          'M10P_speed_scale','observation_scale','daoche_flag',
+          'ENCODER_TIM','TIM_IRQ_COUNTER']
 for name in disabled:
  assert not re.search(r'^\s*'+re.escape(name)+r'\s+0x[0-9a-fA-F]+',linked,re.M),name
 records.append({'disabled_legacy_symbols':disabled,'result':'absent from linked symbol table'})

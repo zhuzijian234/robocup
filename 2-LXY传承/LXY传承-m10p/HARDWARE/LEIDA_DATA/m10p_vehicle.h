@@ -21,9 +21,8 @@ extern uint16_t M10P_front_bins, M10P_left_bins, M10P_right_bins;
 extern uint16_t M10P_front_gap_bins;
 extern uint32_t M10P_build_age_us;
 extern uint8_t M10P_front_seen, M10P_build_epoch_ok;
-/* M10P_clearance_mm: 正前方走廊(半宽180mm)内最近的障碍距离(mm), 越大越空
- * M10P_speed_scale:  限速系数 0.25~1, 净空近就压低目标速度 */
-extern float M10P_clearance_mm, M10P_speed_scale;
+/* 正前方走廊(半宽180mm)内最近的障碍距离(mm)，用于近障停车。 */
+extern float M10P_clearance_mm;
 extern uint8_t M10P_perception_ok; /* 本帧感知是否可信; 0 = 撤销驱动许可，主循环清PD状态，TIM5清PI并归零PWM */
 void M10P_Poll(void); /* 主循环每圈调一次: 收块 + 喂解析器 + 处理断流/过期/跳变 */
 uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity);
