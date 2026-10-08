@@ -4,7 +4,7 @@
  *
  * 硬件（对应谢露版引脚复用）:
  *   电机方向: PB15 (单IO, 高=正转)  [2026-09-06 PB10杜邦线故障, 临时挪至PB15]
- *   电机PWM:  TIM2 CH3, PB10, 84MHz/42/100 = 20kHz  [2026-10-07 改为PB10/AF1，方向脚仍为PB15]
+ *   电机PWM:  TIM2 CH2, PA1(AF1), 84MHz/42/100 = 20kHz；方向脚仍为PB15
  *   编码器:   TIM4 正交编码器, PD12/PD13
  *
  * 速度计算（10ms采样）:
@@ -40,8 +40,8 @@ void Moto_Init(uint16_t psc, uint16_t arr, uint16_t puse)
     DIR_Init();
     TIM2_PWM_Init(psc - 1, arr - 1, puse); /*启动PWM*/
 }/*psc (预分频器):
-  168MHz / psc = 定时器计数频率
-  比如 psc = 84 → 168MHz / 84 = 2MHz（每 0.5us 计一次数）
+  当前TIM2时钟84MHz / psc = 定时器计数频率
+  比如 psc = 42 → 84MHz / 42 = 2MHz（每 0.5us 计一次数）
 
 arr (自动重载值):
   计数到 arr 后归零，决定 PWM 周期
@@ -53,7 +53,7 @@ puse (初始占空比):
 
 void Moto_Speed(uint16_t Compare)
 {
-    TIM_SetCompare3(TIM2, (uint16_t)Compare);
+    TIM_SetCompare2(TIM2, (uint16_t)Compare); /* PA1对应CH2，正常行驶和模式2共用。 */
 }
 
 void Encoder_Init(void)

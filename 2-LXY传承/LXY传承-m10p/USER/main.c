@@ -8,14 +8,14 @@
  *
  * 硬件平台: STM32F407ZGT6 @ 168MHz
  * 传感器:   M10系列激光雷达 (USART2, 512000bps, DMA接收)
- * 执行器:   舵机 (TIM3 CH1), 直流电机 (TIM2 CH3, 编码器 TIM4)
+ * 执行器:   舵机 (TIM3 CH1), 直流电机 (TIM2 CH2, 编码器 TIM4)
  * 通信:     HC-05蓝牙 (USART6)
  *
  * 引脚复用 (对应谢露版):
  *   雷达:     USART2, PA2(TX) PA3(RX/DMA), DMA1 Stream5 Channel4
  *   蓝牙:     USART6, PC6(TX) PC7(RX)
  *   舵机:     TIM3 CH1, PA6
- *   电机PWM:  TIM2 CH3, PB10  [2026-10-07 改为PB10/AF1，方向脚仍为PB15]
+ *   电机PWM:  TIM2 CH2, PA1(AF1)，M144Z-M4 Mini Board的JP1第5脚
  *   电机方向: PB15 (单IO, 高=正转)  [2026-09-06 PB10杜邦线故障, 临时挪至PB15]
  *   编码器:   TIM4, PD12 PD13
  *   雷达电机: M10P内部驱动；本工程不初始化TIM9雷达PWM
@@ -68,7 +68,7 @@
  *   1: 测试① 舵机往复扫描 (test/test_servo.c)
  *   2: 测试② 电机正反转+测速 (test/test_motor.c)
  *   3: 测试③ 蓝牙调参链路 (test/test_bluetooth.c)
- *   4: PB10万用表测试：低5秒/高5秒，必须断开电机驱动板PWM信号线
+ *   4: PA1固定高电平、PB15固定低电平：万用表静态GPIO测试
  * 测试模式的说明与预期现象表见 硬件功能测试方案.md。
  */
 #define HW_TEST_SELECT 4
@@ -90,32 +90,33 @@ float duandian_DIStance = 600; /* 断点有效距离阈值 (mm) */
 
 #if HW_TEST_SELECT == 4
 /**
- * PB10纯GPIO测试：不初始化雷达、蓝牙、舵机及电机定时器。
- * 烧录前必须断开PB10与驱动板的连接；高电平可能使驱动板全速输出。
- * 万用表直流电压档：黑表笔接STM32 GND，红表笔接PB10。
- * 预期：约0V保持5秒，约3.3V保持5秒，循环。
+ * PA1(PWM) + PB15(方向) 纯GPIO测试：不初始化雷达、蓝牙、舵机及电机定时器。
+ * PA1持续输出高电平、PB15持续输出低电平，用于检查新PWM引脚的拉高能力。
+ * 万用表直流电压档：黑表笔接STM32 GND，红表笔分别接PA1、PB15。
+ * 预期：PA1恒定约3.3V、PB15恒定约0V，不产生PWM或高低切换。
+ * 测量时断开驱动板控制线；PA1恒高若接到驱动板，可能使电机全速转动。
  */
 int main(void)
 {
     GPIO_InitTypeDef gpio;
 
-    delay_init(168);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-    /* 先置低输出锁存器，再打开输出，避免初始化瞬间出现高电平。 */
-    GPIO_ResetBits(GPIOB, GPIO_Pin_10);
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
+    /* 先写好两个引脚的输出锁存器(PA1=高, PB15=低), 再打开输出,
+     * 避免初始化瞬间出现电平跳变。 */
+    GPIO_SetBits(GPIOA, GPIO_Pin_1);
+    GPIO_ResetBits(GPIOB, GPIO_Pin_15);
     GPIO_StructInit(&gpio);
-    gpio.GPIO_Pin = GPIO_Pin_10;
+    gpio.GPIO_Pin = GPIO_Pin_1;
     gpio.GPIO_Mode = GPIO_Mode_OUT; /* 普通推挽输出，不使用AF1/PWM */
     gpio.GPIO_OType = GPIO_OType_PP;
     gpio.GPIO_Speed = GPIO_Speed_2MHz;
     gpio.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_Init(GPIOA, &gpio);
+    gpio.GPIO_Pin = GPIO_Pin_15;
     GPIO_Init(GPIOB, &gpio);
 
     while (1) {
-        GPIO_ResetBits(GPIOB, GPIO_Pin_10);
-        delay_ms(5000);
-        GPIO_SetBits(GPIOB, GPIO_Pin_10);
-        delay_ms(5000);
+        /* GPIO锁存器保持初始化电平；不使用延时或定时器。 */
     }
 }
 #else

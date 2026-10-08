@@ -1,7 +1,44 @@
 {
   "permissions": {
     "allow": [
-      "Bash(/d/anaconda3/anaconda3/python -c ' *)"
+      "Bash(/d/anaconda3/anaconda3/python -c ' *)",
+      "Bash(git -C \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" show --stat --format=\"%h %ci %s%n%b\" 461af47)",
+      "Bash(git -C \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" show --stat --format=\"%h %ci %s%n%b\" e74a306)",
+      "Bash(git -C \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" show 461af47 -- USER/main.c)",
+      "Bash(git -C \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" show e74a306 -- USER/main.c)",
+      "Bash(git -C \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" log --format=\"%h %ci %s\" -5 -- 2-LXY传承/LXY传承-m10p/USER/main.c)",
+      "Bash(git -C \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" log --format=\"%h %ci %s\" --since=\"2026-10-06 00:00\" --all)",
+      "Bash(git -C \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" diff HEAD -- USER/main.c)",
+      "Bash(git -C \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" reflog --date=iso -20)",
+      "Bash(git -C \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" stash list)",
+      "Bash(git -C \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" config core.autocrlf)",
+      "Bash(git -C \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" config core.eol)",
+      "Bash(cd \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" && stat -c '%y  %s  %n' USER/.vscode/keil-assistant.log 2>&1; ls -la USER/.vscode/ 2>&1 | head -20; echo \"== build_review head ==\"; head -c 1500 build_m10p_verified/build_review.json)",
+      "Read(//d/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p/USER/**)",
+      "Bash(\"D:/Keil5/ARM/ARMCC/bin/fromelf.exe\" --text -s \"USER/build_m10p/Template/Template.axf\")",
+      "Bash(python -c ' *)",
+      "Bash(/d/anaconda3/anaconda3/python -)",
+      "Bash(grep -oE '\"[A-Za-z0-9_./\\\\\\\\\\\\\\\\:-]+\"' build_m10p_verified/source_hashes.json)",
+      "Bash(ls /c/Users/27768/anaconda3/python.exe /c/ProgramData/anaconda3/python.exe 2>/dev/null; which python python3 py 2>/dev/null; ls \"/c/Users/27768/AppData/Local/Programs/Python\" 2>/dev/null; echo ===; ls \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p/test/__pycache__/\" 2>/dev/null)",
+      "Read(//c/ProgramData/anaconda3/**)",
+      "Bash(grep -o \"烧录[^\\\\\"]\\\\{0,60\\\\}\" \"/c/Users/27768/.claude/projects/d--OneDrive-Desktop-robocup-2-LXY---LXY---m10p-USER/54c5e23c-3c2d-4cae-9a5a-6981367e6c19.jsonl\")",
+      "Bash(cd \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" && ls -la build_m10p_verified/ | head -40; echo \"== ld14p keil log stat ==\"; stat -c '%y  %s  %n' \"../LXY传承-ld14p/USER/.vscode/keil-assistant.log\" 2>&1; echo \"== ld14p log tail ==\"; tail -8 \"../LXY传承-ld14p/USER/.vscode/keil-assistant.log\" 2>&1)",
+      "Bash(\"D:/Keil5/ARM/ARMCC/bin/fromelf.exe\" --text -c \"USER/build_m10p/Template/Template.axf\")",
+      "Bash(grep -o \"烧录[^\\\\\"]\\\\{0,50\\\\}\" \"/c/Users/27768/.claude/projects/d--OneDrive-Desktop-robocup/932d9cb9-a308-4ff1-8f13-3bb35baff5bb.jsonl\")",
+      "Bash(which python *)",
+      "Bash(cd \"d:/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p\" && stat -c '%y  %s  %n' debug.md 硬件测试说明书.md keilkilll.bat \"诊断V2交付/01-操作流程.md\" USER/.vscode/tasks.json 2>&1; echo \"== OBJ ==\"; ls -la --time-style=full-iso OBJ/ | head -25)",
+      "Bash(ls -d /c/Users/27768/anaconda3 /c/Users/27768/miniconda3 /c/ProgramData/Anaconda3 /c/anaconda3 /d/anaconda3 2>/dev/null; find /c/Users/27768 -maxdepth 2 -iname \"python.exe\" 2>/dev/null | head; ls \"/d/OneDrive/Desktop/robocup/2-LXY传承/LXY传承-m10p/test/\" 2>/dev/null | head -20)",
+      "Read(//c/ProgramData/**)",
+      "Bash(/d/anaconda3/python.exe \"C:\\\\\\\\Users\\\\\\\\27768\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\wf_flash_scan.py\" \"C:\\\\\\\\Users\\\\\\\\27768\\\\\\\\.claude\\\\\\\\projects\\\\\\\\d--OneDrive-Desktop-robocup-2-LXY---LXY---m10p-USER\\\\\\\\54c5e23c-3c2d-4cae-9a5a-6981367e6c19.jsonl\" \"2026-10-07T04:00\")",
+      "Read(//d/anaconda3//**)",
+      "Read(//d/anaconda3/**)",
+      "Bash(ls /d/anaconda3/anaconda3/ 2>/dev/null | head -30; ls /d/anaconda3/anaconda3/python.exe 2>/dev/null && echo PYFOUND)",
+      "Read(//d/anaconda3/anaconda3//**)",
+      "Read(//d/anaconda3/anaconda3/**)",
+      "Bash(awk '/^    main:/{f=1} f{print} f&&/BX/{c++} c>3{exit}' \"/c/Users/27768/AppData/Local/Temp/tpl_dis.txt\")",
+      "Bash(/d/anaconda3/anaconda3/python.exe \"C:\\\\\\\\Users\\\\\\\\27768\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\wf_flash_scan.py\" \"C:\\\\\\\\Users\\\\\\\\27768\\\\\\\\.claude\\\\\\\\projects\\\\\\\\d--OneDrive-Desktop-robocup-2-LXY---LXY---m10p-USER\\\\\\\\54c5e23c-3c2d-4cae-9a5a-6981367e6c19.jsonl\")",
+      "Bash(grep -nA12 -iE \"flash\" USER/.eide/eide.yml)",
+      "Bash(/d/anaconda3/anaconda3/python.exe -)"
     ]
   }
 }

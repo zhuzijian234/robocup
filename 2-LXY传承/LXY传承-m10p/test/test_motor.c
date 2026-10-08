@@ -2,6 +2,7 @@
  * @file    test_motor.c
  * @brief   测试② 电机功能测试 — 正反转多档占空比 + 编码器实测速度
  *
+ * 引脚: 电机PWM为PA1/TIM2_CH2，方向为PB15；通过Moto_Speed统一更新占空比。
  * 依赖: main.c 已完成 Moto_Init/Encoder_Init, 且测试分支已关闭TIM5更新中断
  *       (否则速度环每10ms会覆盖电机PWM, 测试输出不生效)。
  *

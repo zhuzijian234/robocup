@@ -57,7 +57,7 @@ void Diag_MotorTick(uint16_t raw, uint8_t fresh, uint8_t pi)
     s->rev = Diag_revision;
     s->us = Diag_TimeUs();
     s->raw = raw;
-    s->pwm = (uint16_t)TIM2->CCR3;
+    s->pwm = (uint16_t)TIM2->CCR2; /* 电机PWM已迁移至PA1/TIM2_CH2。 */
     s->speed = Speed_now;
     s->target = Radar_effective_target;
     s->integral = Diag_motor_integral;
