@@ -16,18 +16,21 @@
  *        y_target = 拟合线末点 points[end-1]._y（BLUE_Y_STRA_SEL=1 时改用 BLUE_Y_STRA）
  *        |k| <= 0.1 视为"线太横"退化, 直接拒绝本帧
  *   1  = 小角度右转                    误差: -(x + paodao*BLUE_DIS_RIGHT/100)             kp_3, kd_3
- *        在窗口里找 y 最接近 BLUE_Y_RIGHT 的点, 用它的 x 算偏差, 即"把右墙保持在车右
- *        paodao*BLUE_DIS_RIGHT/100 mm 处"; 窗口里一个点都没有则拒绝本帧
+ *        20261008 修正语义: 实际传入的是**左**侧边界数组(主循环 right?LEFT:RIGHT 的取法),
+ *        x<0, 所以这其实是"把左墙保持在车左 paodao*BLUE_DIS_RIGHT/100 mm 处"的**通道居中**控制,
+ *        不是"右转"。x 由窗口内 y 最接近 BLUE_Y_RIGHT 的点给出; 窗口无点则拒绝本帧。
+ *        已退出"不许指到中位另一边"的钳位 —— 原始符号才是正确的横向修正方向。
  *   2  = 小角度左转                    误差: -(x - paodao*BLUE_DIS_LEFT/100)              kp_3, kd_3
- *        同上, 目标高度 BLUE_Y_LEFT
- *   3  = 大角度右转（右断点+前方拟合, |k|<0.35）    误差: -mag          kp_2, kd_2
- *   4  = 大角度左转                               误差: +mag          kp_2, kd_2
- *   8  = 中等角度右转（0.35<=|k|<0.7 且单边拟合）   误差: -mag          kp_2, kd_2
- *   9  = 中等角度左转                             误差: +mag          kp_2, kd_2
- *        mag = |k| < 0.35 ? 500 : 175/|k| —— 线越斜给的固定误差越大(上限 500);
+ *        同上, 传入**右**侧边界数组(x>0), 等价于"把右墙保持在车右 ... 处"的通道居中。
+ *        目标高度 BLUE_Y_LEFT
+ *   3  = 大角度右转（右断点+前方拟合, |k|<FORWARD_K_BIG）  误差: -mag     kp_2, kd_2
+ *   4  = 大角度左转                                      误差: +mag     kp_2, kd_2
+ *   8  = 中等角度右转（|k|<FORWARD_K_S_CURVE 且单边拟合）  误差: -mag     kp_2, kd_2
+ *   9  = 中等角度左转                                    误差: +mag     kp_2, kd_2
+ *        mag = clamp(175/|k|, TURN_MAG_MIN, 500) —— 线越陡给的固定误差越大(上限 500, 下限 250);
  *        方向只由模式决定, 不看 k 的符号（k 退化时不给反向指令）
- *   5  = 中线垂直直道                  误差: 50 - zhongxian_chuizhi    kp, kd  (需 LEIDA_vertical_valid)
- *   7  = 中线均值兜底                  误差: 50 - mean(points[]._x)    kp, kd  (拟合失败时用)
+ *   5  = 中线垂直直道                  误差: CENTER_X_TARGET_MM - zhongxian_chuizhi    kp, kd
+ *   7  = 中线均值兜底                  误差: CENTER_X_TARGET_MM - mean(points[]._x)    kp, kd
  *   6  = 保留未使用                    公式同 7; 当前 main.c 不会选它
  *
  * 注意: 10=BLE_MODE_HOLD / 11=BLE_MODE_INVALID / 12=BLE_MODE_FORCED 是遥测伪模式,
@@ -232,6 +235,18 @@ float BLUE_Y_STRA = 750;   /* 直道模式下的目标Y坐标 */
 float BLUE_Y_STRA_SEL = 0; /* 直道模式选择: 0=用中线末点, 1=用BLUE_Y_STRA */
 float err[5] = {0};        /* 误差历史缓冲区（FIR滤波用，当前未使用） */
 
+/* 车体坐标系里"赛道中线"应该落在的横向位置(mm)。
+ * 原来在 mode 0/5/6/7 里硬编码 50（沿用 LXY 车的标定值）。
+ * 本车雷达居中、车宽 26cm、通道 50cm → 单侧余量仅 120mm，
+ * 若 50mm 的标定偏差不成立，等于常驻 5cm 偏置。做成可调项，实车按 debug 流程重标。 */
+float CENTER_X_TARGET_MM = 50.0f;
+/* mode 0 的误差限幅(mm)。原为 ±200 → 最大只有 ±70 个 CCR 计数(半行程 275)，
+ * 窄通道里修正力明显不足；抬到 ±350，实车再调。 */
+float MODE0_ERR_CLAMP_MM = 350.0f;
+/* 转弯模式的合成误差下限。原公式 175/|k| 在 |k|=2 时只剩 87，
+ * 急弯反而给最小的转向力；加下限保证急弯仍有足够权限。 */
+float TURN_MAG_MIN = 250.0f;
+
 /* ======================== 多模式PD舵机转向控制器 ======================== */
 
 /**
@@ -299,12 +314,12 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
         if (!(fabs(line->k) > 0.1f && fabs(line->k) <= FLT_MAX && fabs(line->b) <= FLT_MAX))
             return pd_reject();
         target = BLUE_Y_STRA_SEL == 1 ? BLUE_Y_STRA : points[end - 1]._y;
-        e = -((target - line->b) / line->k - 50);
+        e = -((target - line->b) / line->k - CENTER_X_TARGET_MM);
         if (BLUE_Y_STRA_SEL != 1) {
-            if (e > 200)
-                e = 200;
-            if (e < -200)
-                e = -200;
+            if (e > MODE0_ERR_CLAMP_MM)
+                e = MODE0_ERR_CLAMP_MM;
+            if (e < -MODE0_ERR_CLAMP_MM)
+                e = -MODE0_ERR_CLAMP_MM;
         }
     } else if (mode == 1 || mode == 2) {
         target = mode == 1 ? BLUE_Y_RIGHT : BLUE_Y_LEFT;
@@ -323,20 +338,30 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
             Diag_detail_u[4] |= 8;
             return pd_reject();
         }
-        /* 期望: 墙保持在车侧 paodao*BLUE_DIS/100 mm 处。x 是"离该墙的点"的横向坐标,
-         * e<0 = 车离墙太远, 该往右打 (mode1); e>0 = 该往左打 (mode2)。 */
-        e = mode == 1 ? -(x + paodao_distance * BLUE_DIS_RIGHT / 100) : -(x - paodao_distance * BLUE_DIS_LEFT / 100);
+        /* 期望: 通道中线落在车体系 x = CENTER_X_TARGET_MM 处。
+         * x 是边界点的横向坐标; 由此反推通道中线的横向位置:
+         *   mode1 用对侧(左)墙: centre = x + paodao*BLUE_DIS_RIGHT/100
+         *   mode2 用对侧(右)墙: centre = x - paodao*BLUE_DIS_LEFT/100
+         * 20261008: 原来 mode1/2 写成 -(x±T), 少了 CENTER_X_TARGET_MM 这个偏置,
+         * 而 mode0/5/7 是 50-x —— 两种口径差 50mm, 模式一跳变车就横移 5cm。
+         * 在单侧余量只有 120mm 的通道里这足以刮锥桶, 现统一成同一口径。 */
+        e = mode == 1 ? CENTER_X_TARGET_MM - (x + paodao_distance * BLUE_DIS_RIGHT / 100)
+                      : CENTER_X_TARGET_MM - (x - paodao_distance * BLUE_DIS_LEFT / 100);
     } else if (mode == 3 || mode == 4 || mode == 8 || mode == 9) {
         if (!(fabs(line->k) <= FLT_MAX))
             return pd_reject();
         /* 转弯力度: 线越斜(弯越急)|k| 越小, 给的固定误差越大; |k|<0.35 直接顶到 500。
-         * 方向由模式决定, 不看 k 的符号 —— 拟合退化时也不给反向指令。 */
+         * 方向由模式决定, 不看 k 的符号 —— 拟合退化时也不给反向指令。
+         * 20261008: 原式 175/|k| 无下限, 急弯(|k|≈2)只剩 87, 反而给最小转向力;
+         * 加 TURN_MAG_MIN 下限后, |k|∈[0.35,0.7] 区间连续, 更陡也保持 250。 */
         mag = fabs(line->k) < 0.35f ? 500.0f : 175.0f / fabs(line->k);
+        if (mag < TURN_MAG_MIN)
+            mag = TURN_MAG_MIN;
         e = (mode == 3 || mode == 8) ? -mag : mag;
     } else if (mode == 5) {
         if (!LEIDA_vertical_valid)
             return pd_reject();
-        e = 50 - zhongxian_chuizhi;
+        e = CENTER_X_TARGET_MM - zhongxian_chuizhi;
     } else {
         if (end - start < 2)
             return pd_reject();
@@ -346,7 +371,7 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
             x += points[i]._x;
         }
         x /= end - start;
-        e = 50 - x;
+        e = CENTER_X_TARGET_MM - x;
         Diag_detail_f[14] = x;
         Diag_detail_u[4] |= 256;
     }
@@ -360,9 +385,9 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
                                                                                         : pid->kp_2;
     kd = (mode == 1 || mode == 2) ? pid->kd_3 : (mode == 0 || (mode >= 5 && mode <= 7)) ? pid->kd
                                                                                         : pid->kd_2;
-    /* 不同模式的误差来自不同测量目标，不能直接相减当作运动变化。
-     * 例如大左转500 -> 侧墙左转82，会产生假的负D并把舵机拉回中位。
-     * 切模式首帧只用P；弯道延续由主循环的有界TurnGuard负责。 */
+    /* 不同模式的误差来自不同测量目标(中线外推/垂线段/均值/合成力度)，
+     * 不能直接相减当作运动变化。例如大左转500 -> 侧墙左转82，会产生假的负D并把舵机拉回中位。
+     * 切模式首帧只用P；弯道延续由主循环的有界TurnGuard负责，急弯的快速响应由入弯前馈负责。 */
     if (!pd_history_valid || !dt || dt > 250000u || mode != pd_previous_mode) {
         pid->err_l = e;
         Diag_detail_u[4] |= 4;
@@ -388,17 +413,27 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
     if (turn_direction(mode) &&
         (turn_direction(mode) != turn_direction(pd_previous_mode) || turn_rank(mode) > turn_rank(pd_previous_mode)) &&
         ((turn_direction(mode) == 1 && p < 0) || (turn_direction(mode) == 2 && p > 0))) {
-        entry = fabs(p) < TURN_ENTRY_PWM ? fabs(p) : TURN_ENTRY_PWM;
+        /* 入弯补一脚: 原来 entry=min(|P|,75)，P 很弱时这一脚也几乎为 0，
+         * 于是"刚识别到急弯"的那一帧反而没有力度。改成 clamp(|P|, 45, 75)，
+         * 保证入弯首帧至少有一次有界的方向性补偿(单边行程 275, 45 约 16%)。 */
+        entry = fabs(p);
+        if (entry < TURN_ENTRY_MIN_PWM)
+            entry = TURN_ENTRY_MIN_PWM;
+        if (entry > TURN_ENTRY_PWM)
+            entry = TURN_ENTRY_PWM;
         if (p < 0)
             entry = -entry;
     }
     output = 10 * mid + p + d + entry;
-    /* 打方向的模式(1/3/8 往右, 2/4/9 往左)不许把舵机指到中位的另一边, 防反打 */
-    if ((mode == 1 || mode == 3 || mode == 8) && output > 10 * mid) {
+    /* 合成的转弯模式(3/4/8/9)误差方向由模式固定, 不许把舵机指到中位的另一边, 防反打。
+     * 20261008: mode 1/2 退出这个钳位 —— 它们实际是"用对侧墙/锥桶做通道居中",
+     * 原始符号就是正确的横向修正方向。钳位会把本该左打的修正直接钉在中位
+     * (实机日志 pwm_unclamped==pwm_mid, 车在左弯里完全不转), 方向正确性由上游模式选择负责。 */
+    if ((mode == 3 || mode == 8) && output > 10 * mid) {
         output = 10 * mid;
         Diag_detail_u[4] |= 1024;
     }
-    if ((mode == 2 || mode == 4 || mode == 9) && output < 10 * mid) {
+    if ((mode == 4 || mode == 9) && output < 10 * mid) {
         output = 10 * mid;
         Diag_detail_u[4] |= 1024;
     }

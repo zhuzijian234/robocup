@@ -1,0 +1,42 @@
+============================================================================
+A1 hardware_check_verified.bin  declared capture duration 15.031 s
+frames parsed: 4311
+per-offset byte statistics inside the 10-byte region (offset 0 = L-12):
+   off  0 (abs L-12): min=  0 max=  0 zero_frac=1.000
+   off  1 (abs L-11): min=  0 max=  0 zero_frac=1.000
+   off  2 (abs L-10): min=  0 max=  0 zero_frac=1.000
+   off  3 (abs L-9): min=  0 max=  0 zero_frac=1.000
+   off  4 (abs L-8): min=  0 max=  0 zero_frac=1.000
+   off  5 (abs L-7): min=  0 max=  0 zero_frac=1.000
+   off  6 (abs L-6): min=  0 max=  3 zero_frac=0.257
+   off  7 (abs L-5): min=  0 max=255 zero_frac=0.004
+   off  8 (abs L-4): min=  0 max=  3 zero_frac=0.256
+   off  9 (abs L-3): min=  0 max=255 zero_frac=0.003
+word @L-6..L-5: first=302 last=269 span=-33  ; /1000 = -0.033 s (capture 15.031 s)
+   delta histogram (top 10): [(3, 2266), (4, 2029), (-996, 8), (-997, 7)]
+word @L-4..L-3: first=228 last=145 min=0 max=999
+   delta histogram (top 10): [(-480, 43), (-481, 41), (449, 41), (440, 41), (450, 40), (-551, 40), (438, 40), (442, 38), (-490, 38), (-550, 38)]
+   frames/revolution check: angle delta mode = [(1500, 4310)]
+   implied ms per frame from w1: -0.0077 ; from rpm: 0.7200
+   (dw1, dw2) joint top 12: [((4, -480), 43), ((4, -481), 41), ((3, 449), 41), ((3, 440), 41), ((3, 450), 40), ((4, -551), 40), ((3, 438), 40), ((3, 442), 38), ((4, -490), 38), ((4, -550), 38), ((3, 431), 35), ((3, 451), 35)]
+============================================================================
+A10 latest_capture.bin  declared capture duration 30.031 s
+frames parsed: 8635
+per-offset byte statistics inside the 10-byte region (offset 0 = L-12):
+   off  0 (abs L-12): min=  0 max=  0 zero_frac=1.000
+   off  1 (abs L-11): min=  0 max=  0 zero_frac=1.000
+   off  2 (abs L-10): min=  0 max=  0 zero_frac=1.000
+   off  3 (abs L-9): min=  0 max=  0 zero_frac=1.000
+   off  4 (abs L-8): min=  0 max=  0 zero_frac=1.000
+   off  5 (abs L-7): min=  0 max=  0 zero_frac=1.000
+   off  6 (abs L-6): min=  0 max=  3 zero_frac=0.257
+   off  7 (abs L-5): min=  0 max=255 zero_frac=0.004
+   off  8 (abs L-4): min=  0 max=  3 zero_frac=0.260
+   off  9 (abs L-3): min=  0 max=255 zero_frac=0.003
+word @L-6..L-5: first=852 last=830 span=-22  ; /1000 = -0.022 s (capture 30.031 s)
+   delta histogram (top 10): [(3, 4540), (4, 4064), (-997, 18), (-996, 12)]
+word @L-4..L-3: first=849 last=424 min=0 max=999
+   delta histogram (top 10): [(451, 101), (449, 85), (-549, 84), (452, 80), (450, 77), (-551, 73), (448, 72), (-550, 68), (-552, 67), (433, 63)]
+   frames/revolution check: angle delta mode = [(1500, 8634)]
+   implied ms per frame from w1: -0.0025 ; from rpm: 0.7201
+   (dw1, dw2) joint top 12: [((3, 451), 101), ((3, 449), 85), ((4, -549), 84), ((3, 452), 80), ((3, 450), 76), ((4, -551), 73), ((3, 448), 72), ((4, -550), 68), ((4, -552), 67), ((3, 433), 63), ((4, -488), 61), ((4, -548), 61)]

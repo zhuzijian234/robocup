@@ -46,6 +46,17 @@ uint32_t M10P_build_age_us;
 uint8_t M10P_front_seen,M10P_build_epoch_ok;
 float M10P_clearance_mm;
 uint8_t M10P_perception_ok;
+/* 20261008 感知分级: 原因位枚举与分级结果。宏取自 m10p_vehicle.h,
+ * 主机侧不能直接包含它(会拉进 LEIDA_DATA.h/arm_math.h), 故按同值重复定义。 */
+#define M10P_WHY_FRONT_SEEN 1u
+#define M10P_WHY_FRONT_BINS 2u
+#define M10P_WHY_FRONT_GAP  4u
+#define M10P_WHY_LEFT_BINS  8u
+#define M10P_WHY_RIGHT_BINS 16u
+#define M10P_WHY_EPOCH      32u
+#define M10P_WHY_AGE        64u
+#define M10P_WHY_CAPACITY   128u
+uint8_t M10P_front_ok,M10P_left_ok,M10P_right_ok,M10P_perception_why,M10P_steer_source;
 typedef struct {float kp,ki,kd,err,err_l,err_sum;} pid_type;
 volatile float Diag_motor_integral,Diag_motor_prelimit;
 '''

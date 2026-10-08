@@ -88,6 +88,18 @@ extern float Speed_now;
 #define duandian_distance 600 
 float duandian_DIStance = 600; /* 断点有效距离阈值 (mm) */
 
+/* 前方墙拟合斜率的模式分档。20261008: 中转档原为 0.7，实测转弯时
+ * Forward.k = -1.09 ~ -1.96 → 大转(0.35)和中转(0.7)两档全部落空，
+ * 只能退到最弱的小转/贴墙模式 → "转弯力度不够"。中转档放宽到 2.0，
+ * 并允许"陡峭前方墙"本身作为急弯证据(不再强制要求S弯双边数据)。 */
+#define FORWARD_K_BIG      0.35f  /* < 此值 → 大转 mode 3/4 */
+#define FORWARD_K_S_CURVE  2.00f  /* < 此值 → 中转 mode 8/9 (陡于 FORWARD_K_BIG 时无需S弯特征) */
+/* 跑道宽度候选的接受窗口(mm)。20261008: 车宽26cm、锥桶通道50cm，
+ * 原 600~900 窗口会把 50cm 通道全部拒掉，paodao_distance 长期停在旧值，
+ * 而小转弯模式的横向目标点 paodao*BLUE_DIS/100 直接依赖它 → 横向目标错位。 */
+#define PAODAO_MIN_MM 400.0f
+#define PAODAO_MAX_MM 900.0f
+
 #if HW_TEST_SELECT == 4
 /**
  * PA1(PWM) + PB15(方向) 纯GPIO测试：不初始化雷达、蓝牙、舵机及电机定时器。
@@ -131,6 +143,8 @@ int main(void)
     uint8_t forward_fit_ok, side_fit_ok;
     uint16_t ref_start, ref_end, candidate_pwm;
     uint8_t turn_held, straight_evidence;
+    uint8_t degraded = 0;  /* 1=本帧感知判据不全, 只允许中线/单侧跟线, 不允许断点转弯模式 */
+    uint8_t width_ok = 0;  /* 本帧跑道宽度候选是否被接受 */
     static TurnGuard turn_guard;
     uint16_t break_flag = 0;   /* 数据异常标志 */
     uint16_t danbian_flag = 0; /* 单边标志 (用于S弯检测) */
@@ -235,7 +249,9 @@ int main(void)
             LEIDA_speed_dps = scan->dps;
             valid_couter = M10P_Build(scan, LEIDA_DATA2, LEIDA_DATA_COUNTER);
             Diag_Field(12, valid_couter, 1);
-            if (valid_couter <= 20 || !M10P_perception_ok) {
+            if (valid_couter <= 20) {
+                /* 真的没有可用回波: 这是唯一该保持舵角的情况(仍提交诊断, 电机PI继续跑)。 */
+                M10P_steer_source = M10P_SRC_HOLD;
                 Radar_invalid_inputs++;
                 (void)TurnGuard_Apply(&turn_guard, BLE_MODE_INVALID, 0, 0,
                                       (uint16_t)TIM3->CCR1, Diag_TimeUs(), &turn_held);
@@ -244,12 +260,17 @@ int main(void)
                 M10P_Release(scan);
                 continue;
             }
+            /* 有回波但判据不全(锥桶赛道两侧稀疏时很常见): 降级处理——不做断点/转弯模式判定,
+             * 只走中线/单侧跟线分支, 舵机照常更新。原实现这里直接 continue 且不写舵机,
+             * 导致舵角被冻结在最后一次的值(实测冻在右打满 1170), 是"反应迟钝"的主因。 */
+            degraded = M10P_perception_ok ? 0u : 1u;
+            M10P_steer_source = degraded ? M10P_SRC_WEAK : M10P_SRC_DUAL;
             /* ===== 第3步: 计算跑道宽度 ===== */
-            /* 雷达测距，600-900mm之间才更新 (防止异常值) */
+            /* 雷达测距，窗口覆盖 50cm 锥桶通道到 90cm 宽赛道 (窄于此的丢弃) */
             paodao_distance_r = LEIDA_Distance(LEIDA_DATA2, valid_couter);
-            paodao_distance = ((paodao_distance_r > 600) && (paodao_distance_r < 900))
-                                  ? paodao_distance_r
-                                  : paodao_distance;
+            width_ok = (paodao_distance_r > PAODAO_MIN_MM) && (paodao_distance_r < PAODAO_MAX_MM);
+            if (width_ok)
+                paodao_distance = paodao_distance_r;
 
             /* ===== 第4步: 提取左右边界点 ===== */
             LEFT_cnt = LEIDA_DATA_HANDLE6(LEIDA_DATA_LEFT, LEIDA_DATA2, valid_couter);
@@ -297,16 +318,21 @@ int main(void)
             /* ===== 第8步: 计算候选，仲裁弯道状态，最后只写一次舵机 ===== */
             candidate_pwm = (uint16_t)TIM3->CCR1;
             CENTER_cnt = 0;
-            if ((RIGHT_duandian > 0 && RIGHT_duandian < duandian_DIStance) ||
-                (LEFT_duandian > 0 && LEFT_duandian < duandian_DIStance)) {
+            if (degraded)
+                Diag_detail_u[4] |= 64; /* bit6: 本帧降级, 未使用断点/转弯模式(主机允许 bit0~11) */
+            if (!degraded &&
+                ((RIGHT_duandian > 0 && RIGHT_duandian < duandian_DIStance) ||
+                 (LEFT_duandian > 0 && LEFT_duandian < duandian_DIStance))) {
                 uint8_t right = (RIGHT_duandian > 0 && RIGHT_duandian < duandian_DIStance);
                 uint16_t breakpoint = right ? RIGHT_duandian : LEFT_duandian;
-                if (forward_fit_ok && breakpoint < duandian_distance && fabs(Midline_forward.k) < 0.35f) {
+                if (forward_fit_ok && breakpoint < duandian_distance && fabs(Midline_forward.k) < FORWARD_K_BIG) {
                     pid_select = right ? 3 : 4;
                     candidate_pwm = Midline_PD_Calculate(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward, servo_midpwm,
                                                         (uint16_t)(Forward_cnt * 0.1f), (uint16_t)(Forward_cnt * 0.9f), pid_select);
-                } else if (forward_fit_ok && breakpoint < duandian_distance && fabs(Midline_forward.k) < 0.7f &&
-                           danbian_flag && (fabs(Midline_forward_2.k) < 0.25f || fabs(Midline_forward_3.k) < 0.25f)) {
+                } else if (forward_fit_ok && breakpoint < duandian_distance &&
+                           fabs(Midline_forward.k) < FORWARD_K_S_CURVE &&
+                           (fabs(Midline_forward.k) >= FORWARD_K_BIG ||
+                            (danbian_flag && (fabs(Midline_forward_2.k) < 0.25f || fabs(Midline_forward_3.k) < 0.25f)))) {
                     pid_select = right ? 8 : 9;
                     candidate_pwm = Midline_PD_Calculate(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward, servo_midpwm,
                                                         (uint16_t)(Forward_cnt * 0.1f), (uint16_t)(Forward_cnt * 0.9f), pid_select);
@@ -367,7 +393,7 @@ int main(void)
             Diag_detail_f[15] = paodao_distance_r;
             Diag_Field(9, RIGHT_duandian, 1);
             Diag_Field(10, LEFT_duandian, 1);
-            if (paodao_distance_r > 600 && paodao_distance_r < 900)
+            if (width_ok)
                 Diag_Field(11, paodao_distance, 1);
             else
                 Diag_HeldField(11, paodao_distance, 1);

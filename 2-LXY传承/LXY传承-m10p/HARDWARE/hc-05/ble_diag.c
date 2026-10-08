@@ -20,7 +20,7 @@ static uint32_t tx_seq, control_seq, last_us, last_ms, last_valid_ms, process_ma
 static uint32_t begin_us, in_ms, mask, updated, last_health;
 static uint8_t have_control, have_valid, last_ok, sample, config_pending, config_index;
 static uint32_t config_id;
-static float fields[26], config_params[16];
+static float fields[26], config_params[18];
 static uint8_t frame[256];
 uint32_t Diag_detail_u[24];
 float Diag_detail_f[16];
@@ -407,13 +407,14 @@ void Diag_Submit(uint16_t mode, uint16_t raw, uint16_t speed, uint8_t ok)
 }
 /* CONFIG registry: 1 layout,2 build,3 lidar,4 algorithm,5 input_kind,6 baud,
  * 7 rate,8 timeout_ms,9 health_ms,10 units,11 DMA bytes,12 capacities,
- * 13 geometry contract,14 lidar nominal config; keys100..115 float parameters. */
-#define CFG_COUNT 30
+ * 13 geometry contract,14 lidar nominal config; keys100..117 float parameters
+ * (100..115 原有16项 + 116 cx + 117 eclamp, 20261008 新增). */
+#define CFG_COUNT 32
 void Diag_ConfigStart(void)
 {
     uint8_t i;
     uint16_t key;
-    for (i = 0; i < 16; i++)
+    for (i = 0; i < 18; i++)
         Tune_ConfigValue(i, &key, &config_params[i]);
     config_pending = 1;
     config_index = 0;

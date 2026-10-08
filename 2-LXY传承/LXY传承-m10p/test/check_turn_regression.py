@@ -33,6 +33,10 @@ static uint16_t RIGHT_duandian, LEFT_duandian, duandian_DIStance=550, duandian_d
 static uint16_t LEFT_cnt=20, RIGHT_cnt=20, Forward_cnt=20, CENTER_cnt, valid_couter=100;
 static uint16_t ref_start, ref_end, telemetry_mode;
 static uint8_t forward_fit_ok, danbian_flag;
+/* 20261008: main.c 的降级标志与前方斜率分档在切片之外定义, 桩里按同值提供。 */
+static uint8_t degraded=0;
+#define FORWARD_K_BIG 0.35f
+#define FORWARD_K_S_CURVE 2.00f
 static float servo_midpwm=144.5f;
 static pid_type Servo_pd;
 static Midline_type Midline, Midline_forward, Midline_forward_2, Midline_forward_3;
@@ -98,6 +102,15 @@ int main(void){
         CHECK(turn_held && turn_guard.straight_frames==1 && timer3.CCR1==strong);
         CHECK(tick(0,1,1462,50,115000));
         CHECK(!turn_held && !turn_guard.active && timer3.CCR1==1462);
+
+        /* 20261008: 降级帧(感知判据不全)必须仍然更新舵机 —— 不许把舵角冻结在
+         * 最后一次的值(实机曾冻在右打满 1170 直冲边界)。同时不得使用断点/转弯模式。 */
+        memset(&turn_guard,0,sizeof turn_guard);
+        degraded=1;
+        CHECK(tick(large,1,strong,500,115000));   /* tick 内部要求正好写一次舵机 */
+        CHECK(selected==5 && timer3.CCR1==strong);
+        CHECK(Diag_detail_u[4]&64);               /* bit6: 本帧降级标记 */
+        degraded=0;
 
         /* Invalid geometry interrupts exit confirmation and never writes/renews. */
         CHECK(tick(large,1,strong,500,50000));

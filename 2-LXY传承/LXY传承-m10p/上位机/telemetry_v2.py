@@ -10,7 +10,7 @@ import csv
 from collections import Counter
 
 LAYOUT = "rc26-mask31-v2.1"
-PARAMETERS = "kp kp2 kp3 kd kd2 kd3 sp_kp sp_ki spd disr disl yr yl ystra ysel angle".split()
+PARAMETERS = "kp kp2 kp3 kd kd2 kd3 sp_kp sp_ki spd disr disl yr yl ystra ysel angle cx eclamp".split()
 KEYS = {1:"layout",2:"build",3:"lidar",4:"algorithm",5:"input_kind",6:"baud",
         7:"rate",8:"timeout_ms",9:"health_ms",10:"units",11:"dma_bytes",
         12:"point_capacity",13:"geometry",14:"lidar_config"}

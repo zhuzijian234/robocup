@@ -1,0 +1,43 @@
+==========================================================================
+A1  frames=4311  capture=15.031 s
+W1 wraps (mod 1000): 0 -> 0.000 wraps/s => unit = 15031.0000 ms
+W2 wraps (mod 1000): 1577 -> 104.917 wraps/s => unit = 9531.3887 us
+W1 range 0..999   W2 range 0..999
+   len=156 n=   2  W2 mean=61.0 median=61.0 min=61 max=61
+   len=158 n=2341  W2 mean=503.8 median=513.0 min=0 max=999
+   len=160 n=1964  W2 mean=494.4 median=489.0 min=0 max=997
+   len=162 n=   4  W2 mean=585.0 median=551.5 min=486 max=751
+   W2 vs count of zero-distance slots (bucketed by 5):
+      zeros  0- 4: n=2679 W2 mean=497.3
+      zeros  5- 9: n= 757 W2 mean=493.0
+      zeros 10-14: n= 236 W2 mean=514.9
+      zeros 15-19: n= 233 W2 mean=522.8
+      zeros 20-24: n= 319 W2 mean=494.5
+      zeros 25-29: n=  87 W2 mean=532.4
+   W2 delta mod1000: mean=472.60 stdev=44.19 min=330 max=620
+   W1 delta mod1000: mean=3.47 stdev=0.50 min=3 max=4
+   slot count == (L-20)/2 for all frames: True
+==========================================================================
+A10  frames=8635  capture=30.031 s
+W1 wraps (mod 1000): 0 -> 0.000 wraps/s => unit = 30031.0000 ms
+W2 wraps (mod 1000): 2855 -> 95.068 wraps/s => unit = 10518.7391 us
+W1 range 0..999   W2 range 0..999
+   len=156 n=  26  W2 mean=474.5 median=461.5 min=89 max=991
+   len=158 n=4742  W2 mean=494.9 median=489.5 min=0 max=999
+   len=160 n=3862  W2 mean=502.8 median=511.0 min=0 max=999
+   len=162 n=   5  W2 mean=527.8 median=380.0 min=250 max=927
+   W2 vs count of zero-distance slots (bucketed by 5):
+      zeros  0- 4: n=4816 W2 mean=502.0
+      zeros  5- 9: n=1231 W2 mean=486.0
+      zeros 10-14: n= 967 W2 mean=504.7
+      zeros 15-19: n= 498 W2 mean=506.6
+      zeros 20-24: n= 344 W2 mean=507.9
+      zeros 25-29: n=  57 W2 mean=481.6
+      zeros 30-34: n=   2 W2 mean=682.0
+      zeros 45-49: n=  95 W2 mean=466.6
+      zeros 50-54: n= 230 W2 mean=489.4
+      zeros 55-59: n= 147 W2 mean=458.9
+      zeros 60-64: n= 248 W2 mean=483.3
+   W2 delta mod1000: mean=472.04 stdev=43.30 min=338 max=614
+   W1 delta mod1000: mean=3.47 stdev=0.50 min=3 max=4
+   slot count == (L-20)/2 for all frames: True

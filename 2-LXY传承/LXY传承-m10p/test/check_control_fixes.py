@@ -72,6 +72,8 @@ uint8_t LEIDA_vertical_valid,Servo_PD_valid;
 static uint8_t pd_history_valid;static uint16_t pd_previous_mode;static uint32_t pd_previous_us;
 float BLUE_Y_RIGHT=1200,BLUE_Y_LEFT=1350,BLUE_Y_STRA_SEL=0,BLUE_Y_STRA=750;
 float BLUE_DIS_RIGHT=50,BLUE_DIS_LEFT=50,paodao_distance=800;
+/* 20261008 新增的三个控制口径量(原为硬编码 50/200 和无下限公式) */
+float CENTER_X_TARGET_MM=50.0f,MODE0_ERR_CLAMP_MM=350.0f,TURN_MAG_MIN=250.0f;
 static uint32_t clock_us;
 uint32_t Diag_TimeUs(void){return clock_us;}
 void Diag_Fit(const void *line,uint8_t valid){}
@@ -99,7 +101,9 @@ static void begin(void){memset(Diag_detail_u,0,sizeof Diag_detail_u);memset(Diag
 static uint16_t drive(uint16_t mode,float error){
     Midline_type line={1,650+error};
     begin();plane[0]._y=plane[1]._y=700;
-    plane[0]._x=plane[1]._x=mode==1?-error-400:mode==2?400-error:50-error;
+    /* 20261008: mode 1/2 的误差口径已统一为 CENTER_X_TARGET_MM-(中线横向估计),
+     * 所以构造点也要跟着挪: mode1 x=50-error-400, mode2 x=50-error+400。 */
+    plane[0]._x=plane[1]._x=mode==1?-error-350:mode==2?450-error:50-error;
     if(mode==3 || mode==4 || mode==8 || mode==9)line.k=fabs(error)>0?175.0f/fabs(error):INFINITY;
     LEIDA_vertical_valid=1;zhongxian_chuizhi=50-error;
     return deferred ? Midline_PD_Calculate(plane,&pid,&line,144.5f,0,2,mode) :
@@ -135,8 +139,12 @@ static int run(void){
     output=drive(0,-102.4f);CHECK(output>=1409 && output<=1410 && Diag_detail_f[3]==0);
     Midline_PD_Reset();drive(5,421.156f);output=drive(5,71.5988f);
     CHECK(output>=1445 && fabs(Diag_detail_f[3])<=60); /* old PWM was 1202 */
-    Midline_PD_Reset();drive(2,500);output=drive(2,-500);CHECK(output>=1445 && (Diag_detail_u[4]&1024));
-    output=drive(1,100);CHECK(output<=1445);
+    /* 20261008: mode 1/2 退出"不许指到中位另一边"的单向钳位。
+     * 原行为把本该左打的修正直接钉在中位(实机 pwm_unclamped==pwm_mid, 左弯里完全不转)。
+     * 现在 mode 2 允许一路右打到限幅, 且不再置反打标志位 1024。 */
+    Midline_PD_Reset();drive(2,500);output=drive(2,-500);
+    CHECK(output==SERVO_PWM_MIN && !(Diag_detail_u[4]&1024));
+    output=drive(1,100);CHECK(output>=1484 && output<=1485); /* 对侧墙远 -> 允许左打, 不再钉回中位 */
     output=drive(4,500);CHECK(output>=1445);
     before=timer3.CCR1;output=drive(4,0);CHECK(!Servo_PD_valid && output==before);
     /* A reset/invalid observation does not leave a stale D kick. */
@@ -155,7 +163,7 @@ static int run(void){
     deferred=1;drive(0,0);writes=servo_writes;
     output=drive(2,284.289f);CHECK(output==1632 && Diag_detail_f[3]==0);
     CHECK(TurnGuard_Apply(&guard,2,1,0,output,clock_us,&held)==1632 && !held);
-    output=drive(2,-49.897f);CHECK(output==1445);
+    output=drive(2,-49.897f);CHECK(output>=1358 && output<=1359); /* 单向钳位已移除: 真的产生右修正 */
     CHECK(TurnGuard_Apply(&guard,2,1,0,output,clock_us,&held)==1632 && held);
     CHECK(guard.pwm==1632); /* 14:45:03 used to overwrite the anchor with 1445 */
     output=drive(0,50);
@@ -171,8 +179,8 @@ static int run(void){
     }
     output=drive(4,500);
     CHECK(TurnGuard_Apply(&guard,4,1,0,output,clock_us,&held)==1645 && !held);
-    drive(0,0);output=drive(2,83.583f);CHECK(output==1511); /* small entry bounded by |P| */
-    drive(0,0);output=drive(2,-50);CHECK(output==1445); /* contradictory error never boosted */
+    drive(0,0);output=drive(2,83.583f);CHECK(output==1523); /* 入弯首帧补力现取 clamp(|P|,45,75) */
+    drive(0,0);output=drive(2,-50);CHECK(output==1425); /* 反向误差不加补力, 也不再被钳回中位 */
     drive(0,0);output=drive(3,-500);CHECK(output==1170);
     CHECK(servo_writes==writes);deferred=0; /* whole candidate replay leaves hardware untouched */
     /* Encoder forward, reverse and modulo wrap: no huge unsigned speed. */

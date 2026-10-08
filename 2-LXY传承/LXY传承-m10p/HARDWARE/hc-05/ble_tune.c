@@ -63,6 +63,9 @@ static const Param_t param_tab[] = {
     {"ystra", &BLUE_Y_STRA,           0, 2000, 0},   /* 直道模式固定目标Y坐标 */
     {"ysel",  &BLUE_Y_STRA_SEL,       0,    1, 0},   /* 直道模式选择: 0=中线末点, 1=固定Y_STRA */
     {"angle", &BLUE_ANGLE_LEFT_RIGHT, 0,   90, 0},   /* 左右边界扫描范围(度) */
+    /* 20261008 新增: 车体几何标定与直道修正权限(实车必须在赛道上重标) */
+    {"cx",    &CENTER_X_TARGET_MM, -300, 300, 0},    /* 车体系里"通道中线"应在的横向位置(mm): 发 cx 0 */
+    {"eclamp",&MODE0_ERR_CLAMP_MM,  100, 500, 0},    /* mode0 误差限幅(mm): 原200, 现350 */
 };
 #define PARAM_NUM (sizeof(param_tab) / sizeof(param_tab[0]))
 
@@ -117,17 +120,23 @@ static void Tune_ApplyOne(char *line)
     if(Diag_Command(line)){get_index=PARAM_NUM;return;}
 
     /* 同一主循环读取上一完整处理帧的诊断，距离为前向投影，单位毫米。
-     * seq=0表示还没有扫描；clear_mm=10000表示未发现更近的走廊回波。
-     * gap按0.5度桶计数，age_us记录感知检查时的年龄；pd为控制完成结果。 */
+     * clear_mm=M10P_MAX_MM表示未发现更近的走廊回波；gap按0.5度桶计数。
+     * why 是判据失败原因位图(m10p_vehicle.h), src 是本帧实际使用的转向来源:
+     *   0=双侧中线 1=仅左侧跟线 2=仅右侧跟线 3=降级(有回波但判据不全) 4=保持(无回波)
+     * pd=1 才表示本帧真的执行了PD, 此时 mode 为 0/5/7 时的 err 才是"中线横向偏差"。
+     * ★标定: 车摆在通道正中并摆平, 反复读 cal=, 直接发 "cx <cal>" 即可;
+     *   标定后 err 应≈0。cal = cx - err = 当前常数下测出的真实中线横向位置。 */
     if (strcmp(line,"perception")==0) {
-        char status[224];
-        sprintf(status,"perception seq=%lu ok=%u seen=%u front=%u left=%u right=%u gap=%u clear_mm=%lu age_us=%lu epoch_ok=%u pd=%u points=%u\r\n",
+        char status[256];
+        sprintf(status,"perception seq=%lu ok=%u src=%u why=0x%02x pd=%u points=%u front=%u left=%u right=%u gap=%u clear_mm=%lu age_us=%lu err=%.1f cx=%.1f cal=%.1f mode=%u\r\n",
             (unsigned long)M10P_control_seq,(unsigned)M10P_perception_ok,
-            (unsigned)M10P_front_seen,(unsigned)M10P_front_bins,
-            (unsigned)M10P_left_bins,(unsigned)M10P_right_bins,
+            (unsigned)M10P_steer_source,(unsigned)M10P_perception_why,
+            (unsigned)Servo_PD_valid,(unsigned)valid_couter,
+            (unsigned)M10P_front_bins,(unsigned)M10P_left_bins,(unsigned)M10P_right_bins,
             (unsigned)M10P_front_gap_bins,(unsigned long)M10P_clearance_mm,
-            (unsigned long)M10P_build_age_us,(unsigned)M10P_build_epoch_ok,
-            (unsigned)Servo_PD_valid,(unsigned)valid_couter);
+            (unsigned long)M10P_build_age_us,
+            (double)Servo_pd.err,(double)CENTER_X_TARGET_MM,
+            (double)(CENTER_X_TARGET_MM - Servo_pd.err),(unsigned)Diag_detail_u[6]);
         Send_Bluetooth_Data(status);return;
     }
 

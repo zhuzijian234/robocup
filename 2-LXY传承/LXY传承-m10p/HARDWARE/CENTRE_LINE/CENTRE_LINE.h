@@ -79,6 +79,13 @@ extern float BLUE_Y_RIGHT;
 extern float BLUE_Y_STRA;
 extern float BLUE_Y_STRA_SEL;
 
+/* ==================== 20261008 新增可调项 ====================
+ * 车宽26cm / 锥桶通道50cm / 雷达在车头后14cm → 单侧余量仅120mm，
+ * 这三个量直接决定"居中目标"和"修正权限"，实车必须重新标定。 */
+extern float CENTER_X_TARGET_MM;  /* 车体系里赛道中线应在的横向位置(mm)，原硬编码 50 */
+extern float MODE0_ERR_CLAMP_MM;  /* 直道中线模式误差限幅(mm)，原硬编码 200 */
+extern float TURN_MAG_MIN;        /* 转弯模式合成误差下限，原无下限(急弯反而最弱) */
+
 /* ===== 舵机行程参数 (循线模式: PD输出限幅 + 中位 + 强制打满) =====
  * LXY车默认:  MIN=1360, MAX=1800, MID=1565
  * 换谢露车只改这三行: MIN=1170, MAX=1720, MID=1445
@@ -98,6 +105,8 @@ uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline
 #define TURN_EXIT_MIN_US 60000u /* 两帧直道证据间隔至少一圈下限，避免83ms扫描被迫等第三帧 */
 #define TURN_EXIT_ERROR_MM 100.0f
 #define TURN_ENTRY_PWM 75.0f /* 入弯附加量同时不超过本帧|P|，不放大小误差噪声 */
+#define TURN_ENTRY_MIN_PWM 45.0f /* 入弯首帧的最小补力(原为0): 刚识别到急弯时P往往很小，
+                                  * 没有下限就等于没有入弯补偿。约占单边行程275的16%。 */
 #define TURN_MIN_OFFSET 20  /* 接近中位的候选不能成为弯道保持依据 */
 #define TURN_RETRACT_PWM 60 /* 同模式单次明显收舵，需要出弯确认或期限到达 */
 typedef struct {

@@ -1,0 +1,42 @@
+========================================================================
+A1 hardware_check_verified.bin  685216 bytes  sha256=e57aa16fa97db1f6998819e32fa96e27ed529e6ad28247ceafadb6712189ed5e
+literal A5 5A occurrences: 4312
+complete frames (header + length field + FA FB tail): 4311
+length-field vs next-header-offset mismatches: 0
+bad FA FB tails encountered: 0
+non-header bytes before first frame: 73
+frame-length histogram: {156: 2, 158: 2341, 160: 1964, 162: 4}
+distance-slot-count histogram: {68: 2, 69: 2341, 70: 1964, 71: 4}
+angle delta histogram (0.01 deg): {1500: 4310}
+total distance slots: 299429  (FFFF=0, bit15 set=0, value==0=22439)
+speed raw: min=3445 max=3505 mean=3472.14 -> rpm min=713.27 max=725.69 mean=720.02
+--- last 12 bytes (10-byte TIME + FA FB) of first 6 frames ---
+   len=160 angle=68.00  TIME= 00 00 00 00 00 00 01 2e 00 e4
+   len=158 angle=83.00  TIME= 00 00 00 00 00 00 01 31 02 94
+   len=160 angle=98.00  TIME= 00 00 00 00 00 00 01 35 00 b7
+   len=158 angle=113.00  TIME= 00 00 00 00 00 00 01 38 02 61
+   len=160 angle=128.00  TIME= 00 00 00 00 00 00 01 3c 00 a2
+   len=160 angle=143.00  TIME= 00 00 00 00 00 00 01 3f 02 6c
+distinct TIME strings: 4294 over 4311 frames
+most common TIME strings: [('00 00 00 00 00 00 03 87 02 b9', 2), ('00 00 00 00 00 00 03 aa 01 4f', 2), ('00 00 00 00 00 00 02 a2 03 d0', 2), ('00 00 00 00 00 00 03 31 00 d6', 2), ('00 00 00 00 00 00 03 53 03 25', 2)]
+========================================================================
+A10 latest_capture.bin  1372252 bytes  sha256=cc8fcc5d075bf7f56652b666048566dd65681deb505af3f9992019f1afe9ef34
+literal A5 5A occurrences: 8636
+complete frames (header + length field + FA FB tail): 8635
+length-field vs next-header-offset mismatches: 0
+bad FA FB tails encountered: 0
+non-header bytes before first frame: 100
+frame-length histogram: {156: 26, 158: 4742, 160: 3862, 162: 5}
+distance-slot-count histogram: {68: 26, 69: 4742, 70: 3862, 71: 5}
+angle delta histogram (0.01 deg): {1500: 8634}
+total distance slots: 599661  (FFFF=0, bit15 set=0, value==0=79836)
+speed raw: min=3438 max=3514 mean=3471.57 -> rpm min=711.44 max=727.17 mean=720.14
+--- last 12 bytes (10-byte TIME + FA FB) of first 6 frames ---
+   len=158 angle=23.00  TIME= 00 00 00 00 00 00 03 54 03 51
+   len=160 angle=38.00  TIME= 00 00 00 00 00 00 03 58 01 59
+   len=158 angle=53.00  TIME= 00 00 00 00 00 00 03 5b 03 11
+   len=158 angle=68.00  TIME= 00 00 00 00 00 00 03 5f 00 f3
+   len=160 angle=83.00  TIME= 00 00 00 00 00 00 03 62 02 f0
+   len=158 angle=98.00  TIME= 00 00 00 00 00 00 03 66 00 a3
+distinct TIME strings: 8608 over 8635 frames
+most common TIME strings: [('00 00 00 00 00 00 01 6f 00 0a', 2), ('00 00 00 00 00 00 01 72 02 53', 2), ('00 00 00 00 00 00 01 6b 02 4e', 2), ('00 00 00 00 00 00 01 79 01 f2', 2), ('00 00 00 00 00 00 02 6c 00 c7', 2)]
