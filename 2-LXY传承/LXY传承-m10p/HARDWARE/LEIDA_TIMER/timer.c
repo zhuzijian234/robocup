@@ -24,15 +24,22 @@ volatile uint8_t Radar_stop_latched = 0;
 volatile uint32_t Radar_timeout_count = 0;
 volatile uint32_t Radar_invalid_inputs = 0;
 
-static volatile uint32_t observation_us, observation_epoch, observation_seq, completed_us;
+static volatile uint32_t observation_us, observation_epoch, observation_seq, observation_end_us;
+static volatile uint32_t control_expired;
 static volatile float observation_scale;
 static volatile uint8_t observation_valid, warmup;
 volatile float Radar_effective_target;
+/* 诊断和定时器共用一套时效判断，均以接收时间计时，不以解析/查询时间续期。 */
+static uint8_t Radar_ObservationFresh(uint32_t now)
+{
+    return observation_epoch == LidarRx_epoch &&
+        (uint32_t)(now-observation_end_us) <= M10P_CONTROL_GAP_US &&
+        (uint32_t)(now-observation_us) <= M10P_CONTROL_MAX_AGE_US;
+}
 uint8_t Radar_Permitted(void)
 {
     return Radar_started && !Radar_stop_latched && observation_valid &&
-        observation_epoch == LidarRx_epoch &&
-        (uint32_t)(Diag_TimeUs()-observation_us) <= M10P_MAX_AGE_US;
+        Radar_ObservationFresh(Diag_TimeUs());
 }
 void Radar_Invalidate(void)
 {
@@ -41,18 +48,20 @@ void Radar_Invalidate(void)
     observation_valid = 0; warmup = 0;
     __set_PRIMASK(p);
 }
-void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale)
+void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale, uint32_t end_us)
 {
     /* 只有已完成几何/控制计算的新鲜扫描才能提交；串口收到字节不等于有效观测。 */
     uint32_t p = __get_PRIMASK(), now = Diag_TimeUs();
     __disable_irq();
     if (Radar_stop_latched || epoch != LidarRx_epoch ||
-        (uint32_t)(now-front_us) > M10P_MAX_AGE_US || seq == observation_seq) {
+        (uint32_t)(now-front_us) > M10P_MAX_AGE_US ||
+        (uint32_t)(now-end_us) > M10P_CONTROL_GAP_US ||
+        (uint32_t)(end_us-front_us) > M10P_MAX_AGE_US || seq == observation_seq) {
         observation_valid = 0; warmup = 0;
     } else {
-        if (seq != observation_seq + 1u || now - completed_us > M10P_MAX_AGE_US) warmup = 0;
+        if (seq != observation_seq + 1u || !Radar_ObservationFresh(now)) warmup = 0;
         observation_seq = seq; observation_us = front_us; observation_epoch = epoch;
-        completed_us = now;
+        observation_end_us = end_us;
         observation_scale = scale < 0 ? 0 : scale > 1 ? 1 : scale;
         if (warmup < 3) warmup++;
         observation_valid = warmup >= 3;
@@ -62,27 +71,17 @@ void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale)
 }
 void Radar_GuardTick(void)
 {
-    /* 即使主循环卡住，10ms定时环仍按接收时间检查过期，不依赖主循环喂字节。 */
+    /* 140ms无新整圈即撤销驱动；500ms未恢复有效许可则锁停，需复位。 */
     if (Radar_started && !Radar_stop_latched) {
         if (Radar_age_ticks < RADAR_TIMEOUT_TICKS) Radar_age_ticks++;
         if (Radar_age_ticks >= RADAR_TIMEOUT_TICKS) {
             Radar_stop_latched = 1; Radar_timeout_count++;
         }
     }
-    if (observation_epoch != LidarRx_epoch) {
+    if (warmup && !Radar_ObservationFresh(Diag_TimeUs())) {
+        /* 仅记录一次失效，不能把同一故障每10ms重复计数。 */
+        control_expired++;
         observation_valid = 0; warmup = 0;
-    } else {
-        uint32_t now = Diag_TimeUs();
-        /* 前方点在整圈发布前已经有年龄，可能在下一圈到来前过期。
-         * 过期立即禁止驱动，但不据此抹掉已通过检查的连续帧历史，
-         * 否则每圈都重回第1帧，始终无法完成3帧启动确认。
-         * 只有有效提交中断超过时限才清历史；坏帧由Invalidate清除，
-         * 跳帧/重复帧由Observe检查，接收故障由上面的epoch检查处理。 */
-        if ((uint32_t)(now-observation_us) > M10P_MAX_AGE_US)
-            observation_valid = 0;
-        if ((uint32_t)(now-completed_us) > M10P_MAX_AGE_US) {
-            observation_valid = 0; warmup = 0;
-        }
     }
 }
 
@@ -90,6 +89,14 @@ void Radar_GuardTick(void)
 uint8_t Radar_WarmupCount(void)
 {
     return warmup;
+}
+uint32_t Radar_ControlAgeUs(void)
+{
+    return observation_seq ? (uint32_t)(Diag_TimeUs()-observation_end_us) : 0xffffffffu;
+}
+uint32_t Radar_ExpiredCount(void)
+{
+    return control_expired;
 }
 
 /**
@@ -141,8 +148,8 @@ void TIM5_IRQHandler(void)
         extern uint16_t Encoder_cnt_temp;
         Radar_GuardTick();
         if (!Radar_started || Radar_stop_latched || !observation_valid) {
-            /* Zero duty removes propulsion; it is not an active brake.
-             * Skip PI so its integral cannot accumulate during inhibition. */
+            /* 撤销驱动时清零目标和积分，禁止带着旧积分重新起步。
+             * DRV8701E正常使能时，EN/PWM为低对应制动，不是自由滑行。 */
             Get_Encoder();encoder_fresh=1;
             Radar_effective_target = 0;
             Speed_PID_Reset(&Speed_pid);

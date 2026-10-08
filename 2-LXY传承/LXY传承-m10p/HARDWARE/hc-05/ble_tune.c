@@ -133,12 +133,13 @@ static void Tune_ApplyOne(char *line)
 
     /* radar命令保持兼容；独立短行补充启动计数及实际PWM，便于现场定位。 */
     if (strcmp(line,"motor")==0) {
-        char status[160];
-        sprintf(status,"motor warmup=%u permit=%u start=%u stop=%u pwm=%u target_x100=%ld speed_x100=%ld\r\n",
+        char status[224];
+        sprintf(status,"motor warmup=%u permit=%u start=%u stop=%u pwm=%u target_x100=%ld speed_x100=%ld frame_age_us=%lu expired=%lu\r\n",
             (unsigned)Radar_WarmupCount(),(unsigned)Radar_Permitted(),
             (unsigned)Radar_started,(unsigned)Radar_stop_latched,
             (unsigned)TIM2->CCR2,(long)(Radar_effective_target*100),
-            (long)(Speed_now*100));
+            (long)(Speed_now*100),(unsigned long)Radar_ControlAgeUs(),
+            (unsigned long)Radar_ExpiredCount());
         Send_Bluetooth_Data(status);return;
     }
 

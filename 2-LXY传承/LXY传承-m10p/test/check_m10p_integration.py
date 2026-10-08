@@ -58,6 +58,20 @@ program+=function(vehicle,'M10P_Build')+function(vehicle,'M10P_Poll')
 program+=timer[timer.index('static volatile uint32_t observation_us'):timer.index('/**',timer.index('static volatile uint32_t observation_us'))]
 program+=function(centre,'PID_realize')+'\n'+function(centre,'Speed_PID_Reset')
 program+=r'''
+#define TIM5 5
+#define TIM_IT_Update 1
+#define SET 1
+int TIM_GetITStatus(int t,int f){(void)t;(void)f;return SET;}
+void TIM_ClearITPendingBit(int t,int f){(void)t;(void)f;}
+uint16_t Encoder_cnt_temp,moto_pwm,daoche_flag,hardware_pwm;
+float Speed_now,Speed_mubiao=10;
+pid_type Speed_pid={8.5f,.505f,0};
+void Get_Encoder(void){}
+void Moto_Speed(uint16_t pwm){hardware_pwm=pwm;}
+void Diag_MotorTick(uint16_t raw,uint8_t enc,uint8_t pi){(void)raw;(void)enc;(void)pi;}
+'''
+program+=function(timer,'TIM5_IRQHandler')
+program+=r'''
 static M10P_Scan s;static _LEIDA_DATA out[720];
 int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  s.seq=1;s.epoch=0;s.front_seen=1;s.front_us=50000;clock_us=100000;
@@ -75,16 +89,16 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  s.points[0].range_mm=1000;clock_us=s.front_us+M10P_MAX_AGE_US+1;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);
  clock_us=100000;s.count=0;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);
  s.count=720;s.epoch=1;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);s.epoch=0;
- Radar_Observe(1,50000,0,1);CHECK(!observation_valid && !Radar_started);
- clock_us+=83000;Radar_Observe(2,clock_us-50000,0,.6f);CHECK(!observation_valid);
- clock_us+=83000;Radar_Observe(3,clock_us-50000,0,.6f);CHECK(observation_valid && Radar_started);CHECK(observation_scale==.6f);
- Radar_Observe(3,clock_us-50000,0,1);CHECK(!observation_valid);CHECK(warmup==0);
- for(i=4;i<=6;i++){clock_us+=83000;Radar_Observe(i,clock_us-50000,0,1);}CHECK(observation_valid);
- clock_us=observation_us+M10P_MAX_AGE_US+1;Radar_GuardTick();CHECK(!observation_valid);
+ Radar_Observe(1,50000,0,1,clock_us);CHECK(!observation_valid && !Radar_started);
+ clock_us+=83000;Radar_Observe(2,clock_us-50000,0,.6f,clock_us);CHECK(!observation_valid);
+ clock_us+=83000;Radar_Observe(3,clock_us-50000,0,.6f,clock_us);CHECK(observation_valid && Radar_started);CHECK(observation_scale==.6f);
+ Radar_Observe(3,clock_us-50000,0,1,clock_us);CHECK(!observation_valid);CHECK(warmup==0);
+ for(i=4;i<=6;i++){clock_us+=83000;Radar_Observe(i,clock_us-50000,0,1,clock_us);}CHECK(observation_valid);
+ clock_us=observation_end_us+M10P_CONTROL_GAP_US+1;Radar_GuardTick();CHECK(!observation_valid);
  for(i=0;i<50;i++)Radar_GuardTick();CHECK(Radar_stop_latched && Radar_timeout_count==1);
- Radar_Observe(7,clock_us,0,1);CHECK(!observation_valid);CHECK(Radar_stop_latched);
+ Radar_Observe(7,clock_us,0,1,clock_us);CHECK(!observation_valid);CHECK(Radar_stop_latched);
  Radar_stop_latched=Radar_started=0;warmup=0;observation_seq=0;clock_us=100000;
- for(i=1;i<=3;i++){clock_us+=83000;Radar_Observe(i,clock_us-50000,0,1);}CHECK(observation_valid);
+ for(i=1;i<=3;i++){clock_us+=83000;Radar_Observe(i,clock_us-50000,0,1,clock_us);}CHECK(observation_valid);
  LidarRx_epoch++;Radar_GuardTick();CHECK(!observation_valid);CHECK(warmup==0);
  Radar_Invalidate();CHECK(!observation_valid);
  /* Rejecting a newly completed circle revokes the prior driving permission
@@ -99,26 +113,77 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  CHECK(PID_realize(0,0,&pid)==0);
  /* Fresh frames arrive every 100ms, but each front observation is already
   * 90ms old on delivery. The previous observation expires between frames.
-  * That must stop propulsion, without erasing the fresh-frame startup history. */
+  * After warmup, permission must remain continuous until the next scan. */
  Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;Radar_timeout_count=0;
- observation_valid=warmup=0;observation_seq=completed_us=0;
+ observation_valid=warmup=0;observation_seq=observation_end_us=0;
  LidarRx_epoch=observation_epoch=0;clock_us=1000000;
  for(i=1;i<=3;i++){
   unsigned tick;
-  Radar_Observe(i,clock_us-90000,0,1);
+  Radar_Observe(i,clock_us-90000,0,1,clock_us);
   CHECK(warmup==i);CHECK(Radar_Permitted()==(i==3));
   for(tick=0;tick<9;tick++){clock_us+=10000;Radar_GuardTick();}
-  CHECK(!Radar_Permitted());CHECK(warmup==i);
+  CHECK(Radar_Permitted()==(i==3));CHECK(warmup==i);
   clock_us+=10000;
  }
  CHECK(Radar_started && !Radar_stop_latched);
- Radar_Observe(4,clock_us-90000,0,1);CHECK(Radar_Permitted());
+ Radar_Observe(4,clock_us-90000,0,1,clock_us);CHECK(Radar_Permitted());
  Radar_Invalidate();CHECK(!Radar_Permitted() && warmup==0);
- Radar_Observe(5,clock_us-90000,0,1);CHECK(warmup==1 && !Radar_Permitted());
+ Radar_Observe(5,clock_us-90000,0,1,clock_us);CHECK(warmup==1 && !Radar_Permitted());
  clock_us+=M10P_MAX_AGE_US+1;Radar_GuardTick();CHECK(warmup==0 && !Radar_Permitted());
- Radar_Observe(6,clock_us-90000,0,1);CHECK(warmup==1);
- Radar_Observe(8,clock_us-90000,0,1);CHECK(warmup==1 && !Radar_Permitted());
- Radar_Observe(8,clock_us-90000,0,1);CHECK(warmup==0);
+ Radar_Observe(6,clock_us-90000,0,1,clock_us);CHECK(warmup==1);
+ Radar_Observe(8,clock_us-90000,0,1,clock_us);CHECK(warmup==1 && !Radar_Permitted());
+ Radar_Observe(8,clock_us-90000,0,1,clock_us);CHECK(warmup==0);
+ /* Exercise the actual 10ms motor ISR, not just the permission helper.
+  * 100ms scans with 100ms-old front points must accelerate continuously. */
+ Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;
+ Radar_Invalidate();observation_seq=0;clock_us=2000000;
+ Radar_effective_target=0;Speed_PID_Reset(&Speed_pid);
+ for(i=1;i<=20;i++){
+  unsigned tick;
+  Radar_Observe(i,clock_us-100000,0,1,clock_us);
+  for(tick=0;tick<10;tick++){
+   TIM5_IRQHandler();
+   if(i>=3){CHECK(Radar_Permitted());CHECK(hardware_pwm>0);}
+   clock_us+=10000;
+  }
+ }
+ CHECK(Radar_effective_target==10);CHECK(!Radar_stop_latched);
+ /* Missing next scan: keep output only through the bounded receive window,
+  * then clear PWM/target/PI on the next 10ms tick and latch after 500ms. */
+ clock_us=observation_end_us+M10P_CONTROL_GAP_US;TIM5_IRQHandler();CHECK(hardware_pwm>0);
+ clock_us+=10000;TIM5_IRQHandler();CHECK(!Radar_Permitted() && hardware_pwm==0);
+ CHECK(Radar_effective_target==0 && Speed_pid.err_sum==0 && warmup==0);
+ {uint32_t expired=Radar_ExpiredCount();
+  for(i=0;i<50;i++){clock_us+=10000;TIM5_IRQHandler();CHECK(hardware_pwm==0);}
+  CHECK(Radar_stop_latched);CHECK(Radar_ExpiredCount()==expired);
+ }
+ /* Old/future timestamps cannot be made fresh by submitting them now. */
+ Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;Radar_Invalidate();observation_seq=0;
+ Radar_Observe(1,clock_us-M10P_MAX_AGE_US-1,0,1,clock_us);CHECK(warmup==0);
+ Radar_Observe(1,clock_us-M10P_CONTROL_GAP_US-1,0,1,clock_us-M10P_CONTROL_GAP_US-1);CHECK(warmup==0);
+ Radar_Observe(1,clock_us+1,0,1,clock_us);CHECK(warmup==0);
+ /* Continuous 60/80/100/120ms scans across uint32 time wrap. */
+ {unsigned period,frame,tick;
+  for(period=60000;period<=120000;period+=20000){
+   Radar_stop_latched=Radar_started=0;Radar_age_ticks=0;Radar_Invalidate();observation_seq=0;
+   clock_us=0xffff0000u;Radar_effective_target=0;Speed_PID_Reset(&Speed_pid);
+   for(frame=1;frame<=12;frame++){
+    Radar_Observe(frame,clock_us-101000,0,1,clock_us-10000);
+    for(tick=0;tick<period;tick+=10000){
+     TIM5_IRQHandler();if(frame>=3){CHECK(Radar_Permitted());CHECK(hardware_pwm>0);}
+     clock_us+=10000;
+    }
+   }
+   CHECK(!Radar_stop_latched && Radar_effective_target==10);
+  }
+ }
+ /* Even a permissible 150ms-old new observation must not be held past270ms. */
+ Radar_Observe(observation_seq+1,clock_us-M10P_MAX_AGE_US,0,1,clock_us);
+ clock_us+=M10P_MAX_PERIOD_US+1;TIM5_IRQHandler();CHECK(hardware_pwm==0 && !Radar_Permitted());
+ /* Explicit unsafe input still stops immediately, rather than holding output. */
+ for(i=1;i<=3;i++){clock_us+=100000;Radar_Observe(observation_seq+1,clock_us-90000,0,1,clock_us);}
+ TIM5_IRQHandler();CHECK(hardware_pwm>0);
+ Radar_Invalidate();TIM5_IRQHandler();CHECK(hardware_pwm==0 && Speed_pid.err_sum==0);
  printf("PASS %u adapter/guard/PI checks\n",checks);return 0;
 }
 '''

@@ -20,10 +20,16 @@
 #define M10P_PACKET_SPAN_CDEG 1500u /* 每包15°，按非FFFF槽数均分；仍待厂家确认 */
 #define M10P_SCAN_CAPACITY 2048u   /* 24包×73槽=1752槽可容纳；超容量整圈丢弃，绝不截断后发布 */
 #define M10P_BINS 720u             /* 0.5° 一桶: 360/0.5 = 720 桶; 前方盲区、左右侧点数都按桶统计 */
-#define M10P_MAX_AGE_US 150000u    /* 一帧的保鲜期 150ms: 比最慢允许转速(8.3Hz, 120ms)还宽, 超期当"没数据" */
+#define M10P_MAX_AGE_US 150000u    /* 新帧准入：前方点年龄超过150ms，不接纳为新控制输入 */
 #define M10P_FRONT_MAX_MISSING_BINS 10u /* 正前方允许的最大连续空桶数; 10 桶 = 5° 盲区, 超过就判感知无效 */
 #define M10P_MIN_PERIOD_US 60000u  /* 接受一圈扫描的周期下限 60ms (= 16.7Hz), 超出当前稳定工作窗口则拒绝控制，并非断言协议数据为假 */
 #define M10P_MAX_PERIOD_US 120000u /* 周期上限 120ms (= 8.3Hz), 超出当前稳定工作窗口则拒绝控制，需结合实测诊断原因 */
+/* 整圈控制必须覆盖下一圈的正常到达间隔，不能把新帧准入年龄重复用作保持期限。
+ * 从整圈接收结束时刻计时，最多等待120ms圈周期+20ms收流/调度余量；
+ * 另限制前方点总年龄最多270ms，防止旧观测被处理时刻重新“刷新”。
+ * 无效感知/近障/接收故障仍立即撤销许可。这是断流时限，非停车距离保证。 */
+#define M10P_CONTROL_GAP_US (M10P_MAX_PERIOD_US + 20000u)
+#define M10P_CONTROL_MAX_AGE_US (M10P_MAX_AGE_US + M10P_MAX_PERIOD_US)
 #define M10P_BETA_CDEG 0           /* 安装角补偿(单位 0.01°): 雷达装歪了改这里; 目前按正装取 0 */
 #define M10P_MIN_MM 100u           /* 测距下限(mm): 仅墙面/分桶过滤下限；原始非零近点仍参与近障停车 */
 #define M10P_MAX_MM 10000u         /* 测距上限(mm): 比这远的也丢弃(20K 型量程内, 挡掉无效值) */

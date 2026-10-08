@@ -26,7 +26,9 @@ extern volatile uint32_t Radar_invalid_inputs;
 uint8_t Radar_Permitted(void);
 uint8_t Radar_WarmupCount(void); /* 连续有效提交数，达到3才允许启动 */
 void Radar_Invalidate(void);
-void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale);
+void Radar_Observe(uint32_t seq, uint32_t front_us, uint32_t epoch, float scale, uint32_t end_us);
+uint32_t Radar_ControlAgeUs(void); /* 最近接纳整圈的接收结束年龄(us)，尚无帧返回UINT32_MAX */
+uint32_t Radar_ExpiredCount(void); /* 时效/代次失效次数，不按定时器tick重复累计 */
 extern volatile float Radar_effective_target;
 void Radar_GuardTick(void);
 
