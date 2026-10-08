@@ -42,6 +42,9 @@ uint16_t LidarRx_Read(uint8_t *p,uint16_t n,LidarRxStamp *s){(void)p;(void)n;(vo
 void Radar_Invalidate(void);
 uint32_t M10P_control_seq,M10P_control_front_us,M10P_control_epoch;
 uint16_t M10P_front_bins,M10P_left_bins,M10P_right_bins;
+uint16_t M10P_front_gap_bins;
+uint32_t M10P_build_age_us;
+uint8_t M10P_front_seen,M10P_build_epoch_ok;
 float M10P_clearance_mm,M10P_speed_scale;
 uint8_t M10P_perception_ok;
 #define RADAR_TIMEOUT_TICKS 50u

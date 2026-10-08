@@ -21,6 +21,7 @@
 #include "ble_tune.h"
 #include "ble_diag.h"
 #include "m10p.h"
+#include "m10p_vehicle.h"
 #include "timer.h"
 #include "bsp_bluetooth.h"      /* BLERX_BUFF/BLERX_FLAG/BLERX_LEN, 蓝牙收发函数 */
 #include "centre_line.h"        /* Servo_pd, Speed_pid, BLUE_DIS_*, BLUE_Y_* */
@@ -114,6 +115,21 @@ static void Tune_ApplyOne(char *line)
 
     if(BLE_FreeCritical()<2)return;
     if(Diag_Command(line)){get_index=PARAM_NUM;return;}
+
+    /* 同一主循环读取上一完整处理帧的诊断，距离为前向投影，单位毫米。
+     * seq=0表示还没有扫描；clear_mm=10000表示未发现更近的走廊回波。
+     * gap按0.5度桶计数，age_us记录感知检查时的年龄；pd为控制完成结果。 */
+    if (strcmp(line,"perception")==0) {
+        char status[224];
+        sprintf(status,"perception seq=%lu ok=%u seen=%u front=%u left=%u right=%u gap=%u clear_mm=%lu age_us=%lu epoch_ok=%u pd=%u points=%u\r\n",
+            (unsigned long)M10P_control_seq,(unsigned)M10P_perception_ok,
+            (unsigned)M10P_front_seen,(unsigned)M10P_front_bins,
+            (unsigned)M10P_left_bins,(unsigned)M10P_right_bins,
+            (unsigned)M10P_front_gap_bins,(unsigned long)M10P_clearance_mm,
+            (unsigned long)M10P_build_age_us,(unsigned)M10P_build_epoch_ok,
+            (unsigned)Servo_PD_valid,(unsigned)valid_couter);
+        Send_Bluetooth_Data(status);return;
+    }
 
     /* radar命令保持兼容；独立短行补充启动计数及实际PWM，便于现场定位。 */
     if (strcmp(line,"motor")==0) {

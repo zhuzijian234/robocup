@@ -29,6 +29,9 @@ uint16_t LidarRx_Read(uint8_t *p,uint16_t n,LidarRxStamp *s){(void)p;(void)n;(vo
 void Radar_Invalidate(void);
 uint32_t M10P_control_seq,M10P_control_front_us,M10P_control_epoch;
 uint16_t M10P_front_bins,M10P_left_bins,M10P_right_bins;
+uint16_t M10P_front_gap_bins;
+uint32_t M10P_build_age_us;
+uint8_t M10P_front_seen,M10P_build_epoch_ok;
 float M10P_clearance_mm,M10P_speed_scale;
 uint8_t M10P_perception_ok;
 #define RADAR_TIMEOUT_TICKS 50u
@@ -43,6 +46,10 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
     M10P_front_bins = M10P_left_bins = M10P_right_bins = 0;
     M10P_clearance_mm = (float)M10P_MAX_MM; /* 先当"啥也没看见", 下面扫到更近的再改 */
     M10P_perception_ok = 0; M10P_speed_scale = 0;
+    M10P_front_gap_bins = 0;
+    M10P_front_seen = scan->front_seen;
+    M10P_build_epoch_ok = scan->epoch == LidarRx_epoch;
+    M10P_build_age_us = (uint32_t)(Diag_TimeUs() - scan->front_us);
     M10P_control_seq = scan->seq;
     M10P_control_front_us = scan->front_us;
     M10P_control_epoch = scan->epoch;
@@ -53,6 +60,7 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
             if (++missing > max_missing) max_missing = missing;
         } else missing = 0;
     }
+    M10P_front_gap_bins = max_missing;
     for (i = 0; i < M10P_BINS; ++i) if (bins[i] != 0xffffu) {
         const M10P_Point *p = &scan->points[bins[i]];
         float a = M10P_AlgorithmAngle(p->angle_cdeg) / 100.0f; /* 0.01° -> 度 */
@@ -80,6 +88,8 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
             M10P_clearance_mm = y;
     }
     /* 感知可信的全部条件, 缺一不可 */
+    M10P_build_age_us = (uint32_t)(Diag_TimeUs() - scan->front_us);
+    M10P_build_epoch_ok = scan->epoch == LidarRx_epoch;
     M10P_perception_ok = scan->front_seen && M10P_front_bins >= 40 &&
         max_missing <= M10P_FRONT_MAX_MISSING_BINS &&
         M10P_left_bins >= 16 && M10P_right_bins >= 16 &&

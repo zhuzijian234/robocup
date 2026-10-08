@@ -17,6 +17,10 @@
 extern uint32_t M10P_control_seq, M10P_control_front_us, M10P_control_epoch;
 /* 三个扇区的点数(按 0.5° 桶计): 正前 70°~110° / 左 110°~170° / 右 10°~70° */
 extern uint16_t M10P_front_bins, M10P_left_bins, M10P_right_bins;
+/* 最近一次感知检查的快照；age不是发送命令时计算，避免等待命令造成误判。 */
+extern uint16_t M10P_front_gap_bins;
+extern uint32_t M10P_build_age_us;
+extern uint8_t M10P_front_seen, M10P_build_epoch_ok;
 /* M10P_clearance_mm: 正前方走廊(半宽180mm)内最近的障碍距离(mm), 越大越空
  * M10P_speed_scale:  限速系数 0.25~1, 净空近就压低目标速度 */
 extern float M10P_clearance_mm, M10P_speed_scale;
