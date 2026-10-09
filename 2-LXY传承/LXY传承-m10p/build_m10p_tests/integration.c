@@ -97,7 +97,7 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
     }
     /* 感知分级: 三个扇区分别判定, 再合成总判据。
      * 分级的意义: 锥桶赛道经常只有单侧可见, 旧的二值判据会整帧作废并冻结舵角;
-     * 现在把"能不能用哪种来源"告诉 main.c, 由它决定双侧中线 / 单侧跟线 / 降级。 */
+     * 这些只是覆盖统计；局部边界的跨度/残差由 Path_Build 检查，不能用桶数代替。 */
     M10P_build_age_us = (uint32_t)(Diag_TimeUs() - (scan->front_seen ? scan->front_us : scan->start_us));
     M10P_build_epoch_ok = scan->epoch == LidarRx_epoch;
     M10P_front_ok = (M10P_front_bins >= M10P_FRONT_MIN_BINS) &&

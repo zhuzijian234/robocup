@@ -49,6 +49,7 @@ void Steering_Update(const M10P_Scan *scan, const PathPoint *points, uint16_t co
     {
         geometry = previous_geometry;
         path->valid = path->far_valid = path->width_measured = 0;
+        path->avoid_offset = path->avoid_y = 0;
         path->source = PATH_NONE;
         path->width = geometry.width;
     }

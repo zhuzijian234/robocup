@@ -38,6 +38,43 @@ static unsigned road(float slope, float shift, unsigned sides)
     }
     return n;
 }
+
+/* 以真实0.5度射线取最近回波，圆锥会遮挡其后的墙；顺序与生产点云一致。 */
+static unsigned scene(float width, float slope, const PathPoint *cones, unsigned cone_count)
+{
+    unsigned i, j, n = 0;
+    for (i = 1; i < 360; ++i)
+    {
+        float angle = i * 0.5f * 3.14159265358979323846f / 180;
+        float x = cosf(angle), y = sinf(angle);
+        float denominator = x - slope * y;
+        float r = fabsf(denominator) > .0001f ? width * .5f * sqrtf(1 + slope * slope) /
+                                                     fabsf(denominator) : 1e6f;
+        for (j = 0; j < cone_count; ++j)
+        {
+            float projection = cones[j].x * x + cones[j].y * y;
+            float discriminant = projection * projection - cones[j].x * cones[j].x -
+                                  cones[j].y * cones[j].y + 52 * 52;
+            if (discriminant >= 0)
+            {
+                float hit = projection - sqrtf(discriminant);
+                if (hit > 0 && hit < r)
+                    r = hit;
+            }
+        }
+        if (r >= 100 && r <= 2600 && r * y >= 100 && r * y < 1300)
+        {
+            points[n].x = r * x;
+            points[n++].y = r * y;
+        }
+    }
+    return n;
+}
+static unsigned cone_road(float width, float cone_x, float cone_y)
+{
+    PathPoint cone = {cone_x, cone_y};
+    return scene(width, 0, &cone, 1);
+}
 static void build(unsigned n)
 {
     Path_Build(&geometry, points, (uint16_t)n, 500, 700, 0, &path);
@@ -195,6 +232,127 @@ int main(void)
     CHECK(!command.applied);
     step(1600000, 1, turn);
     CHECK(command.applied);
+
+    /* 实测500mm误差平台：稳态应能利用更多轮角，直道小误差仍保持原增益。 */
+    memset(&control, 0, sizeof control);
+    build(road(.6f, 0, 2));
+    path.target_x = 500;
+    step(100000, 1, 1445);
+    step(200000, 1, command.pwm);
+    CHECK(command.applied && command.d == 0 && command.pwm >= 1170 && command.pwm < 1200);
+    CHECK(command.kp > gains.side_kp);
+    memset(&control, 0, sizeof control);
+    build(road(0, 60, 3));
+    step(100000, 1, 1445);
+    CHECK(command.kp == gains.kp && command.pwm == 1424);
+
+    /* 一侧远段遮挡：另一侧位置连续时保留700mm预瞄，而不是缩至近段末尾。 */
+    n = road(.15f, 0, 3);
+    for (i = 0; i < n; i += 2)
+        if (points[i].y > 720)
+            points[i].y = 3000;
+    build(n);
+    CHECK(path.valid && path.far_valid && path.source == PATH_RIGHT && path.ref_y == 700);
+    CHECK(fabsf(path.target_x - 105) < .2f);
+
+    /* 远段已经进入反向小弯、近段接近中性：当帧换向；近段仍强烈相反则等待。 */
+    memset(&control, 0, sizeof control);
+    build(road(.4f, 0, 3));
+    step(100000, 1, 1445);
+    turn = command.pwm;
+    build(road(-.18f, 0, 3));
+    path.near_a = .04f;
+    step(200000, 1, turn);
+    CHECK(command.applied && command.reason == PATH_REVERSE && command.pwm > 1445 && command.d == 0);
+    build(road(.18f, 0, 3));
+    path.near_a = -.3f;
+    step(300000, 1, command.pwm);
+    CHECK(!command.applied && command.reason == PATH_WAIT_REVERSE);
+    /* 小于原0.18门槛的近段小S弯，连续两帧可换向，不会永远卡在旧弯。 */
+    build(road(.11f, 0, 3));
+    path.far_valid = 0;
+    step(400000, 1, 1520);
+    CHECK(!command.applied);
+    step(480000, 1, 1520);
+    CHECK(command.applied && command.reason == PATH_REVERSE && command.pwm < 1445);
+
+    /* 方底座外接圆与对墙间约500mm：扫描截面只有104mm，左右镜像均应主动让开。 */
+    memset(&geometry, 0, sizeof geometry);
+    memset(&control, 0, sizeof control);
+    build(cone_road(800, -242, 650));
+    CHECK(path.valid && path.avoid_y > 600 && path.avoid_y < 700);
+    CHECK(path.avoid_offset > 50 && path.avoid_offset < 110 && path.target_x > 0);
+    CHECK(path.avoid_offset < path.width * .5f - VEHICLE_HALF_CLEAR_MM);
+    step(100000, 1, 1445);
+    CHECK(command.applied && command.pwm < 1445);
+    memset(&geometry, 0, sizeof geometry);
+    build(cone_road(800, 242, 650));
+    CHECK(path.valid && path.avoid_offset < -50 && path.target_x < 0);
+    step(200000, 1, command.pwm);
+    CHECK(command.applied && command.pwm > 1445 && command.d_reset);
+    /* 旧弯向不能锁住避让；路况状态保持道路含义，坏扫描仍拒绝写舵机。 */
+    control.bend = -1;
+    step(300000, 1, 1250);
+    CHECK(command.applied && command.pwm > 1445);
+    step(400000, 0, command.pwm);
+    CHECK(!command.applied && command.reason == PATH_BAD_SCAN);
+    width = path.avoid_offset;
+    build(cone_road(800, 5000, 5000));
+    CHECK(path.avoid_offset == width && path.avoid_y == 0);
+    build(cone_road(800, 5000, 5000));
+    build(cone_road(800, 5000, 5000));
+    CHECK(path.avoid_offset == width);
+    build(cone_road(800, 5000, 5000));
+    CHECK(path.avoid_offset > width && path.avoid_offset < 0);
+    for (i = 0; i < 20; ++i)
+        build(cone_road(800, 5000, 5000));
+    CHECK(path.avoid_offset == 0 && fabsf(path.target_x) < .1f);
+    /* 50cm普通直道、孤立噪点、平直短片，均不能伪装圆锥触发避让。 */
+    memset(&geometry, 0, sizeof geometry);
+    build(cone_road(500, 5000, 5000));
+    CHECK(path.valid && path.avoid_offset == 0 && path.avoid_y == 0);
+    /* 同一锥桶逐步接近；斜道路上的左右镜像，不把圆弧附近的遮挡当转向反号。 */
+    for (i = 0; i < 7; ++i)
+    {
+        float y = 350 + i * 100.0f;
+        PathPoint cone = {.12f * y - 242 * sqrtf(1 + .12f * .12f), y};
+        memset(&geometry, 0, sizeof geometry);
+        build(scene(800, .12f, &cone, 1));
+        CHECK(path.valid && path.avoid_offset > 5 && path.avoid_y > 0);
+        cone.x = -.12f * y + 242 * sqrtf(1 + .12f * .12f);
+        memset(&geometry, 0, sizeof geometry);
+        build(scene(800, -.12f, &cone, 1));
+        CHECK(path.valid && path.avoid_offset < -5 && path.avoid_y > 0);
+    }
+    {
+        PathPoint cones[2] = {{-242, 600}, {242, 1000}};
+        memset(&geometry, 0, sizeof geometry);
+        build(scene(800, 0, cones, 2));
+        CHECK(path.valid && path.avoid_offset > 0 && path.avoid_y < 650);
+        cones[0].x = -5000;
+        build(scene(800, 0, cones, 2));
+        CHECK(path.valid && path.avoid_offset < 0 && path.avoid_y > 950);
+    }
+    /* 标定偏移也计入底座/对侧预算；普通斜墙和墙外物体不触发避让。 */
+    memset(&geometry, 0, sizeof geometry);
+    n = cone_road(800, -242, 650);
+    Path_Build(&geometry, points, (uint16_t)n, 500, 700, -27, &path);
+    CHECK(path.valid && path.avoid_offset > 95 && path.avoid_offset < 120);
+    memset(&geometry, 0, sizeof geometry);
+    build(scene(500, .25f, 0, 0));
+    CHECK(path.valid && path.avoid_offset == 0);
+    build(cone_road(800, 600, 700));
+    CHECK(path.valid && path.avoid_offset == 0);
+    for (i = 0; i < 10; ++i)
+    {
+        points[i].x = -200 + i * 8;
+        points[i].y = 650;
+    }
+    {
+        PathPoint center;
+        CHECK(!cone_center(points, 0, 10, &center));
+        CHECK(!cone_center(points, 0, 1, &center));
+    }
     printf("PASS %u production path geometry / steering checks\n", checks);
     return 0;
 }

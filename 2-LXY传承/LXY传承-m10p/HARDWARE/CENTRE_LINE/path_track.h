@@ -37,12 +37,15 @@ typedef struct
     PathFit near_fit[2], far_fit[2];
     float near_x, far_x, near_a, far_a, ref_y, target_x;
     float width, width_candidate;
+    float avoid_offset, avoid_y; /* 避让附加横移(mm)、当前锥桶前向位置；不改变车速 */
     uint8_t valid, far_valid, source, width_measured, straight;
 } PathObservation;
 typedef struct
 {
     float width; /* 仅可靠双侧观测可更新；单侧使用此历史宽度 */
     float configured_width;
+    float avoid_offset; /* 相对本帧道路中线的避让偏移，过桶后逐步归零 */
+    uint8_t avoid_hold;
     uint8_t measured;
 } PathGeometry;
 typedef struct
@@ -55,6 +58,7 @@ typedef struct
 {
     uint32_t previous_us, evidence_us, observed_us;
     float previous_error, previous_ref_y;
+    float previous_avoid_offset;
     int8_t bend, pending_direction;
     uint8_t history, previous_source, previous_far_valid, evidence_frames;
 } PathController;
@@ -66,6 +70,7 @@ typedef struct
     int8_t bend;
 } PathCommand;
 
+/* points沿雷达角度递增排列（LEIDA_FrontPoints的输出）；锥桶聚类依赖相邻射线顺序。 */
 void Path_Build(PathGeometry *state, const PathPoint *points, uint16_t count, float configured_width,
                 float preview_y, float center_x, PathObservation *out);
 void Path_Control(PathController *state, const PathObservation *path, const PathGains *gains,

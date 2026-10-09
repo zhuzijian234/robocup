@@ -155,7 +155,8 @@ static void Tune_ApplyOne(char *line)
     {
         char status[240];
         uint8_t cal_valid =
-            Steering_command.applied && Steering_path.straight && Steering_path.source == PATH_DUAL;
+            Steering_command.applied && Steering_path.straight && Steering_path.source == PATH_DUAL &&
+            Steering_path.avoid_offset == 0;
         sprintf(status,
                 "perception seq=%lu ok=%u path=%u src=%u pd=%u apply=%u reason=%u bend=%d age_us=%lu "
                 "err=%.1f ref=%.0f near=%.1f far=%.1f width=%.0f cal_valid=%u cal=%.1f\r\n",
@@ -166,6 +167,18 @@ static void Tune_ApplyOne(char *line)
                 (double)Steering_path.ref_y, (double)Steering_path.near_x, (double)Steering_path.far_x,
                 (double)Steering_path.width, (unsigned)cal_valid,
                 (double)(cal_valid ? Steering_path.near_x : 0));
+        Send_Bluetooth_Data(status);
+        return;
+    }
+
+    /* 仅按需输出，不增加循环遥测负载；offset正值向右避让，y=0表示保持/释放阶段。 */
+    if (strcmp(line, "avoid") == 0)
+    {
+        char status[128];
+        sprintf(status, "avoid path=%u offset_mm=%.1f cone_y_mm=%.0f target_x_mm=%.1f pwm=%u\r\n",
+                (unsigned)Steering_path.valid, (double)Steering_path.avoid_offset,
+                (double)Steering_path.avoid_y, (double)Steering_path.target_x,
+                (unsigned)Steering_command.pwm);
         Send_Bluetooth_Data(status);
         return;
     }
