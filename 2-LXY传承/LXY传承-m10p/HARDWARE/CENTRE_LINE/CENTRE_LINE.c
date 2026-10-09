@@ -1,562 +1,138 @@
-#include "ble_diag.h"
-/**
- * @file    CENTRE_LINE.c
- * @brief   中线检测、PID控制与路径拟合算法实现
- *
- * 本模块是雷达小车循线算法的核心。
- *
- * 整体架构:
- *   1. 数据输入:  雷达笛卡尔点云 (LEIDA_DATA_plane数组)
- *   2. 中线拟合:  最小二乘法 -> 直线方程 y = k*x + b (Midline_type)
- *   3. 转向控制:  多模式PD控制器 -> 舵机PWM
- *   4. 速度控制:  位置式PI控制器 -> 电机PWM
- *
- * PID控制模式说明 (Midline_PD 的 mode 参数, 只允许 0~9; 与 main.c 第8步的选法对应):
- *   0  = 普通中线循迹（直道/微弯）      误差: -((y_target - b)/k - 50)                    kp,   kd
- *        y_target = 拟合线末点 points[end-1]._y（BLUE_Y_STRA_SEL=1 时改用 BLUE_Y_STRA）
- *        |k| <= 0.1 视为"线太横"退化, 直接拒绝本帧
- *   1  = 小角度右转                    误差: -(x + paodao*BLUE_DIS_RIGHT/100)             kp_3, kd_3
- *        20261008 修正语义: 实际传入的是**左**侧边界数组(主循环 right?LEFT:RIGHT 的取法),
- *        x<0, 所以这其实是"把左墙保持在车左 paodao*BLUE_DIS_RIGHT/100 mm 处"的**通道居中**控制,
- *        不是"右转"。x 由窗口内 y 最接近 BLUE_Y_RIGHT 的点给出; 窗口无点则拒绝本帧。
- *        已退出"不许指到中位另一边"的钳位 —— 原始符号才是正确的横向修正方向。
- *   2  = 小角度左转                    误差: -(x - paodao*BLUE_DIS_LEFT/100)              kp_3, kd_3
- *        同上, 传入**右**侧边界数组(x>0), 等价于"把右墙保持在车右 ... 处"的通道居中。
- *        目标高度 BLUE_Y_LEFT
- *   3  = 大角度右转（右断点+前方拟合, |k|<FORWARD_K_BIG）  误差: -mag     kp_2, kd_2
- *   4  = 大角度左转                                      误差: +mag     kp_2, kd_2
- *   8  = 中等角度右转（|k|<FORWARD_K_S_CURVE 且单边拟合）  误差: -mag     kp_2, kd_2
- *   9  = 中等角度左转                                    误差: +mag     kp_2, kd_2
- *        mag = clamp(175/|k|, TURN_MAG_MIN, 500) —— 线越陡给的固定误差越大(上限 500, 下限 250);
- *        方向只由模式决定, 不看 k 的符号（k 退化时不给反向指令）
- *   5  = 中线垂直直道                  误差: CENTER_X_TARGET_MM - zhongxian_chuizhi    kp, kd
- *   7  = 中线均值兜底                  误差: CENTER_X_TARGET_MM - mean(points[]._x)    kp, kd
- *   6  = 保留未使用                    公式同 7; 当前 main.c 不会选它
- *
- * 注意: 10=BLE_MODE_HOLD / 11=BLE_MODE_INVALID / 12=BLE_MODE_FORCED 是遥测伪模式,
- *       只出现在 main.c 的 telemetry_mode 里, 绝不能传进 Midline_PD (mode>9 会被直接拒绝)。
- */
-
+/** 转向编排与编码器 PI。路径计算不访问硬件；本文件负责时间、参数和唯一输出。 */
 #include "centre_line.h"
-#define CONTROL_TRACE(...) ((void)0)
-#include "moto.h"
-#include <float.h>
+#include "ble_diag.h"
+#include "m10p_vehicle.h"
+#include "Servo.h"
+#include <string.h>
 
-Midline_type Midline;
-Midline_type Midline2;
-Midline_type Midline3;
-Midline_type Midline_forward;
-Midline_type Midline_forward_2;
-Midline_type Midline_forward_3;
-
-pid_type Servo_pd;
-pid_type Speed_pid;
-
-extern float Speed_mubiao;
-
-/* ======================== 最小二乘法直线拟合 ======================== */
-
-/**
- * @brief  使用最小二乘法将一组笛卡尔坐标点拟合为直线 y = k*x + b
- *
- * @param  centerline: 笛卡尔坐标点数组 (_x, _y)
- * @param  startline:  起始索引（含）
- * @param  endline:    结束索引（不含）
- * @param  midline:    输出结构体，接收斜率k和截距b
- *
- * 计算公式:
- *   k = Σ[(xi - x̄)(yi - ȳ)] / Σ[(xi - x̄)²]
- *   b = ȳ - k * x̄
- */
-uint8_t Midline_fit(_LEIDA_DATA_plane *points, int start, int end, Midline_type *line)
-{
-    int i, n = end - start;
-    float sx = 0, sy = 0, xx = 0, xy = 0, x, y;
-    line->k = line->b = 0;
-    if (start < 0 || n < 2 || end > LEIDA_DATA_COUNTER / 2) {
-        Diag_Fit(line, 0);
-        return 0;
-    }
-    for (i = start; i < end; i++) {
-        x = points[i]._x;
-        y = points[i]._y;
-        if (!(x <= FLT_MAX && x >= -FLT_MAX && y <= FLT_MAX && y >= -FLT_MAX)) {
-            Diag_Fit(line, 0);
-            return 0;
-        }
-        sx += x;
-        sy += y;
-    }
-    sx /= n;
-    sy /= n;
-    for (i = start; i < end; i++) {
-        x = points[i]._x - sx;
-        xx += x * x;
-        xy += x * (points[i]._y - sy);
-    }
-    if (xx <= 1e-6f) {
-        line->b = sy;
-        Diag_Fit(line, 0);
-        return 0;
-    }
-    line->k = xy / xx;
-    line->b = sy - line->k * sx;
-    if (!(line->k <= FLT_MAX && line->k >= -FLT_MAX && line->b <= FLT_MAX && line->b >= -FLT_MAX)) {
-        line->k = line->b = 0;
-        Diag_Fit(line, 0);
-        return 0;
-    }
-    Diag_Fit(line, 1);
-    return 1;
-}
-
-/* ======================== 曲率计算 ======================== */
-
-/**
- * @brief  三点法曲率计算（Menger曲率）
- *
- * K = 4 * S_ABC / (AB * BC * AC)
- * 其中 S_ABC 为三角形ABC的有向面积。
- * 返回有符号曲率: 正=逆时针, 负=顺时针。顺逆时针指u->v的旋转方向
- */
-float curvity_cal1(float x1, float y1, float x2, float y2, float x3, float y3)
-{
-    float K;
-    float S_of_ABC;
-    float q1;
-    float AB;
-    float BC;
-    float AC;
-
-    /* 三角形有向面积 */
-    S_of_ABC = ((x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1)) / 2;
-    q1 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
-    AB = sqrt(q1);
-    q1 = (x3 - x2) * (x3 - x2) + (y3 - y2) * (y3 - y2);
-    BC = sqrt(q1);
-    q1 = (x3 - x1) * (x3 - x1) + (y3 - y1) * (y3 - y1);
-    AC = sqrt(q1);
-
-    if (AB * BC * AC == 0) {
-        K = 0;
-    } else {
-        K = 4 * S_of_ABC / (AB * BC * AC);
-    }
-
-    return K;
-}
-
-uint16_t forward = 10;
-
-/**
- * @brief  对中线点集的平均曲率进行计算
- *
- * 步长 = forward (默认10)，即三点间隔10个采样点。
- * 对 counter/3 个三元组求曲率后取平均。
- */
-float curvity_cal(_LEIDA_DATA_plane LEIDA_DATA_CENTER[], uint16_t counter)
-{
-    float K;
-    float S_of_ABC;
-    float q1;
-    float AB;
-    float BC;
-    float AC;
-    uint16_t i;
-    float K_sum = 0;
-
-    for (i = 0; i < (uint16_t)(counter / 3); i++) {
-        S_of_ABC = ((LEIDA_DATA_CENTER[i + forward]._x - LEIDA_DATA_CENTER[i]._x) * (LEIDA_DATA_CENTER[i + 2 * forward]._y - LEIDA_DATA_CENTER[i]._y) - (LEIDA_DATA_CENTER[i + 2 * forward]._x - LEIDA_DATA_CENTER[i]._x) * (LEIDA_DATA_CENTER[i + forward]._y - LEIDA_DATA_CENTER[i]._y)) / 2;
-
-        q1 = (LEIDA_DATA_CENTER[i + forward]._x - LEIDA_DATA_CENTER[i]._x) * (LEIDA_DATA_CENTER[i + forward]._x - LEIDA_DATA_CENTER[i]._x) + (LEIDA_DATA_CENTER[i + forward]._y - LEIDA_DATA_CENTER[i]._y) * (LEIDA_DATA_CENTER[i + forward]._y - LEIDA_DATA_CENTER[i]._y);
-        AB = sqrt(q1);
-
-        q1 = (LEIDA_DATA_CENTER[i + 2 * forward]._x - LEIDA_DATA_CENTER[i + forward]._x) * (LEIDA_DATA_CENTER[i + 2 * forward]._x - LEIDA_DATA_CENTER[i + forward]._x) + (LEIDA_DATA_CENTER[i + 2 * forward]._y - LEIDA_DATA_CENTER[i + forward]._y) * (LEIDA_DATA_CENTER[i + 2 * forward]._y - LEIDA_DATA_CENTER[i + forward]._y);
-        BC = sqrt(q1);
-
-        q1 = (LEIDA_DATA_CENTER[i + 2 * forward]._x - LEIDA_DATA_CENTER[i]._x) * (LEIDA_DATA_CENTER[i + 2 * forward]._x - LEIDA_DATA_CENTER[i]._x) + (LEIDA_DATA_CENTER[i + 2 * forward]._y - LEIDA_DATA_CENTER[i]._y) * (LEIDA_DATA_CENTER[i + 2 * forward]._y - LEIDA_DATA_CENTER[i]._y);
-        AC = sqrt(q1);
-
-        if (AB * BC * AC == 0) {
-            K = 0;
-        } else {
-            K = 4 * S_of_ABC / (AB * BC * AC);
-        }
-
-        K_sum += K;
-    }
-
-    return K_sum / i; /* 平均曲率 */
-}
-
-/* ======================== PID初始化 ======================== */
-/*只有 PD，没有 I（积分项）。因为舵机控制要的是快速响应，
-积分项会让车在出弯后还"记得"之前的偏差，导致晃来晃去。*/
-
-void Midline_PD_Init(pid_type *midline_pid, float kp, float kp_2, float kp_3,
-                     float kd, float kd_2, float kd_3)
-{
-    Midline_PD_Reset();
-    midline_pid->err = 0;
-    midline_pid->err_l = 0;
-
-    midline_pid->kp = kp;
-    midline_pid->kp_2 = kp_2;
-    midline_pid->kp_3 = kp_3;
-    midline_pid->kd = kd;
-    midline_pid->kd_2 = kd_2;
-    midline_pid->kd_3 = kd_3;
-}
-/*速度控制则有 I 项——PI 控制。速度不需要像舵机那样快速响应，
-积分项用来消除稳态误差（比如上坡时自动加力）。
-*/
-void Speed_PID_Init(pid_type *midline_pid, float kp, float ki, float kd)
-{
-    midline_pid->err = 0;
-    midline_pid->err_l = 0;
-
-    midline_pid->kp = kp;
-    midline_pid->ki = ki;
-    midline_pid->kd = kd;
-}
-
-/* ======================== 蓝牙可调参数 ========================
- * 以下参数可通过蓝牙(HC-05)在运行时调整，
- * 用于微调控车行为。
- */
-
-float BLUE_DIS_RIGHT = 62; /* 右侧宽度补偿系数（小转弯模式） */
-float BLUE_DIS_LEFT = 60;  /* 左侧宽度补偿系数（小转弯模式） */
-
-float BLUE_Y_RIGHT = 800; /* 右转时的目标Y坐标 */
-float BLUE_Y_LEFT = 800;  /* 左转时的目标Y坐标 */
-
-float BLUE_Y_STRA = 750;   /* 直道模式下的目标Y坐标 */
-float BLUE_Y_STRA_SEL = 0; /* 直道模式选择: 0=用中线末点, 1=用BLUE_Y_STRA */
-float err[5] = {0};        /* 误差历史缓冲区（FIR滤波用，当前未使用） */
-
-/* 车体坐标系里"赛道中线"应该落在的横向位置(mm)。
- * 原来在 mode 0/5/6/7 里硬编码 50（沿用 LXY 车的标定值）。
- * 本车雷达居中、车宽 26cm、通道 50cm → 单侧余量仅 120mm，
- * 若 50mm 的标定偏差不成立，等于常驻 5cm 偏置。做成可调项，实车按 debug 流程重标。 */
-float CENTER_X_TARGET_MM = 50.0f;
-/* mode 0 的误差限幅(mm)。原为 ±200 → 最大只有 ±70 个 CCR 计数(半行程 275)，
- * 窄通道里修正力明显不足；抬到 ±350，实车再调。 */
-float MODE0_ERR_CLAMP_MM = 350.0f;
-/* 转弯模式的合成误差下限。原公式 175/|k| 在 |k|=2 时只剩 87，
- * 急弯反而给最小的转向力；加下限保证急弯仍有足够权限。 */
-float TURN_MAG_MIN = 250.0f;
-/* 20261008 转向稳定化三个量, 依据 v2_1008_175104 实测(见 CENTRE_LINE.h 注释) */
-float duandian_MIN_Y = 200.0f; /* 断点y投影下限(mm) */
-float STRAIGHT_MIN_K = 2.0f;   /* "确实直"所需的最小 |Midline.k| */
-float SERVO_MAX_STEP = 600.0f; /* 每帧舵机PWM最大变化量(计数)。
-                                * ★默认 600 ≈ 不限幅(半行程只有275)。理由见独立复核判定:
-                                * 它是输出平滑, 不是方向判定修复; 而 150 会削掉"入弯一帧到位"
-                                * 的权限 —— 已有转向回归正是用 1445→1245 一帧到位来断言的(实测挂第786行)。
-                                * 只在 dy 压住错误方向之后**仍然**甩头时才往下调: 先 200, 再 150/90。 */
-
-/* ======================== 多模式PD舵机转向控制器 ======================== */
-
-/**
- * @brief  多模式PD舵机转向控制器
- *
- * @param  centerline:       用于转向参考的笛卡尔点数组
- * @param  midline_pid:      PID参数块
- * @param  midline:          拟合直线参数 (k, b)
- * @param  servo_midpwm:     舵机中位 (PWM值/10)
- * @param  CENTER_cnt_start: 拟合区域起始索引
- * @param  CENTER_cnt_end:   拟合区域结束索引
- * @param  flag:             控制模式选择 (0-9, 见文件头)
- *
- * @return 舵机PWM值 (SERVO_PWM_MIN~SERVO_PWM_MAX范围)
- *
- * 处理流程:
- *   1. 根据flag模式计算偏差
- *   2. 偏差限幅 [-500, 500]
- *   3. PD控制: pwm = 中位 + kp*err + kd*(err - err_last)
- *   4. 缩放到实际PWM范围 (*10)
- *   5. 限幅到 [SERVO_PWM_MIN, SERVO_PWM_MAX]
- *   6. 输出到舵机
- */
+pid_type Servo_pd, Speed_pid;
 uint8_t Servo_PD_valid;
-static uint8_t pd_history_valid;
-static uint16_t pd_previous_mode;
-static uint32_t pd_previous_us;
-void Midline_PD_Reset(void)
+float CENTER_X_TARGET_MM = -27.0f; /* 现有安装标定，换安装位置需重测 */
+float MODE0_ERR_CLAMP_MM = 200.0f; /* 保留用户的直道限幅；弯道真实路径误差上限 500 */
+float PATH_PREVIEW_MM = 700.0f;    /* 同一前向参考，实际支持不足时明确缩短 */
+float PATH_WIDTH_MM = 500.0f;      /* 当前记录的 50 cm 通道；双侧可靠后按实测宽度更新 */
+PathObservation Steering_path;
+PathCommand Steering_command;
+static PathGeometry geometry;
+static PathController controller;
+static uint32_t previous_revision;
+
+void Steering_Init(void)
 {
-    pd_history_valid = 0;
-    Servo_PD_valid = 0;
-}
-/* 本帧数据不可用时统一的出口: 记诊断位、清历史(下次重新学 err_l)、
- * 舵机保持原位(返回当前 CCR, 不写 PWM)。
- * 无效结果仅跳过舵机更新；电机速度闭环不受影响。 */
-static uint16_t pd_reject(void)
-{
-    Diag_detail_u[4] &= ~1u;
-    Diag_detail_u[4] |= 512u;
-    Midline_PD_Reset();
-    return (uint16_t)TIM3->CCR1;
-}
-static uint8_t turn_direction(uint16_t mode);
-static uint8_t turn_rank(uint16_t mode);
-uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *line,
-                    float mid, uint16_t start, uint16_t end, uint16_t mode)
-{
-    uint16_t i;
-    uint32_t now = Diag_TimeUs(), dt = now - pd_previous_us;
-    float e = 0, kp, kd, p, d, original_d, output, mag, x = 0, best = FLT_MAX, target, entry = 0;
-    Servo_PD_valid = 0;
-    Diag_detail_u[6] = pd_previous_mode;
-    Diag_detail_u[7] = start;
-    Diag_detail_u[8] = end;
-    Diag_detail_u[9] = end > start ? end - start : 0;
-    Diag_detail_f[13] = pid->err_l;
-    Diag_detail_f[11] = line->k;
-    Diag_detail_f[12] = line->b;
-    if (mode > 9 || end <= start || end > LEIDA_DATA_COUNTER / 2) {
-        if (mode == 1 || mode == 2)
-            Diag_detail_u[4] |= 8;
-        return pd_reject();
-    }
-    if (mode == 0) {
-        if (!(fabs(line->k) > 0.1f && fabs(line->k) <= FLT_MAX && fabs(line->b) <= FLT_MAX))
-            return pd_reject();
-        target = BLUE_Y_STRA_SEL == 1 ? BLUE_Y_STRA : points[end - 1]._y;
-        e = -((target - line->b) / line->k - CENTER_X_TARGET_MM);
-        if (BLUE_Y_STRA_SEL != 1) {
-            if (e > MODE0_ERR_CLAMP_MM)
-                e = MODE0_ERR_CLAMP_MM;
-            if (e < -MODE0_ERR_CLAMP_MM)
-                e = -MODE0_ERR_CLAMP_MM;
-        }
-    } else if (mode == 1 || mode == 2) {
-        target = mode == 1 ? BLUE_Y_RIGHT : BLUE_Y_LEFT;
-        for (i = start; i < end; i++) {
-            float dy = fabs(points[i]._y - target);
-            if (dy < best && fabs(points[i]._x) <= FLT_MAX) {
-                best = dy;
-                x = points[i]._x;
-                Diag_detail_u[4] |= 2;
-                Diag_detail_f[8] = x;
-                Diag_detail_f[9] = points[i]._y;
-                Diag_detail_f[10] = dy;
-            }
-        }
-        if (!(Diag_detail_u[4] & 2)) {
-            Diag_detail_u[4] |= 8;
-            return pd_reject();
-        }
-        /* 期望: 通道中线落在车体系 x = CENTER_X_TARGET_MM 处。
-         * x 是边界点的横向坐标; 由此反推通道中线的横向位置:
-         *   mode1 用对侧(左)墙: centre = x + paodao*BLUE_DIS_RIGHT/100
-         *   mode2 用对侧(右)墙: centre = x - paodao*BLUE_DIS_LEFT/100
-         * 20261008: 原来 mode1/2 写成 -(x±T), 少了 CENTER_X_TARGET_MM 这个偏置,
-         * 而 mode0/5/7 是 50-x —— 两种口径差 50mm, 模式一跳变车就横移 5cm。
-         * 在单侧余量只有 120mm 的通道里这足以刮锥桶, 现统一成同一口径。 */
-        e = mode == 1 ? CENTER_X_TARGET_MM - (x + paodao_distance * BLUE_DIS_RIGHT / 100)
-                      : CENTER_X_TARGET_MM - (x - paodao_distance * BLUE_DIS_LEFT / 100);
-    } else if (mode == 3 || mode == 4 || mode == 8 || mode == 9) {
-        if (!(fabs(line->k) <= FLT_MAX))
-            return pd_reject();
-        /* 转弯力度: 线越斜(弯越急)|k| 越小, 给的固定误差越大; |k|<0.35 直接顶到 500。
-         * 方向由模式决定, 不看 k 的符号 —— 拟合退化时也不给反向指令。
-         * 20261008: 原式 175/|k| 无下限, 急弯(|k|≈2)只剩 87, 反而给最小转向力;
-         * 加 TURN_MAG_MIN 下限后, |k|∈[0.35,0.7] 区间连续, 更陡也保持 250。 */
-        mag = fabs(line->k) < 0.35f ? 500.0f : 175.0f / fabs(line->k);
-        if (mag < TURN_MAG_MIN)
-            mag = TURN_MAG_MIN;
-        e = (mode == 3 || mode == 8) ? -mag : mag;
-    } else if (mode == 5) {
-        if (!LEIDA_vertical_valid)
-            return pd_reject();
-        e = CENTER_X_TARGET_MM - zhongxian_chuizhi;
-    } else {
-        if (end - start < 2)
-            return pd_reject();
-        for (i = start; i < end; i++) {
-            if (!(fabs(points[i]._x) <= FLT_MAX))
-                return pd_reject();
-            x += points[i]._x;
-        }
-        x /= end - start;
-        e = CENTER_X_TARGET_MM - x;
-        Diag_detail_f[14] = x;
-        Diag_detail_u[4] |= 256;
-    }
-    if (!(fabs(e) <= FLT_MAX))
-        return pd_reject();
-    if (e > 500)
-        e = 500;
-    if (e < -500)
-        e = -500;
-    kp = (mode == 1 || mode == 2) ? pid->kp_3 : (mode == 0 || (mode >= 5 && mode <= 7)) ? pid->kp
-                                                                                        : pid->kp_2;
-    kd = (mode == 1 || mode == 2) ? pid->kd_3 : (mode == 0 || (mode >= 5 && mode <= 7)) ? pid->kd
-                                                                                        : pid->kd_2;
-    /* 不同模式的误差来自不同测量目标(中线外推/垂线段/均值/合成力度)，
-     * 不能直接相减当作运动变化。例如大左转500 -> 侧墙左转82，会产生假的负D并把舵机拉回中位。
-     * 切模式首帧只用P；弯道延续由主循环的有界TurnGuard负责，急弯的快速响应由入弯前馈负责。 */
-    if (!pd_history_valid || !dt || dt > 250000u || mode != pd_previous_mode) {
-        pid->err_l = e;
-        Diag_detail_u[4] |= 4;
-    } else
-        kd *= 115000.0f / dt;
-    p = 10 * kp * e;
-    d = 10 * kd * (e - pid->err_l);
-    original_d = d;
-    /* D 限幅 ±150: 舵机单边行程 275 (SERVO_PWM_MID 1445 → MIN 1170), 150 约半程,
-     * 再小就会把入弯那记踢腿削掉。实测 mode 3 入弯 D ≈ -124, 原来的 ±60 砍掉一半。 */
-    if (d > 150)
-        d = 150;
-    if (d < -150)
-        d = -150;
-    /* D 只能把 P 往中位拉, 不许把修正方向拽反 */
-    if ((p >= 0 && p + d < 0) || (p <= 0 && p + d > 0))
-        d = -p;
-    if (d != original_d)
-        Diag_detail_u[4] |= 2048;
-    /* 入弯/换向/升级为更大弯时，单独给有界补偿，不使用跨测量目标的假D。
-     * 只增强P已经指向目标弯向的指令；降级、同模式、无效后同模式恢复不重复加。
-     * DETAIL中的P/D保持原义，补偿量=pwm_unclamped-pwm_mid-pd_p-pd_d。 */
-    if (turn_direction(mode) &&
-        (turn_direction(mode) != turn_direction(pd_previous_mode) || turn_rank(mode) > turn_rank(pd_previous_mode)) &&
-        ((turn_direction(mode) == 1 && p < 0) || (turn_direction(mode) == 2 && p > 0))) {
-        /* 入弯补一脚: 原来 entry=min(|P|,75)，P 很弱时这一脚也几乎为 0，
-         * 于是"刚识别到急弯"的那一帧反而没有力度。改成 clamp(|P|, 45, 75)，
-         * 保证入弯首帧至少有一次有界的方向性补偿(单边行程 275, 45 约 16%)。 */
-        entry = fabs(p);
-        if (entry < TURN_ENTRY_MIN_PWM)
-            entry = TURN_ENTRY_MIN_PWM;
-        if (entry > TURN_ENTRY_PWM)
-            entry = TURN_ENTRY_PWM;
-        if (p < 0)
-            entry = -entry;
-    }
-    output = 10 * mid + p + d + entry;
-    /* 合成的转弯模式(3/4/8/9)误差方向由模式固定, 不许把舵机指到中位的另一边, 防反打。
-     * 20261008: mode 1/2 退出这个钳位 —— 它们实际是"用对侧墙/锥桶做通道居中",
-     * 原始符号就是正确的横向修正方向。钳位会把本该左打的修正直接钉在中位
-     * (实机日志 pwm_unclamped==pwm_mid, 车在左弯里完全不转), 方向正确性由上游模式选择负责。 */
-    if ((mode == 3 || mode == 8) && output > 10 * mid) {
-        output = 10 * mid;
-        Diag_detail_u[4] |= 1024;
-    }
-    if ((mode == 4 || mode == 9) && output < 10 * mid) {
-        output = 10 * mid;
-        Diag_detail_u[4] |= 1024;
-    }
-    if (!(fabs(output) <= FLT_MAX))
-        return pd_reject();
-    Diag_detail_u[4] |= 1;
-    Diag_detail_f[0] = pid->err_l;
-    Diag_detail_f[1] = e;
-    Diag_detail_f[2] = p;
-    Diag_detail_f[3] = d;
-    Diag_detail_f[4] = kp;
-    Diag_detail_f[5] = kd;
-    Diag_detail_f[6] = output;
-    Diag_detail_f[7] = 10 * mid;
-    if (output < SERVO_PWM_MIN || output > SERVO_PWM_MAX)
-        Diag_detail_u[4] |= 16;
-    if (output < SERVO_PWM_MIN)
-        output = SERVO_PWM_MIN;
-    if (output > SERVO_PWM_MAX)
-        output = SERVO_PWM_MAX;
-    pid->err = pid->err_l = e;
-    pd_previous_us = now;
-    pd_previous_mode = mode;
-    pd_history_valid = 1;
-    Servo_PD_valid = 1;
-    return (uint16_t)output;
+    memset(&controller, 0, sizeof controller);
+    memset(&geometry, 0, sizeof geometry);
+    memset(&Servo_pd, 0, sizeof Servo_pd);
+    Servo_pd.kp = 0.035f;
+    Servo_pd.kd = 0.035f;
+    Servo_pd.kp_2 = 0.040f;
+    Servo_pd.kd_2 = 0.022f;
+    Servo_pd.kp_3 = 0.0395f;
+    Servo_pd.kd_3 = 0.020f;
 }
 
-/* 保留直接驱动接口供测试/其他调用方使用。 */
-uint16_t Midline_PD(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *line,
-                    float mid, uint16_t start, uint16_t end, uint16_t mode)
+void Steering_Update(const M10P_Scan *scan, const PathPoint *points, uint16_t count)
 {
-    uint16_t pwm = Midline_PD_Calculate(points, pid, line, mid, start, end, mode);
-    if (Servo_PD_valid)
-        Servo_ChangePwm(pwm);
-    return pwm;
+    PathGains gains;
+    uint8_t scan_valid;
+    uint32_t now;
+    PathGeometry previous_geometry = geometry;
+    PathObservation *path = &Steering_path;
+    PathCommand *command = &Steering_command;
+    if (!M10P_ScanUsable(scan, Diag_TimeUs()))
+        count = 0;
+    Path_Build(&geometry, points, count, PATH_WIDTH_MM, PATH_PREVIEW_MM, CENTER_X_TARGET_MM, path);
+    now = Diag_TimeUs();
+    /* 接收代次/时效与几何质量分开：单侧可用不要求两侧桶数同时达标。
+     * 计算结束再查一次代次和年龄，避免处理期间 DMA 异常使旧帧被执行。 */
+    scan_valid = M10P_ScanUsable(scan, now) && !(M10P_perception_why & M10P_WHY_CAPACITY);
+    if (!scan_valid)
+    {
+        geometry = previous_geometry;
+        path->valid = path->far_valid = path->width_measured = 0;
+        path->source = PATH_NONE;
+        path->width = geometry.width;
+    }
+    if (previous_revision != Diag_revision)
+    {
+        controller.history = 0; /* 在线改变预瞄/标定不制造假 D */
+        previous_revision = Diag_revision;
+    }
+    gains.kp = Servo_pd.kp;
+    gains.kd = Servo_pd.kd;
+    gains.turn_kp = Servo_pd.kp_2;
+    gains.turn_kd = Servo_pd.kd_2;
+    gains.side_kp = Servo_pd.kp_3;
+    gains.side_kd = Servo_pd.kd_3;
+    gains.center_x = CENTER_X_TARGET_MM;
+    gains.straight_limit = MODE0_ERR_CLAMP_MM;
+    gains.pwm_min = SERVO_PWM_MIN;
+    gains.pwm_mid = SERVO_PWM_MID;
+    gains.pwm_max = SERVO_PWM_MAX;
+    Path_Control(&controller, path, &gains, scan_valid, now, (uint16_t)TIM3->CCR1, command);
+    Servo_PD_valid = command->applied;
+    M10P_steer_source = command->applied ? path->source : M10P_SRC_HOLD;
+    if (command->computed)
+        Servo_pd.err = command->error;
+    if (command->applied)
+        Servo_ChangePwm(command->pwm);
+
+    /* DETAIL schema 2：候选与实际动作分开，保舵不得标记为执行了本帧 PD。
+     * 保留前八个浮点的 PD 语义，新几何字段由上位机按 schema 解析。 */
+    Diag_detail_u[4] = (command->computed ? 1u : 0u) | (command->d_reset ? 4u : 0u);
+    Diag_detail_u[6] = command->previous_source;
+    Diag_detail_u[7] = path->source;
+    Diag_detail_u[8] = command->reason;
+    Diag_detail_u[9] = command->applied;
+    Diag_detail_u[10] = path->far_valid;
+    Diag_detail_u[12] = path->near_fit[0].count;
+    Diag_detail_u[13] = path->near_fit[1].count;
+    Diag_detail_u[14] = path->far_fit[0].count;
+    Diag_detail_u[15] = path->far_fit[1].count;
+    Diag_detail_u[16] = path->width_measured ? 2 : geometry.measured ? 1 : 0;
+    Diag_detail_u[17] = (uint32_t)(command->bend + 1);
+    Diag_detail_u[18] = count;
+    Diag_detail_u[19] = command->candidate_pwm;
+    Diag_detail_u[20] = command->pwm;
+    Diag_detail_f[0] = Servo_pd.err_l;
+    Diag_detail_f[1] = command->error;
+    Diag_detail_f[2] = command->p;
+    Diag_detail_f[3] = command->d;
+    Diag_detail_f[4] = command->kp;
+    Diag_detail_f[5] = command->kd;
+    Diag_detail_f[6] = command->unclamped;
+    Diag_detail_f[7] = SERVO_PWM_MID;
+    Diag_detail_f[8] = path->near_x;
+    Diag_detail_f[9] = path->far_x;
+    Diag_detail_f[10] = path->ref_y;
+    Diag_detail_f[11] = path->near_a;
+    Diag_detail_f[12] = path->far_a;
+    Diag_detail_f[13] = path->width;
+    Diag_detail_f[14] = path->near_fit[0].rms;
+    Diag_detail_f[15] = path->near_fit[1].rms;
+    Diag_detail_f[16] = path->near_fit[0].max_y - path->near_fit[0].min_y;
+    Diag_detail_f[17] = path->near_fit[1].max_y - path->near_fit[1].min_y;
+    Diag_detail_f[18] = path->near_fit[0].gap;
+    Diag_detail_f[19] = path->near_fit[1].gap;
+    Diag_detail_f[20] = path->far_fit[0].rms;
+    Diag_detail_f[21] = path->far_fit[1].rms;
+    Diag_detail_f[22] = path->far_fit[0].max_y - path->far_fit[0].min_y;
+    Diag_detail_f[23] = path->far_fit[1].max_y - path->far_fit[1].min_y;
+    if (command->applied)
+        Servo_pd.err_l = command->error;
 }
 
-static uint8_t turn_direction(uint16_t mode)
+void Speed_PID_Init(pid_type *pid, float kp, float ki, float kd)
 {
-    return (mode == 1 || mode == 3 || mode == 8) ? 1 :
-           (mode == 2 || mode == 4 || mode == 9) ? 2 : 0;
-}
-static uint8_t turn_rank(uint16_t mode)
-{
-    return (mode == 3 || mode == 4) ? 3 : (mode == 8 || mode == 9) ? 2 : 1;
-}
-uint16_t TurnGuard_Apply(TurnGuard *state, uint16_t mode, uint8_t valid,
-                        uint8_t straight, uint16_t pwm, uint32_t now, uint8_t *held)
-{
-    uint8_t direction = turn_direction(mode);
-    int offset, previous_offset;
-    *held = 0;
-    /* unsigned差值允许微秒时钟回绕；HOLD/INVALID绝不刷新这个时刻。 */
-    if (state->active && (uint32_t)(now - state->observed_us) >= TURN_GUARD_US) {
-        state->active = 0;
-        state->straight_frames = 0;
-    }
-    if (!valid) {
-        state->straight_frames = 0;
-        return pwm;
-    }
-    if (direction) {
-        state->straight_frames = 0;
-        offset = direction == 1 ? SERVO_PWM_MID - (int)pwm : (int)pwm - SERVO_PWM_MID;
-        previous_offset = direction == 1 ? SERVO_PWM_MID - (int)state->pwm : (int)state->pwm - SERVO_PWM_MID;
-        /* 回中/方向矛盾不能覆盖有效锚点，更不能用来刷新保持期限。 */
-        if (offset < TURN_MIN_OFFSET) {
-            if (state->active && direction == turn_direction(state->mode)) {
-                *held = 1;
-                return state->pwm;
-            }
-            state->active = 0;
-            return pwm;
-        }
-        if (state->active && direction == turn_direction(state->mode) &&
-            ((turn_rank(mode) < turn_rank(state->mode) && offset < previous_offset) ||
-             previous_offset - offset > TURN_RETRACT_PWM)) {
-            *held = 1;
-            return state->pwm;
-        }
-        /* 同向增强立即执行；反向观测立即替换旧状态，不锁死旧方向。 */
-        state->active = 1;
-        state->mode = mode;
-        state->pwm = pwm;
-        state->observed_us = now;
-        return pwm;
-    }
-    if (!state->active)
-        return pwm;
-    if (straight && !state->straight_frames) state->straight_since_us = now;
-    state->straight_frames = straight ? (state->straight_frames < 255 ? state->straight_frames + 1 : 255) : 0;
-    if (state->straight_frames >= TURN_EXIT_FRAMES && (uint32_t)(now-state->straight_since_us) >= TURN_EXIT_MIN_US) {
-        state->active = 0;
-        state->straight_frames = 0;
-        return pwm;
-    }
-    *held = 1;
-    return state->pwm;
+    memset(pid, 0, sizeof *pid);
+    pid->kp = kp;
+    pid->ki = ki;
+    pid->kd = kd;
 }
 
-/* ======================== 速度控制 ======================== */
-
-/**
- * @brief  位置式PI速度控制器（主速度控制回路，TIM5中断中调用）
- *
- * @return 电机PWM值 (0-100)
- *
- * 公式: pwm = kp*err + ki*speed_pid->err_sum + kd*(err - err_last)
- * 在TIM5 ISR中每10ms调用一次。
- */
+/* TIM5 每 10 ms 调用；目标固定，雷达/路径异常不参与速度环。 */
 float PID_realize(float speed_now, float speed_mubiao, pid_type *speed_pid)
 {
     float moto_pwm = 0;
-
 
     /* 计算当前偏差 */
     speed_pid->err = speed_mubiao - speed_now;
@@ -571,7 +147,8 @@ float PID_realize(float speed_now, float speed_mubiao, pid_type *speed_pid)
         speed_pid->err_sum = -200;
 
     /* 位置式PI: pwm = kp*err + ki*积分 + kd*微分 */
-    moto_pwm = speed_pid->kp * speed_pid->err + speed_pid->ki * speed_pid->err_sum + speed_pid->kd * (speed_pid->err - speed_pid->err_l);
+    moto_pwm = speed_pid->kp * speed_pid->err + speed_pid->ki * speed_pid->err_sum +
+               speed_pid->kd * (speed_pid->err - speed_pid->err_l);
 
     /* 记录上一次偏差 */
     speed_pid->err_l = speed_pid->err;

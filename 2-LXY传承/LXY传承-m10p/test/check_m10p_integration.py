@@ -60,7 +60,7 @@ uint8_t M10P_front_ok,M10P_left_ok,M10P_right_ok,M10P_perception_why,M10P_steer_
 typedef struct {float kp,ki,kd,err,err_l,err_sum;} pid_type;
 volatile float Diag_motor_integral,Diag_motor_prelimit;
 '''
-program+=function(vehicle,'M10P_Build')+function(vehicle,'M10P_Poll')
+program+=function(vehicle,'M10P_Build')+function(vehicle,'M10P_Poll')+function(vehicle,'M10P_ScanUsable')
 program+=timer[timer.index('volatile uint32_t Radar_invalid_inputs'):timer.index('/**',timer.index('volatile uint32_t Radar_invalid_inputs'))]
 program+=function(centre,'PID_realize')
 program+=r'''
@@ -81,6 +81,16 @@ program+=r'''
 static M10P_Scan s;static _LEIDA_DATA out[720];
 int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  s.seq=1;s.epoch=0;s.front_seen=1;s.front_us=50000;clock_us=100000;
+ /* No front return is normal in an open straight; freshness uses scan start. */
+ s.start_us=10000;CHECK(M10P_ScanUsable(&s,clock_us));
+ s.front_seen=0;CHECK(M10P_ScanUsable(&s,clock_us));s.front_seen=1;
+ CHECK(!M10P_ScanUsable(&s,s.start_us+M10P_MAX_AGE_US+1));
+ s.overflow=1;CHECK(!M10P_ScanUsable(&s,clock_us));s.overflow=0;
+ s.unstable=1;CHECK(!M10P_ScanUsable(&s,clock_us));s.unstable=0;
+ s.epoch=1;CHECK(!M10P_ScanUsable(&s,clock_us));s.epoch=0;
+ s.count=M10P_SCAN_CAPACITY+1;CHECK(!M10P_ScanUsable(&s,clock_us));s.count=0;
+ s.start_us=0xffff0000u;CHECK(M10P_ScanUsable(&s,0x3880u));s.start_us=10000;
+ CHECK(!M10P_ScanUsable(0,clock_us));
  for(i=0;i<720;i++){s.points[i].angle_cdeg=(uint16_t)(i*50);s.points[i].range_mm=1000;}s.count=720;
  CHECK(M10P_Build(&s,out,720)==720);CHECK(M10P_perception_ok);CHECK(M10P_front_bins==81);
  CHECK(out[0].angle==0 && out[180].angle==90 && out[360].angle==180);

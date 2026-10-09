@@ -1,105 +1,24 @@
-#include "ble_diag.h"
-#define CONTROL_TRACE(...) ((void)0)
-/**
- * @file    main.c
- * @brief   雷达小车主程序 — 初始化、主控制循环、多模式转向决策
- *
- * ======================== 系统架构 ========================
- *
- * 硬件平台: STM32F407ZGT6 @ 168MHz
- * 传感器:   M10系列激光雷达 (USART2, 512000bps, DMA接收)
- * 执行器:   舵机 (TIM3 CH1), 直流电机 (TIM2 CH2, 编码器 TIM4)
- * 通信:     HC-05蓝牙 (USART6)
- *
- * 引脚复用 (对应谢露版):
- *   雷达:     USART2, PA2(TX) PA3(RX/DMA), DMA1 Stream5 Channel4
- *   蓝牙:     USART6, PC6(TX) PC7(RX)
- *   舵机:     TIM3 CH1, PA6
- *   电机PWM:  TIM2 CH2, PA1(AF1)，M144Z-M4 Mini Board的JP1第5脚
- *   电机方向: PB15 (单IO, 高=正转)  [2026-09-06 PB10杜邦线故障, 临时挪至PB15]
- *   编码器:   TIM4, PD12 PD13
- *   雷达电机: M10P内部驱动；本工程不初始化TIM9雷达PWM
- *   Debug:    USART1, PA9(TX) PA10(RX)
- *
- * 主循环流程:
- *   1. 循环DMA收流，M10P按车后切点发布完整扫描
- *   2. 解析雷达数据 -> 极坐标 -> 筛选有效点
- *   3. 计算跑道宽度
- *   4. 提取左/右边界点
- *   5. 扫描前方路径
- *   6. 检测左右边界突变点 (弯道入口)
- *   7. 根据断点位置和前方斜率选择控制模式 (pid_select)
- *   8. 调用中线PD控制器 -> 舵机PWM
- *   9. 速度PI控制由TIM5中断独立运行 (10ms周期)
- *
- * 控制模式决策逻辑:
- *   - 无断点 -> 中线模式 (pid=0) / 垂线模式 (pid=5)
- *   - 右断点 + 前方斜率<0.35 -> 大右转 (pid=3)
- *   - 右断点 + 前方斜率0.35~0.7 + S弯特征 -> 中右转 (pid=8)
- *   - 右断点 + 前方斜率>=0.7 -> 小右转 (pid=1)
- *   - 左断点 + 前方斜率<0.35 -> 大左转 (pid=4)
- *   - 左断点 + 前方斜率0.35~0.7 + S弯特征 -> 中左转 (pid=9)
- *   - 左断点 + 前方斜率>=0.7 -> 小左转 (pid=2)
- *
- * 调试开关:
- *   HW_TEST_SELECT: 0=正常循线, 1=舵机测试, 2=电机测试, 3=蓝牙调参测试
- *   (测试代码见 test/ 目录, 说明见 硬件功能测试方案.md)
+/** STM32F407ZG / M10P：完整扫描 → 局部路径 → 转向；TIM5 独立运行定速 PI。
+ * 雷达 PA2/PA3 USART2；蓝牙 PC6/PC7 USART6；舵机 PA6 TIM3_CH1；
+ * 电机 PA1 TIM2_CH2、方向 PB15；编码器 PD12/PD13 TIM4。
  */
-
 #include "stm32f4xx.h"
 #include "usart.h"
 #include "delay.h"
 #include "DMA.h"
-/* M10P内部驱动，无需旧LD14P的leida_pwm.h及TIM9初始化。 */
 #include "LEIDA_DATA.h"
 #include "bsp_bluetooth.h"
-#include "ble_tune.h" /* 蓝牙实时调参 (HARDWARE/hc-05/ble_tune.c) */
+#include "ble_tune.h"
+#include "ble_diag.h"
 #include "centre_line.h"
 #include "timer.h"
 #include "moto.h"
 #include "Servo.h"
-#include "PWM.h"
 #include "test.h"
 #include "m10p_vehicle.h"
 
-/* ======================== 硬件测试宏 ========================
- * HW_TEST_SELECT 选择运行模式:
- *   0: 正常循线 (默认)
- *   1: 测试① 舵机往复扫描 (test/test_servo.c)
- *   2: 测试② 电机正反转+测速 (test/test_motor.c)
- *   3: 测试③ 蓝牙调参链路 (test/test_bluetooth.c)
- *   4: PA1固定高电平、PB15固定低电平：万用表静态GPIO测试
- * 测试模式的说明与预期现象表见 硬件功能测试方案.md。
- */
+/* 0 循迹；1 舵机；2 电机；3 蓝牙；4 PA1 高/PB15 低静态测量。 */
 #define HW_TEST_SELECT 0
-
-/* 全局变量 */
-uint16_t RIGHT_duandian;       /* 右边界断点y坐标 */
-uint16_t LEFT_duandian;        /* 左边界断点y坐标 */
-float paodao_distance = 700;   /* 跑道宽度 (mm) */
-float paodao_distance_r = 700; /* 兼容既有遥测字段；旧的固定帧数强制补打已由TurnGuard替代。 */
-uint16_t state_left_cnt = 0;
-uint16_t state_right_cnt = 0;
-uint16_t state_left_cnt_2 = 0;
-uint16_t state_right_cnt_2 = 0;
-
-extern float Speed_now;
-
-#define duandian_distance 600 
-float duandian_DIStance = 600; /* 断点有效距离阈值 (mm) */
-
-/* 前方墙拟合斜率的模式分档。20261008: 中转档原为 0.7，实测转弯时
- * Forward.k = -1.09 ~ -1.96 → 大转(0.35)和中转(0.7)两档全部落空，
- * 只能退到最弱的小转/贴墙模式 → "转弯力度不够"。中转档放宽到 2.0，
- * 并允许"陡峭前方墙"本身作为急弯证据(不再强制要求S弯双边数据)。 */
-#define FORWARD_K_BIG      0.35f  /* < 此值 → 大转 mode 3/4 */
-#define FORWARD_K_S_CURVE  2.00f  /* < 此值 → 中转 mode 8/9 (陡于 FORWARD_K_BIG 时无需S弯特征) */
-/* 跑道宽度候选的接受窗口(mm)。20261008: 车宽26cm、锥桶通道50cm，
- * 原 600~900 窗口会把 50cm 通道全部拒掉，paodao_distance 长期停在旧值，
- * 而小转弯模式的横向目标点 paodao*BLUE_DIS/100 直接依赖它 → 横向目标错位。 */
-#define PAODAO_MIN_MM 400.0f
-#define PAODAO_MAX_MM 900.0f
-
 #if HW_TEST_SELECT == 4
 /**
  * PA1(PWM) + PB15(方向) 纯GPIO测试：不初始化雷达、蓝牙、舵机及电机定时器。
@@ -127,339 +46,81 @@ int main(void)
     gpio.GPIO_Pin = GPIO_Pin_15;
     GPIO_Init(GPIOB, &gpio);
 
-    while (1) {
+    while (1)
+    {
         /* GPIO锁存器保持初始化电平；不使用延时或定时器。 */
     }
 }
 #else
 int main(void)
 {
-    /* 初始化调试串口: USART1(PA9/PA10, 保留备用) + USART3(PC10/PC11, printf已重定向) */
-    uart_init(115200);
-    uart3_init(115200); /* 调试串口2 (PC10=TX, PC11=RX) */
-
-    uint16_t parsed_points = 0;
     const M10P_Scan *scan;
-    uint8_t forward_fit_ok, side_fit_ok;
-    uint16_t ref_start, ref_end, candidate_pwm;
-    uint8_t turn_held, straight_evidence;
-    uint8_t degraded = 0;  /* 1=本帧感知判据不全, 只允许中线/单侧跟线, 不允许断点转弯模式 */
-    uint8_t width_ok = 0;  /* 本帧跑道宽度候选是否被接受 */
-    static TurnGuard turn_guard;
-    uint16_t break_flag = 0;   /* 数据异常标志 */
-    uint16_t danbian_flag = 0; /* 单边标志 (用于S弯检测) */
-    uint16_t telemetry_mode = BLE_MODE_HOLD;
-    float servo_midpwm = SERVO_PWM_MID / 10.0f; /* 舵机中位PWM/10 (行程参数见centre_line.h) */
-    /* 候选模式为0~9；输出被弯道状态延续时，遥测单独报告HOLD。 */
-    uint16_t pid_select = 0;
-
-    /* ===== 系统初始化 ===== */
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2); /* 2位抢占，2位子优先级 */
+    uint16_t count, mode, left_opening, right_opening;
+    uart_init(115200);
+    uart3_init(115200);
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
     Diag_Init();
-    delay_init(168); /* 延时函数初始化 (参数=主频MHz, 本工程168MHz) */
-
-    /* M10P: PA2 stays USART2_TX; no LD14P TIM9 PWM. */
+    delay_init(168);
     M10P_Init();
     uart2_init(M10P_BAUD);
     DMA_Initializes();
     Bluetooth_Init();
-
-    Servo_Init(84, 20000, SERVO_PWM_MID); /* 舵机初始化 (50Hz) */
-
-    /* 舵机PID初始化: kp, kp_2, kp_3, kd, kd_2, kd_3
-     * 参数含义: kp/kd=直道, kp_2/kd_2=大转弯, kp_3/kd_3=小转弯 */
-    Midline_PD_Init(&Servo_pd, 0.0575, 0.14, 0.0597, 0.12, 0.02, 0.105);
-
-    /* 速度PID初始化: kp, ki, kd */
-    Speed_PID_Init(&Speed_pid, 8.5, 0.505, 0);
-
-    /* 电机初始化: 预分频42, 周期100 */
-    moto_pwm = 0;
+    Servo_Init(84, 20000, SERVO_PWM_MID);
+    Steering_Init();
+    Speed_PID_Init(&Speed_pid, 8.5f, 0.505f, 0);
+    Moto_Init(42, 100, 0);
+    Encoder_Init();
+    Speed_mubiao = 10; /* 固定目标；本轮不改速度或恢复自动停车。 */
 #if HW_TEST_SELECT == 0
-    Moto_Init(42, 100, moto_pwm); /* 初始化为零，参数配置完成后启动速度环 */
-#else
-    Moto_Init(42, 100, 0); /* 测试模式: 初始0%, 防止上电轮子就转 */
-#endif
-
-    Encoder_Init(); /* 编码器初始化 (TIM4) */
-
-    /* ===== 运行参数配置 ===== */
-    Speed_mubiao = 10; /* 固定目标速度（现有编码器单位）；直道/弯道相同，不设自动停车。 */
-
-    /* 最终舵机PID参数 (覆盖初始值) */
-    Midline_PD_Init(&Servo_pd, 0.035, 0.040, 0.0395, 0.035, 0.022, 0.020);
-
-    /* 左右边界扫描范围 (度) — 影响HANDLE6和HANDLE7 */
-    BLUE_ANGLE_LEFT_RIGHT = 90;
-
-    /* 右侧投影距离补偿系数 (小转弯模式) */
-    BLUE_DIS_RIGHT = 50; /* symmetric half-width reference; prevents entry bias */
-
-    /* 左侧投影距离补偿系数 (小转弯模式) */
-    BLUE_DIS_LEFT = 50;
-
-    /* 小转弯模式下目标Y坐标: 越小越直 */
-    BLUE_Y_RIGHT = 1200;
-    BLUE_Y_LEFT = 1350;
-
-    /* 直道模式选择: 0=用中线末点, 1=用固定BLUE_Y_STRA */
-    BLUE_Y_STRA_SEL = 0;
-
-    /* ===== 通道中线标定值 (2026-10-08 实车标定) =====
-     * 车宽 26cm / 锥桶通道 50cm / 雷达中心在车头后 14cm。
-     * 标定过程见 蓝牙调参说明书.md §9: 静态标定把 err 从 +77.3 降到 +0.3, 直道实测居中。
-     *  -27.0mm 的含义: 车走在通道正中时, 通道中线出现在雷达坐标系左侧 27mm 处,
-     *  等价于"雷达安装位置在车体中线右侧约 27mm"。
-     * ★ 必须写在这里: 蓝牙的 `cx` 命令只写 RAM, 掉电会回到 CENTRE_LINE.c 的初值 50。
-     *   赛道上若再微调, 把新值同步到这一行, 否则每次上电都要重发。 */
-    CENTER_X_TARGET_MM = -27.0f;
-
-    /* 断点判断距离阈值 */
-    duandian_DIStance = 550;
-
-#if HW_TEST_SELECT == 0
-    /* 参数就绪即启动竞速速度环；无需等待雷达，不设置自动停车。 */
     TIM5_Int_Init(100 - 1, 8400 - 1);
 #endif
-    CONTROL_TRACE("Start\r\n");
-
-    /* ======================== 主循环 ======================== */
-    while (1) {
+    while (1)
+    {
 #if HW_TEST_SELECT == 1
-        /* 测试① 舵机往复扫描 (函数自带死循环, 不会返回) */
         Test_Servo_Sweep();
 #elif HW_TEST_SELECT == 2
-        /* 测试② 电机正反转+测速 */
         Test_Motor_Run();
 #elif HW_TEST_SELECT == 3
-        /* 测试③ 蓝牙调参链路 */
         Test_Bluetooth_Tune();
 #else
-        /* ======================== 正常循线模式 ======================== */
-
         Diag_Poll();
-        BLE_Tune_Process(); /* 蓝牙命令解析: 每圈必跑(含雷达帧等待圈), 命令响应<1ms */
-
+        BLE_Tune_Process();
         M10P_Poll();
         scan = M10P_Acquire();
-        if (scan) {
-            /* Diagnostic timestamps refer to reception, never parse time. */
-            Diag_input_seq = scan->seq;
-            Diag_input_us = scan->end_us;
-            Diag_input_ms = Diag_TimeMs() - (uint32_t)(Diag_TimeUs() - scan->end_us) / 1000u;
-            Diag_Begin(Diag_input_ms, scan->end_us);
-            Diag_detail_u[3] = scan->seq;
-            telemetry_mode = BLE_MODE_INVALID;
-            Servo_PD_valid = 0;
-            forward_fit_ok = side_fit_ok = 0;
-            danbian_flag = 0;
-            parsed_points = scan->count;
-            LEIDA_raw_count = scan->count;
-            LEIDA_speed_dps = scan->dps;
-            valid_couter = M10P_Build(scan, LEIDA_DATA2, LEIDA_DATA_COUNTER);
-            Diag_Field(12, valid_couter, 1);
-            if (valid_couter <= 20) {
-                /* 真的没有可用回波: 这是唯一该保持舵角的情况(仍提交诊断, 电机PI继续跑)。 */
-                M10P_steer_source = M10P_SRC_HOLD;
-                Radar_invalid_inputs++;
-                (void)TurnGuard_Apply(&turn_guard, BLE_MODE_INVALID, 0, 0,
-                                      (uint16_t)TIM3->CCR1, Diag_TimeUs(), &turn_held);
-                Midline_PD_Reset();
-                Diag_Submit(BLE_MODE_INVALID, parsed_points, LEIDA_speed_dps, 0);
-                M10P_Release(scan);
-                continue;
-            }
-            /* 有回波但判据不全(锥桶赛道两侧稀疏时很常见): 降级处理——不做断点/转弯模式判定,
-             * 只走中线/单侧跟线分支, 舵机照常更新。原实现这里直接 continue 且不写舵机,
-             * 导致舵角被冻结在最后一次的值(实测冻在右打满 1170), 是"反应迟钝"的主因。 */
-            degraded = M10P_perception_ok ? 0u : 1u;
-            M10P_steer_source = degraded ? M10P_SRC_WEAK : M10P_SRC_DUAL;
-            /* ===== 第3步: 计算跑道宽度 ===== */
-            /* 雷达测距，窗口覆盖 50cm 锥桶通道到 90cm 宽赛道 (窄于此的丢弃) */
-            paodao_distance_r = LEIDA_Distance(LEIDA_DATA2, valid_couter);
-            width_ok = (paodao_distance_r > PAODAO_MIN_MM) && (paodao_distance_r < PAODAO_MAX_MM);
-            if (width_ok)
-                paodao_distance = paodao_distance_r;
-
-            /* ===== 第4步: 提取左右边界点 ===== */
-            LEFT_cnt = LEIDA_DATA_HANDLE6(LEIDA_DATA_LEFT, LEIDA_DATA2, valid_couter);
-            RIGHT_cnt = LEIDA_DATA_HANDLE7(LEIDA_DATA_RIGHT, LEIDA_DATA2, valid_couter);
-
-            /* ===== 第5步: 前方路径扫描 ===== */
-            /* 前方70°-110°扫描，无障碍物则Forward_cnt=0 */
-            Forward_cnt = LEIDA_DATA_HANDLE5(LEIDA_DATA_Forward, LEIDA_DATA2, valid_couter);
-
-            /* 右侧(70°-90°)和左侧(90°-110°)分别扫描，用于S弯检测 */
-            Forward_cnt_2 = LEIDA_DATA_HANDLE5_2(LEIDA_DATA_Forward_2, LEIDA_DATA2, valid_couter, 70, 90);  /*右边*/
-            Forward_cnt_3 = LEIDA_DATA_HANDLE5_2(LEIDA_DATA_Forward_3, LEIDA_DATA2, valid_couter, 90, 110); /*左边*/
-
-            /* ===== 第6步: 前方路径直线拟合 ===== */
-            /*前方被堵的前提下*/
-            if (Forward_cnt) {
-                /* 使用前10%-90%的点拟合，去除两端离群点 */
-                forward_fit_ok = Midline_fit(LEIDA_DATA_Forward,
-                                             (uint16_t)(Forward_cnt * 1.0f / 20 * 2),
-                                             (uint16_t)(Forward_cnt * 1.0f / 20 * 18),
-                                             &Midline_forward);
-
-                danbian_flag = 0;
-                /* 两侧前方都有5个以上有效点 -> S弯特征 */
-                if ((Forward_cnt_2 > 5) && (Forward_cnt_3 > 5)) {
-                    side_fit_ok = Midline_fit(LEIDA_DATA_Forward_2, 1, (uint16_t)(Forward_cnt_2 - 1), &Midline_forward_2);
-                    side_fit_ok &= Midline_fit(LEIDA_DATA_Forward_3, 1, (uint16_t)(Forward_cnt_3 - 1), &Midline_forward_3);
-                    danbian_flag = side_fit_ok;
-                }
-            }
-
-            /* ===== 第7步: 检测左右边界突变点 (弯道入口) ===== */
-            RIGHT_duandian = LEIDA_DATA_HANDLE9(LEIDA_DATA_RIGHT, RIGHT_cnt);
-            LEFT_duandian = LEIDA_DATA_HANDLE8(LEIDA_DATA_LEFT, LEFT_cnt);
-
-            /* 20261008: 下限 duandian_MIN_Y 已在 HANDLE8/9 **搜索内部**生效(跳过贴车身的
-             * 锥桶/墙头突变, 并继续往后找真开口)。这里不再事后清零 —— 事后清零会把整侧
-             * 断点丢掉, 连后面的有效开口一起漏掉(复核复现: first=60 → 清零 → later=281 被漏)。 */
-            /* 左右同时命中同一窗口时，保留较近的一个（防止T字路口误判） */
-            if ((LEFT_duandian > 0) && (LEFT_duandian < duandian_DIStance) &&
-                (RIGHT_duandian > 0) && (RIGHT_duandian < duandian_DIStance)) {
-                if (LEFT_duandian > RIGHT_duandian)
-                    LEFT_duandian = 0;
-                else
-                    RIGHT_duandian = 0;
-            }
-
-            /* ===== 第8步: 计算候选，仲裁弯道状态，最后只写一次舵机 ===== */
-            candidate_pwm = (uint16_t)TIM3->CCR1;
-            CENTER_cnt = 0;
-            if (degraded)
-                Diag_detail_u[4] |= 64; /* bit6: 本帧降级, 未使用断点/转弯模式(主机允许 bit0~11) */
-            if (!degraded &&
-                ((RIGHT_duandian > 0 && RIGHT_duandian < duandian_DIStance) ||
-                 (LEFT_duandian > 0 && LEFT_duandian < duandian_DIStance))) {
-                uint8_t right = (RIGHT_duandian > 0 && RIGHT_duandian < duandian_DIStance);
-                uint16_t breakpoint = right ? RIGHT_duandian : LEFT_duandian;
-                if (forward_fit_ok && breakpoint < duandian_distance && fabs(Midline_forward.k) < FORWARD_K_BIG) {
-                    pid_select = right ? 3 : 4;
-                    candidate_pwm = Midline_PD_Calculate(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward, servo_midpwm,
-                                                        (uint16_t)(Forward_cnt * 0.1f), (uint16_t)(Forward_cnt * 0.9f), pid_select);
-                } else if (forward_fit_ok && breakpoint < duandian_distance &&
-                           fabs(Midline_forward.k) < FORWARD_K_S_CURVE &&
-                           (fabs(Midline_forward.k) >= FORWARD_K_BIG ||
-                            (danbian_flag && (fabs(Midline_forward_2.k) < 0.25f || fabs(Midline_forward_3.k) < 0.25f)))) {
-                    pid_select = right ? 8 : 9;
-                    candidate_pwm = Midline_PD_Calculate(LEIDA_DATA_Forward, &Servo_pd, &Midline_forward, servo_midpwm,
-                                                        (uint16_t)(Forward_cnt * 0.1f), (uint16_t)(Forward_cnt * 0.9f), pid_select);
-                } else {
-                    _LEIDA_DATA_plane *boundary = right ? LEIDA_DATA_LEFT_Plane : LEIDA_DATA_RIGHT_Plane;
-                    uint16_t count = right ? LEFT_cnt : RIGHT_cnt;
-                    LEIDA_DATA_HANDLE2(boundary, right ? LEIDA_DATA_LEFT : LEIDA_DATA_RIGHT, count);
-                    count = LEIDA_DATA_HANDLE10(boundary, count);
-                    if (right)
-                        LEFT_cnt = count;
-                    else
-                        RIGHT_cnt = count;
-                    ref_start = count >= 10 ? (uint16_t)(count * 0.75f) : 0;
-                    ref_end = count >= 10 ? (uint16_t)(count * 0.95f) : count;
-                    (void)Midline_fit(boundary, ref_start, ref_end, &Midline);
-                    pid_select = right ? 1 : 2;
-                    candidate_pwm = Midline_PD_Calculate(boundary, &Servo_pd, &Midline, servo_midpwm,
-                                                        ref_start, ref_end, pid_select);
-                }
-            } else {
-                CENTER_cnt = LEIDA_DATA_HANDLE4(LEIDA_DATA_CENTER, LEIDA_DATA2, valid_couter);
-                Diag_detail_u[10] = CENTER_cnt;
-                Diag_detail_u[4] |= 128;
-                ref_start = CENTER_cnt >= 8 ? (uint16_t)(CENTER_cnt * 0.4f) : 0;
-                ref_end = CENTER_cnt >= 8 ? (uint16_t)(CENTER_cnt * 0.9f) : CENTER_cnt;
-                zhongxian_chuizhi = LEIDA_DATA_HANDLE11(LEIDA_DATA_CENTER, ref_start, ref_end);
-                Diag_Field(25, zhongxian_chuizhi, LEIDA_vertical_valid);
-                if (LEIDA_vertical_valid)
-                    pid_select = 5;
-                else if (Midline_fit(LEIDA_DATA_CENTER, ref_start, ref_end, &Midline))
-                    pid_select = CENTER_cnt >= 8 ? 0 : 7;
-                else
-                    pid_select = 7;
-                /* 近水平中线由Calculate拒绝，不能把无限保舵当作有效感知。 */
-                candidate_pwm = Midline_PD_Calculate(LEIDA_DATA_CENTER, &Servo_pd, &Midline, servo_midpwm,
-                                                    ref_start, ref_end, pid_select);
-            }
-            if (scan->epoch != LidarRx_epoch || (uint32_t)(Diag_TimeUs()-scan->front_us) > M10P_MAX_AGE_US)
-                Servo_PD_valid = 0;
-            /* "直道证据"必须几何上真的直: 弯道里中线是斜的(|Midline.k|很小), 而 |err| 只
-             * 说明"当前偏差小", 不能证明通道是直的。实测 t=26.666 用 |err|=0.9 就把弯道
-             * 判成直道, TurnGuard 放行后舵机一帧内 1644→1444 摆正。 */
-            /* mode5 不做直线拟合(它用 HANDLE11 的垂线判据), 此时 Midline.k 是**上一帧别的
-             * 模式留下的陈旧值** —— 复核已复现: 同一 mode5 帧, 残留 k=0.2 判"非直道"、
-             * 残留 k=5.0 判"直道", 结果由残留值决定。所以 mode5 改用 LEIDA_vertical_valid。 */
-            straight_evidence = Servo_PD_valid && CENTER_cnt >= 8 &&
-                                ((pid_select == 0 && fabs(Midline.k) >= STRAIGHT_MIN_K) ||
-                                 (pid_select == 5 && LEIDA_vertical_valid)) &&
-                                fabs(Servo_pd.err) <= TURN_EXIT_ERROR_MM;
-            candidate_pwm = TurnGuard_Apply(&turn_guard, pid_select, Servo_PD_valid, straight_evidence,
-                                            candidate_pwm, Diag_TimeUs(), &turn_held);
-            if (!Servo_PD_valid)
-                telemetry_mode = BLE_MODE_INVALID;
-            else {
-                telemetry_mode = turn_held ? BLE_MODE_HOLD : pid_select;
-                if (turn_held) {
-                    /* 候选PD未执行：下一次实际PD重新建立D历史，DETAIL不标记已执行PD。 */
-                    Midline_PD_Reset();
-                    Servo_PD_valid = 1;
-                    Diag_detail_u[4] &= ~1u;
-                }
-                /* 舵机变化率限幅: 无论方向翻转来自断点左右横跳还是模式跳变, 都不再允许
-                 * 一帧从打满左甩到打满右(实测 1720↔1170)。半行程275, 150/帧≈2帧到位。 */
-                {
-                    int32_t now_pwm = (int32_t)TIM3->CCR1;
-                    int32_t step = (int32_t)candidate_pwm - now_pwm;
-                    if (step > (int32_t)SERVO_MAX_STEP)
-                        candidate_pwm = (uint16_t)(now_pwm + (int32_t)SERVO_MAX_STEP);
-                    else if (step < -(int32_t)SERVO_MAX_STEP)
-                        candidate_pwm = (uint16_t)(now_pwm - (int32_t)SERVO_MAX_STEP);
-                }
-                Servo_ChangePwm(candidate_pwm);
-            }
-
-            /* 本帧雷达处理完: 回传8通道波形给手机/VOFA+ (未连接时内部直接返回, 零开销) */
-            Diag_detail_f[15] = paodao_distance_r;
-            Diag_Field(9, RIGHT_duandian, 1);
-            Diag_Field(10, LEFT_duandian, 1);
-            if (width_ok)
-                Diag_Field(11, paodao_distance, 1);
-            else
-                Diag_HeldField(11, paodao_distance, 1);
-            Diag_Field(13, RIGHT_cnt, 1);
-            Diag_Field(14, LEFT_cnt, 1);
-            Diag_Field(15, Forward_cnt, 1);
-            Diag_Field(16, Forward_cnt_2, 1);
-            Diag_Field(17, Forward_cnt_3, 1);
-            Diag_Field(20, danbian_flag, 1);
-            Diag_Field(21, state_left_cnt, 1);
-            Diag_Field(22, state_right_cnt, 1);
-            Diag_Field(23, state_left_cnt_2, 1);
-            Diag_Field(24, state_right_cnt_2, 1);
-            /* 有效转向立即执行并记录来源；坏帧保持舵角，速度环始终独立运行。
-             * 清D历史仅用于防止恢复时微分突跳，不清舵角或电机PI积分。 */
-            if (Servo_PD_valid)
-                Radar_RecordControl(scan->end_us);
-            else {
-                Radar_invalid_inputs++;
-                Midline_PD_Reset();
-            }
-            Diag_Submit(telemetry_mode, parsed_points, LEIDA_speed_dps, Servo_PD_valid);
-            BLE_Tune_Telemetry(Servo_pd.err, (float)TIM3->CCR1, telemetry_mode);
-            M10P_Release(scan);
-
-        } else {
-            /* DMA数据未就绪，等待 */
-            ;
+        if (!scan)
+            continue;
+        Diag_input_seq = scan->seq;
+        Diag_input_us = scan->end_us;
+        Diag_input_ms = Diag_TimeMs() - (uint32_t)(Diag_TimeUs() - scan->end_us) / 1000u;
+        Diag_Begin(Diag_input_ms, scan->end_us);
+        Diag_detail_u[3] = scan->seq;
+        LEIDA_raw_count = scan->count;
+        LEIDA_speed_dps = scan->dps;
+        valid_couter = M10P_Build(scan, LEIDA_DATA2, LEIDA_DATA_COUNTER);
+        LEIDA_Opening(LEIDA_DATA2, valid_couter, &left_opening, &right_opening);
+        Diag_Field(9, right_opening, 1);
+        Diag_Field(10, left_opening, 1);
+        count = LEIDA_FrontPoints(LEIDA_DATA2, valid_couter);
+        Steering_Update(scan, LEIDA_front_points, count);
+        if (Steering_command.applied)
+        {
+            mode = Steering_path.source; /* algorithm=4：0 双侧、1 左侧、2 右侧 */
+            Radar_RecordControl(scan->end_us);
         }
-
-        if (break_flag == 1) {
-            break_flag = 0;
+        else
+        {
+            mode = Steering_command.computed ? BLE_MODE_HOLD : BLE_MODE_INVALID;
+            Radar_invalid_inputs++;
         }
-
+        Diag_Field(12, valid_couter, 1);
+        if (Steering_path.width_measured)
+            Diag_Field(11, Steering_path.width, 1);
+        else
+            Diag_HeldField(11, Steering_path.width, 1);
+        Diag_Submit(mode, scan->count, scan->dps, Steering_command.applied);
+        BLE_Tune_Telemetry(Servo_pd.err, (float)TIM3->CCR1, mode);
+        M10P_Release(scan);
 #endif
     }
 }
-
-#endif /* HW_TEST_SELECT == 4 */
+#endif

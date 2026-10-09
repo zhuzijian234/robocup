@@ -82,6 +82,7 @@ virtualFolder:
         - path: ../HARDWARE/DSP/arm_cortexM4lf_math.lib
         - path: ../HARDWARE/DSP/arm_math.h
         - path: ../HARDWARE/CENTRE_LINE/CENTRE_LINE.c
+        - path: ../HARDWARE/CENTRE_LINE/path_track.c
         - path: ../HARDWARE/LEIDA_TIMER/timer.c
         - path: ../HARDWARE/moto/moto.c
         - path: ../HARDWARE/Servo/Servo.c

@@ -464,7 +464,7 @@ class App:
             r = p.records[-1]
             mode = int(r["pid_select"]) if core.math.isfinite(r["pid_select"]) else -1
             self.lb_stat["text"] = (f"丢帧 {100.0*p.dropped/total:.1f}%  坏帧 {p.bad_frames}   "
-                                    f"模式 {mode}({core.MODE_NAME.get(mode,'?')})   "
+                                    f"模式 {mode}({core.mode_name(mode,r.get('algorithm_id',0))})   "
                                     f"err {r['err']:+.0f}   pwm {r['servo_pwm']:.0f}   "
                                     f"速度 {r['Speed_now']:.1f}/{r['Speed_mubiao']:.0f}")
         if self.capturing:

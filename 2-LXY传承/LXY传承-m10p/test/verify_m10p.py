@@ -13,7 +13,7 @@ def command(args,cwd=P):
  print(output,flush=True)
  (out/'verification.json').write_text(json.dumps(records,ensure_ascii=False,indent=2),encoding='utf-8')
  if r.returncode:raise SystemExit(r.returncode)
-for name in ['check_m10p.py','check_m10p_replay.py','check_m10p_integration.py','check_m10p_geometry.py','check_turn_regression.py','check_m10p_telemetry.py']:
+for name in ['check_m10p.py','check_m10p_replay.py','check_m10p_integration.py','check_m10p_geometry.py','check_turn_regression.py','check_path_integration.py','check_m10p_telemetry.py']:
  command([sys.executable,str(P/'test'/name)])
 command([sys.executable,'-m','unittest','discover','-s','tests','-v'],P/'上位机')
 import yaml
@@ -43,7 +43,10 @@ disabled=['LEIDA_DATA','LEIDA_ParserReset','LEIDA_DATA_HANDLE1','LEIDA_DATA_HAND
           'Radar_stop_latched','Radar_started','Radar_age_ticks','Radar_timeout_count',
           'Radar_Permitted','Radar_Invalidate','Radar_Observe','Radar_GuardTick',
           'Radar_WarmupCount','Radar_ExpiredCount','observation_valid','warmup',
-          'Speed_PID','Speed_PID_Reset','SPEED_ERR']
+          'Speed_PID','Speed_PID_Reset','SPEED_ERR',
+          'TurnGuard_Apply','Midline_PD_Calculate','Midline_fit','curvity_cal','curvity_cal1',
+          'LEIDA_DATA_HANDLE4','LEIDA_DATA_HANDLE5','LEIDA_DATA_HANDLE10','LEIDA_DATA_HANDLE11',
+          'TURN_MAG_MIN','STRAIGHT_MIN_K','SERVO_MAX_STEP','BLUE_Y_RIGHT','BLUE_DIS_LEFT']
 for name in disabled:
  assert not re.search(r'^\s*'+re.escape(name)+r'\s+0x[0-9a-fA-F]+',linked,re.M),name
 records.append({'disabled_legacy_symbols':disabled,'result':'absent from linked symbol table'})

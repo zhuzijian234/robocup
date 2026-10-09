@@ -58,7 +58,7 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
     M10P_perception_why = M10P_WHY_CAPACITY;
     M10P_front_seen = scan->front_seen;
     M10P_build_epoch_ok = scan->epoch == LidarRx_epoch;
-    M10P_build_age_us = (uint32_t)(Diag_TimeUs() - scan->front_us);
+    M10P_build_age_us = (uint32_t)(Diag_TimeUs() - (scan->front_seen ? scan->front_us : scan->start_us));
     M10P_control_seq = scan->seq;
     M10P_control_front_us = scan->front_us;
     M10P_control_epoch = scan->epoch;
@@ -98,7 +98,7 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
     /* 感知分级: 三个扇区分别判定, 再合成总判据。
      * 分级的意义: 锥桶赛道经常只有单侧可见, 旧的二值判据会整帧作废并冻结舵角;
      * 现在把"能不能用哪种来源"告诉 main.c, 由它决定双侧中线 / 单侧跟线 / 降级。 */
-    M10P_build_age_us = (uint32_t)(Diag_TimeUs() - scan->front_us);
+    M10P_build_age_us = (uint32_t)(Diag_TimeUs() - (scan->front_seen ? scan->front_us : scan->start_us));
     M10P_build_epoch_ok = scan->epoch == LidarRx_epoch;
     M10P_front_ok = (M10P_front_bins >= M10P_FRONT_MIN_BINS) &&
                     (max_missing <= M10P_FRONT_MAX_MISSING_BINS);
@@ -137,6 +137,10 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
         M10P_Feed(rx, n, stamp.start_us, stamp.end_us);
     }
 
+}uint8_t M10P_ScanUsable(const M10P_Scan *scan, uint32_t now_us)
+{
+    return scan && !scan->overflow && !scan->unstable && scan->count <= M10P_SCAN_CAPACITY &&
+           scan->epoch == LidarRx_epoch && (uint32_t)(now_us-scan->start_us) <= M10P_MAX_AGE_US;
 }volatile uint32_t Radar_invalid_inputs = 0;
 volatile float Radar_effective_target;
 static volatile uint32_t control_end_us;
@@ -159,7 +163,6 @@ float PID_realize(float speed_now, float speed_mubiao, pid_type *speed_pid)
 {
     float moto_pwm = 0;
 
-
     /* 计算当前偏差 */
     speed_pid->err = speed_mubiao - speed_now;
 
@@ -173,7 +176,8 @@ float PID_realize(float speed_now, float speed_mubiao, pid_type *speed_pid)
         speed_pid->err_sum = -200;
 
     /* 位置式PI: pwm = kp*err + ki*积分 + kd*微分 */
-    moto_pwm = speed_pid->kp * speed_pid->err + speed_pid->ki * speed_pid->err_sum + speed_pid->kd * (speed_pid->err - speed_pid->err_l);
+    moto_pwm = speed_pid->kp * speed_pid->err + speed_pid->ki * speed_pid->err_sum +
+               speed_pid->kd * (speed_pid->err - speed_pid->err_l);
 
     /* 记录上一次偏差 */
     speed_pid->err_l = speed_pid->err;
@@ -214,6 +218,16 @@ void TIM5_IRQHandler(void)
 static M10P_Scan s;static _LEIDA_DATA out[720];
 int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
  s.seq=1;s.epoch=0;s.front_seen=1;s.front_us=50000;clock_us=100000;
+ /* No front return is normal in an open straight; freshness uses scan start. */
+ s.start_us=10000;CHECK(M10P_ScanUsable(&s,clock_us));
+ s.front_seen=0;CHECK(M10P_ScanUsable(&s,clock_us));s.front_seen=1;
+ CHECK(!M10P_ScanUsable(&s,s.start_us+M10P_MAX_AGE_US+1));
+ s.overflow=1;CHECK(!M10P_ScanUsable(&s,clock_us));s.overflow=0;
+ s.unstable=1;CHECK(!M10P_ScanUsable(&s,clock_us));s.unstable=0;
+ s.epoch=1;CHECK(!M10P_ScanUsable(&s,clock_us));s.epoch=0;
+ s.count=M10P_SCAN_CAPACITY+1;CHECK(!M10P_ScanUsable(&s,clock_us));s.count=0;
+ s.start_us=0xffff0000u;CHECK(M10P_ScanUsable(&s,0x3880u));s.start_us=10000;
+ CHECK(!M10P_ScanUsable(0,clock_us));
  for(i=0;i<720;i++){s.points[i].angle_cdeg=(uint16_t)(i*50);s.points[i].range_mm=1000;}s.count=720;
  CHECK(M10P_Build(&s,out,720)==720);CHECK(M10P_perception_ok);CHECK(M10P_front_bins==81);
  CHECK(out[0].angle==0 && out[180].angle==90 && out[360].angle==180);

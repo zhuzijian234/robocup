@@ -77,6 +77,10 @@ MODE_NAME = {
     0: "直道", 1: "小右", 2: "小左", 3: "大右", 4: "大左",
     5: "垂线", 6: "均值A", 7: "均值B", 8: "中右", 9: "中左",
 }
+def mode_name(mode, algorithm=0):
+    names = {0: "双侧路径", 1: "左侧路径", 2: "右侧路径"} if algorithm == 4 else MODE_NAME
+    return names.get(mode, "无新输出")
+
 CORNER_MODES_RIGHT = (3, 8)      # 期望 err <= 0 (右转)
 CORNER_MODES_LEFT = (4, 9)       # 期望 err >= 0 (左转)
 TURN_MODES = (1, 2, 3, 4, 8, 9)
@@ -176,7 +180,7 @@ class StreamParser:
                 s = line.strip(b"\r").decode("ascii").strip()
             except UnicodeDecodeError:
                 continue
-            if s.startswith(("INFO ", "OK ", "ERR ", "radar ")) or any(s.startswith(n+"=") for n in v2.PARAMETERS):
+            if s.startswith(("INFO ", "OK ", "ERR ", "radar ")) or any(s.startswith(n+"=") for n in v2.PARAMETERS + ["preview", "width"]):
                 self.ascii_lines.append({"t": self._host_t if self._host_t is not None else self._n * FRAME_DT, "text": s})
         if len(self._ascii)>256:self._ascii.clear()
 

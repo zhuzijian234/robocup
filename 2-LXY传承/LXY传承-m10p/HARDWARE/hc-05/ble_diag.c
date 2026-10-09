@@ -20,10 +20,11 @@ static uint32_t tx_seq, control_seq, last_us, last_ms, last_valid_ms, process_ma
 static uint32_t begin_us, in_ms, mask, updated, last_health;
 static uint8_t have_control, have_valid, last_ok, sample, config_pending, config_index;
 static uint32_t config_id;
-static float fields[26], config_params[21];
+static float fields[26], config_params[15];
+static uint16_t config_keys[15];
 static uint8_t frame[256];
 uint32_t Diag_detail_u[24];
-float Diag_detail_f[16];
+float Diag_detail_f[24];
 volatile float Diag_motor_integral, Diag_motor_prelimit;
 /* Single TIM5 producer / main consumer; payload published before head. */
 typedef struct {
@@ -219,22 +220,7 @@ void Diag_HeldField(uint8_t i, float value, uint8_t valid)
     Diag_Field(i, value, valid);
     updated &= ~(1u << i);
 }
-void Diag_Fit(const void *ptr, uint8_t valid)
-{
-    const Midline_type *l = (const Midline_type *)ptr;
-    if (ptr == &Midline) {
-        Diag_Field(3, l->k, valid);
-        Diag_Field(4, l->b, valid);
-    }
-    if (ptr == &Midline_forward) {
-        Diag_Field(5, l->k, valid);
-        Diag_Field(6, l->b, valid);
-    }
-    if (ptr == &Midline_forward_2)
-        Diag_Field(7, l->k, valid);
-    if (ptr == &Midline_forward_3)
-        Diag_Field(8, l->k, valid);
-}
+
 static void header(uint8_t type, uint16_t n)
 {
     memset(frame, 0, n);
@@ -294,23 +280,21 @@ static void detail_submit(uint32_t elapsed, uint8_t action, uint8_t ok)
 {
     uint8_t i;
     (void)action;
-    Diag_detail_u[0] = 1;
+    Diag_detail_u[0] = 2;
     Diag_detail_u[1] = control_seq;
     Diag_detail_u[2] = Diag_revision;
     Diag_detail_u[5] = elapsed;
     Diag_detail_u[11] = hold_count;
     (void)ok;
-    Diag_detail_u[19] = 0; /* V2保留的LD14P字段；M10P统计在type 7报告。 */
-    Diag_detail_u[20] = 0;
     Diag_detail_u[21] = Diag_input_drop;
     Diag_detail_u[22] = Diag_tx_drop;
     Diag_detail_u[23] = motor_dropped;
-    header(5, 176);
+    header(5, 208);
     for (i = 0; i < 24; i++)
         put32(frame + 14 + 4 * i, Diag_detail_u[i]);
-    for (i = 0; i < 16; i++)
+    for (i = 0; i < 24; i++)
         memcpy(frame + 110 + 4 * i, &Diag_detail_f[i], 4);
-    BLE_Queue(frame, 176, 0);
+    BLE_Queue(frame, 208, 0);
 }
 void Diag_Submit(uint16_t mode, uint16_t raw, uint16_t speed, uint8_t ok)
 {
@@ -347,13 +331,6 @@ void Diag_Submit(uint16_t mode, uint16_t raw, uint16_t speed, uint8_t ok)
     Diag_Field(19, Radar_effective_target, 1);
     motor = 2; /* 竞速速度闭环运行状态 */
     __set_PRIMASK(p);
-    /* Snapshot final main-context line values, including sign normalization. */
-    fields[3] = Midline.k;
-    fields[4] = Midline.b;
-    fields[5] = Midline_forward.k;
-    fields[6] = Midline_forward.b;
-    fields[7] = Midline_forward_2.k;
-    fields[8] = Midline_forward_3.k;
     v |= mask;
     u |= updated;
     v |= (1u << 28) | (1u << 29);
@@ -398,24 +375,20 @@ void Diag_Submit(uint16_t mode, uint16_t raw, uint16_t speed, uint8_t ok)
     frame[94] = action;
     frame[95] = motor;
     frame[96] = DIAG_LIDAR_ID;
-    frame[97] = 3;
+    frame[97] = 4;
     put32(frame + 98, Diag_revision);
     put16(frame + 102, raw);
     put16(frame + 104, raw ? speed : 0);
     BLE_Queue(frame, 108, 0);
     detail_submit(now - begin_us, action, ok);
 }
-/* CONFIG registry: 1 layout,2 build,3 lidar,4 algorithm,5 input_kind,6 baud,
- * 7 rate,8 timeout_ms,9 health_ms,10 units,11 DMA bytes,12 capacities,
- * 13 geometry contract,14 lidar nominal config; keys100..119 float parameters
- * (100..115 原有16项 + 116 cx + 117 eclamp + 118 dy + 119 sk + 120 slew, 20261008 新增). */
-#define CFG_COUNT 35
+/* 配置键稳定；算法 4 删除的旧参数不再注册。总计 14 元数据 + 15 个有效参数。 */
+#define CFG_COUNT 29
 void Diag_ConfigStart(void)
 {
     uint8_t i;
-    uint16_t key;
-    for (i = 0; i < 21; i++)
-        Tune_ConfigValue(i, &key, &config_params[i]);
+    for (i = 0; i < 15; i++)
+        Tune_ConfigValue(i, &config_keys[i], &config_params[i]);
     config_pending = 1;
     config_index = 0;
     config_id++;
@@ -430,7 +403,7 @@ static void config_poll(void)
     if (!config_pending || !BLE_NormalSpace())
         return;
     if (config_index >= 14) {
-        key = 100 + config_index - 14;
+        key = config_keys[config_index - 14];
         type = 3;
         val = config_params[config_index - 14];
     } else
@@ -445,7 +418,7 @@ static void config_poll(void)
             number = DIAG_LIDAR_ID;
             break;
         case 4:
-            number = 3;
+            number = 4;
             break;
         case 5:
             number = DIAG_INPUT_KIND;
@@ -463,7 +436,7 @@ static void config_poll(void)
             number = 1000;
             break;
         case 10:
-            text = "mm;CCR;encoder_units;slope;PD=mode-reset-Dcap150;entry=min(75,abs(P));turn=350ms-exit2+60ms;spd=race-fixed;request=CFG108";
+            text = "mm;CCR;encoder_units;x=a*y+b;PD=source-reset-Dcap150;exit=near+far+2frames60ms;spd=race-fixed;request=CFG108";
             break;
         case 11:
             number = DMA_USART2_RX_BUF_LEN;
@@ -472,7 +445,7 @@ static void config_poll(void)
             number = LEIDA_DATA_COUNTER;
             break;
         case 13:
-            text = "break=550/600mm;width=600..900mm;PWM=1170/1445/1720;PDmid=1445;fit=checked;center=paired";
+            text = "path=local-dual/single;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121";
             break;
         case 14:
             text = "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720";
@@ -564,7 +537,7 @@ uint8_t Diag_Command(char *line)
     uint32_t n;
     char ack[180];
     if (!strcmp(line, "info")) {
-        sprintf(ack, "INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=3 input=%u atomic=0 detail=1 motor=1\r\n", DIAG_LAYOUT, DIAG_BUILD_ID, (unsigned)DIAG_LIDAR_ID, (unsigned)DIAG_INPUT_KIND);
+        sprintf(ack, "INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=4 input=%u atomic=0 detail=2 motor=1\r\n", DIAG_LAYOUT, DIAG_BUILD_ID, (unsigned)DIAG_LIDAR_ID, (unsigned)DIAG_INPUT_KIND);
         Send_Bluetooth_Data(ack);
         return 1;
     }

@@ -15,12 +15,18 @@ KEYS = {1:"layout",2:"build",3:"lidar",4:"algorithm",5:"input_kind",6:"baud",
         7:"rate",8:"timeout_ms",9:"health_ms",10:"units",11:"dma_bytes",
         12:"point_capacity",13:"geometry",14:"lidar_config"}
 KEYS.update({100+i:n for i,n in enumerate(PARAMETERS)})
+LEGACY_KEYS = set(KEYS)
+KEYS.update({121:"preview",122:"width"})
+PATH_KEYS = set(range(1,15)) | set(range(100,109)) | {115,116,117,118,121,122}
 HEALTH = "uptime_ms input_age_ms valid_age_ms input_seq control_seq uart_errors dma_errors rx_overflow scan_overflow input_drop tx_drop process_max_us rx_peak param_revision status_flags unsupported_mask".split()
 EXTRA = "version session tx_seq control_seq input_end_ms control_end_ms control_dt_us valid_mask updated_mask clipped_mask action_reason motor_state lidar_id algorithm_id param_revision raw_count radar_dps segment host_t".split()
 
 
 DETAIL_U = "schema control_seq param_revision input_seq detail_flags process_us previous_mode ref_start ref_end ref_count center_count hold_count radar_packets radar_crc_bad radar_verlen_bad radar_angle_bad radar_header_missing radar_sync_offset radar_angle_bins radar_sync_fail_total radar_missing_total input_drop_total tx_drop_total motor_drop_total".split()
 DETAIL_F = "pd_err_previous pd_err pd_p pd_d pd_kp pd_kd pwm_unclamped pwm_mid ref_x ref_y ref_dy pd_line_k pd_line_b pd_err_before_reset center_mean width_candidate".split()
+# DETAIL schema 2 uses 208 bytes; legacy schema 1 keeps its 176-byte meanings.
+PATH_U = "schema control_seq param_revision input_seq detail_flags process_us previous_source source path_reason command_applied far_valid hold_count left_near_count right_near_count left_far_count right_far_count width_source bend_code front_points candidate_pwm final_pwm input_drop_total tx_drop_total motor_drop_total".split()
+PATH_F = DETAIL_F[:8] + "near_x far_x ref_y near_a far_a track_width left_rms right_rms left_span right_span left_gap right_gap left_far_rms right_far_rms left_far_span right_far_span".split()
 MOTOR_FIELDS = "sample_us encoder_raw motor_pwm speed_float target_float motor_integral motor_prelimit motor_flags".split()
 
 M10P_FIELDS = "schema packets bad_length bad_tail bad_angle bad_speed invalid_slots high_reflect discontinuities scans rejected scan_overflow ready_drop epoch rx_blocks rx_peak rx_late copy_max_cycles scan_seq front_age_us front_bins left_bins right_bins clearance_mm motor_permitted effective_target_milli".split()
@@ -115,10 +121,16 @@ class Decoder:
                 segment=self.segment,host_t=host_t)
             msg.update(rec)
         elif kind==5:
-            if n!=176:raise ValueError("DETAIL length")
-            msg.update(zip(DETAIL_U,struct.unpack_from('<24I',payload)))
-            msg.update(zip(DETAIL_F,struct.unpack_from('<16f',payload,96)))
-            if msg['schema']!=1 or msg['detail_flags']&~4095:raise ValueError("DETAIL schema/flags")
+            if n not in (176,208):raise ValueError("DETAIL length")
+            schema = struct.unpack_from('<I',payload)[0]
+            if schema not in (1,2): raise ValueError("DETAIL schema")
+            if n != (176 if schema == 1 else 208): raise ValueError("DETAIL schema length")
+            msg.update(zip(DETAIL_U if schema == 1 else PATH_U,struct.unpack_from('<24I',payload)))
+            msg.update(zip(DETAIL_F if schema == 1 else PATH_F,struct.unpack_from('<16f' if schema == 1 else '<24f',payload,96)))
+            if msg['detail_flags'] & ~(4095 if schema == 1 else 5): raise ValueError("DETAIL flags")
+            if schema == 2 and (msg['source'] > 3 or msg['path_reason'] > 6 or
+                    msg['command_applied'] > 1 or msg['far_valid'] > 1 or msg['bend_code'] > 2):
+                raise ValueError("PATH enum")
         elif kind==6:
             if len(payload)<16:raise ValueError("MOTOR prefix")
             schema,count,first,rev,dropped=struct.unpack_from('<HHIII',payload)
@@ -154,7 +166,7 @@ class Decoder:
             if len(chunks)==count:
                 cfg=decode_tlv(b"".join(chunks[i] for i in range(count)))
                 if cfg.get(1)!=LAYOUT: raise ValueError("unsupported layout")
-                if not set(KEYS)<=set(cfg): raise ValueError("incomplete registry")
+                if not (PATH_KEYS if cfg.get(4)==4 else LEGACY_KEYS)<=set(cfg): raise ValueError("incomplete registry")
                 self.configs[(session,rev)]={KEYS.get(k,str(k)):v for k,v in cfg.items()}
                 del self.pending[ident]
             msg.update(config_id=cid,param_revision=rev,chunk_index=index,chunk_count=count)
@@ -245,8 +257,8 @@ def analyze(parser,field_names):
         motor_samples=len(motors),motor_sequence_gaps=motor_gaps,encoder_negative=sum(bool(s['motor_flags']&1) and s['encoder_signed']<0 for s in motors),
         motor_zero_pwm=sum(s['motor_pwm']==0 for s in motors),
         empty_reference=sum(bool(m['detail_flags']&8) for m in details),
-        radar_crc_bad=sum(m['radar_crc_bad'] for m in details) if any(r['lidar_id']==1 for r in rows) else None,
-        radar_packets=sum(m['radar_packets'] for m in details),
+        radar_crc_bad=sum(m.get('radar_crc_bad',0) for m in details) if any(r['lidar_id']==1 for r in rows) else None,
+        radar_packets=sum(m.get('radar_packets',0) for m in details),
         motor_drop_max=max((m['motor_dropped'] for m in parser.v2.messages if m['type']==6),default=0),
         pd_d_abs_max=max((abs(m['pd_d']) for m in details if m['detail_flags']&1 and math.isfinite(m['pd_d'])),default=None))
     unknown=sum((r["session"],r["param_revision"]) not in parser.v2.configs for r in rows)
@@ -264,7 +276,7 @@ def write_extensions(parser,path):
     base=Path(path).with_suffix('')
     details=[m for m in parser.v2.messages if m['type']==5]
     motors=[s for m in parser.v2.messages if m['type']==6 for s in m['samples']]
-    for suffix,rows,names in [('.detail.csv',details,['session','tx_seq','host_t']+DETAIL_U+DETAIL_F),
+    for suffix,rows,names in [('.detail.csv',details,['session','tx_seq','host_t']+list(dict.fromkeys(DETAIL_U+DETAIL_F+PATH_U+PATH_F))),
         ('.m10p.csv',[m for m in parser.v2.messages if m['type']==7],['session','tx_seq','host_t']+M10P_FIELDS),
         ('.motor.csv',motors,['session','param_revision','sample_seq','host_t']+MOTOR_FIELDS+['encoder_signed'])]:
         with open(str(base)+suffix,'w',newline='',encoding='utf-8-sig') as f:

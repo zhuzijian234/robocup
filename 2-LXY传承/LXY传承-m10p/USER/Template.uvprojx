@@ -691,6 +691,11 @@
               <FilePath>..\HARDWARE\CENTRE_LINE\CENTRE_LINE.c</FilePath>
             </File>
             <File>
+              <FileName>path_track.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\HARDWARE\CENTRE_LINE\path_track.c</FilePath>
+            </File>
+            <File>
               <FileName>timer.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\HARDWARE\LEIDA_TIMER\timer.c</FilePath>

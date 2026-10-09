@@ -23,15 +23,12 @@ extern uint32_t M10P_build_age_us;
 extern uint8_t M10P_front_seen, M10P_build_epoch_ok;
 /* 正前方走廊(半宽180mm→130mm)内最近的障碍距离(mm)，仅供诊断，不参与电机控制。 */
 extern float M10P_clearance_mm;
-extern uint8_t M10P_perception_ok; /* 0=跳过转向更新并清D历史；保持舵角，电机PI继续运行 */
-/* ==================== 感知分级 (20261008 起) ====================
- * 原来只有"有效/无效"两档, 无效就整帧不写舵机 → 锥桶赛道上两侧稀疏点会导致
- * 舵角被冻结在最后一次的值(实测冻结在右打满 1170)。现在拆成分级判据, 由 main.c
- * 决定用哪种转向来源, 保证只要有可用回波就仍然输出转向。 */
+extern uint8_t M10P_perception_ok; /* 全扇区覆盖质量，仅诊断；不能代替局部路径质量 */
+/* 扇区覆盖统计与实际转向来源分开；点数达标不等于局部边界可信。 */
 extern uint8_t M10P_front_ok, M10P_left_ok, M10P_right_ok; /* 三个扇区各自的达标情况 */
 extern uint8_t M10P_perception_why;  /* 判据失败原因位图, 用来定位卡在哪一条 */
 extern uint8_t M10P_steer_source;    /* 本帧实际使用的转向来源, 见下 */
-/* M10P_steer_source: 0=双侧中线 1=仅左侧跟线 2=仅右侧跟线 3=降级(有回波但不可信) 4=保持(无回波) */
+/* M10P_steer_source: 0=双侧中线 1=仅左侧跟线 2=仅右侧跟线 3=降级(有回波但不可信) 4=本帧未执行新转向（包括等待确认/坏帧） */
 #define M10P_SRC_DUAL   0u
 #define M10P_SRC_LEFT   1u
 #define M10P_SRC_RIGHT  2u
@@ -46,6 +43,7 @@ extern uint8_t M10P_steer_source;    /* 本帧实际使用的转向来源, 见�
 #define M10P_WHY_EPOCH      32u  /* 接收代次与当前不一致 */
 #define M10P_WHY_AGE        64u  /* 前方点年龄超限 */
 #define M10P_WHY_CAPACITY   128u /* 点云装不下整帧作废 */
+uint8_t M10P_ScanUsable(const M10P_Scan *scan, uint32_t now_us);
 void M10P_Poll(void); /* 主循环每圈调一次: 收块 + 喂解析器 + 处理断流/过期/跳变 */
 uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity);
 /* 纯转换 + 安全判据都在本模块里; 扫描帧由 main 一直持有到用完为止。 */

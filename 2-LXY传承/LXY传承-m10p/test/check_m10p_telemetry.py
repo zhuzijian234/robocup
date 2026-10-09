@@ -52,3 +52,30 @@ except ValueError:pass
 else:raise AssertionError('schema zero accepted')
 (OUT/'telemetry_summary.json').write_text(json.dumps({'production_c':r,'decoded':m,'crc_and_schema_rejected':True},indent=2))
 print('PASS production C -> PC M10P telemetry, CRC and schema checks')
+
+# Exercise the actual schema-2 producer, not just a Python-constructed payload.
+path_code=code[:code.index('int main(void)')]+r'''
+uint32_t Diag_detail_u[24],Diag_revision=7,control_seq=88,hold_count=2;
+uint32_t Diag_input_drop,Diag_tx_drop,motor_dropped;
+float Diag_detail_f[24];
+'''+fn('detail_submit')+r'''
+int main(void){
+ Diag_detail_u[4]=5;Diag_detail_u[7]=1;Diag_detail_u[8]=2;
+ Diag_detail_u[9]=0;Diag_detail_u[10]=1;Diag_detail_u[17]=0;
+ Diag_detail_u[19]=1234;Diag_detail_u[20]=1445;
+ Diag_detail_f[2]=-80;Diag_detail_f[10]=700;Diag_detail_f[13]=500;
+ Diag_detail_f[16]=450;Diag_detail_f[22]=550;
+ detail_submit(1800,2,0);return emitted==1?0:2;
+}
+'''
+p=OUT/'path_telemetry.c';p.write_text(path_code,encoding='utf-8')
+path_result=run('path_telemetry',p)
+d=v2.Decoder();raw=bytes.fromhex(path_result['output'].strip());assert len(raw)==208
+d.accept(raw,[],[],0.0);m=d.messages[0]
+assert m['schema']==2 and m['source']==1 and m['command_applied']==0
+assert m['candidate_pwm']==1234 and m['final_pwm']==1445
+assert m['ref_y']==700 and m['left_span']==450 and m['left_far_span']==550
+assert 'radar_crc_bad' not in m and m['pd_p']==-80
+assert m['control_seq']==88 and m['process_us']==1800
+(OUT/'path_telemetry_summary.json').write_text(json.dumps(m,indent=2))
+print('PASS production C -> PC PATH schema-2 candidate/applied/geometry fields')

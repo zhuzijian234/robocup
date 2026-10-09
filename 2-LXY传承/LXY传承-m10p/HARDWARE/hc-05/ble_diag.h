@@ -14,9 +14,9 @@ extern volatile uint32_t Diag_uart_errors, Diag_dma_errors, Diag_rx_overflow;
 extern volatile uint32_t Diag_tx_drop;
 uint16_t Diag_CRC(const uint8_t *p, uint16_t n);
 int16_t Diag_Encode(uint8_t index, float v, uint8_t *valid, uint8_t *clipped);
-/* DETAIL schema 1: named wire fields documented in 04-诊断扩展.md. */
+/* DETAIL schema 2: named wire fields documented in 04-诊断扩展.md. */
 extern uint32_t Diag_detail_u[24];
-extern float Diag_detail_f[16];
+extern float Diag_detail_f[24];
 extern volatile float Diag_motor_integral, Diag_motor_prelimit;
 void Diag_MotorTick(uint16_t raw, uint8_t encoder_fresh, uint8_t pi_fresh);
 void Diag_Init(void);
@@ -26,7 +26,6 @@ void Diag_InputDone(void); /* DMA ISR: timestamp/counter only */
 void Diag_Begin(uint32_t input_ms, uint32_t input_us);
 void Diag_Field(uint8_t i, float value, uint8_t valid);
 void Diag_HeldField(uint8_t i,float value,uint8_t valid);
-void Diag_Fit(const void *line, uint8_t valid);
 void Diag_Submit(uint16_t mode, uint16_t raw, uint16_t speed, uint8_t perception_ok);
 void Diag_Poll(void);
 uint8_t Diag_Command(char *line);

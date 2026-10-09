@@ -3,13 +3,13 @@
  * @brief   M10P 与整车之间的适配层 — 取数据、转数据、判"这帧能不能信"
  *
  * ======================== 这个模块干嘛的 ========================
- * 上游是 m10p.c(纯协议解析, 只认识字节), 下游是 LXY 老流水线(只认识"角度+距离"的
- * 极坐标数组和一堆 HANDLE 函数)。中间这一层做三件事:
+ * 上游是 m10p.c(纯协议解析, 只认识字节), 下游是局部路径流水线(使用"角度+距离"的
+ * 极坐标数组及前向点云)。中间这一层做三件事:
  *
  *   1) M10P_Poll()  把 DMA 环形队列里的块取出来喂给解析器, 顺手处理断流/过期/跳变
  *   2) M10P_Build() 把一帧扫描转成 LEIDA_DATA2[](算法角系: 0=右, 90=前, 180=左)
  *   3) 判健康度: 正前方有没有盲区、左右侧够不够点数、正前方走廊净空多少
- *      -> M10P_perception_ok(是否更新转向)，运行速度由固定目标决定
+ *      -> M10P_perception_ok(全扇区覆盖质量，仅诊断)，运行速度由固定目标决定
  *
  * main.c 的用法: M10P_Poll() -> M10P_Acquire() -> M10P_Build() -> ... -> M10P_Release()。
  * 扫描帧在 Build 期间一直由 main 持有, 所以这里的转换逻辑是"只读"的, 不碰缓冲状态。
@@ -26,7 +26,7 @@ static uint32_t seen_epoch; /* 接收代次变化时丢弃未完成扫描 */
 uint32_t M10P_control_seq, M10P_control_front_us, M10P_control_epoch; /* 本帧的来源标记, 给遥测对账用 */
 uint16_t M10P_front_bins, M10P_left_bins, M10P_right_bins; /* 三个扇区的点数(按桶数算) */
 float M10P_clearance_mm; /* 正前方走廊净空(mm)，仅供诊断，不控制车速 */
-uint8_t M10P_perception_ok;                /* 本帧感知是否可信(0=不更新转向，电机继续闭环) */
+uint8_t M10P_perception_ok;                /* 本帧全扇区覆盖是否达标；局部路径有效性另行判断 */
 uint16_t M10P_front_gap_bins; /* 前方最大连续空桶数，每桶0.5度 */
 uint32_t M10P_build_age_us;   /* 感知检查时，前方观测已经过去的微秒数 */
 uint8_t M10P_front_seen, M10P_build_epoch_ok;
@@ -91,7 +91,7 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
     M10P_perception_why = M10P_WHY_CAPACITY;
     M10P_front_seen = scan->front_seen;
     M10P_build_epoch_ok = scan->epoch == LidarRx_epoch;
-    M10P_build_age_us = (uint32_t)(Diag_TimeUs() - scan->front_us);
+    M10P_build_age_us = (uint32_t)(Diag_TimeUs() - (scan->front_seen ? scan->front_us : scan->start_us));
     M10P_control_seq = scan->seq;
     M10P_control_front_us = scan->front_us;
     M10P_control_epoch = scan->epoch;
@@ -130,8 +130,8 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
     }
     /* 感知分级: 三个扇区分别判定, 再合成总判据。
      * 分级的意义: 锥桶赛道经常只有单侧可见, 旧的二值判据会整帧作废并冻结舵角;
-     * 现在把"能不能用哪种来源"告诉 main.c, 由它决定双侧中线 / 单侧跟线 / 降级。 */
-    M10P_build_age_us = (uint32_t)(Diag_TimeUs() - scan->front_us);
+     * 这些只是覆盖统计；局部边界的跨度/残差由 Path_Build 检查，不能用桶数代替。 */
+    M10P_build_age_us = (uint32_t)(Diag_TimeUs() - (scan->front_seen ? scan->front_us : scan->start_us));
     M10P_build_epoch_ok = scan->epoch == LidarRx_epoch;
     M10P_front_ok = (M10P_front_bins >= M10P_FRONT_MIN_BINS) &&
                     (max_missing <= M10P_FRONT_MAX_MISSING_BINS);
@@ -150,4 +150,13 @@ uint16_t M10P_Build(const M10P_Scan *scan, _LEIDA_DATA *out, uint16_t capacity)
         M10P_perception_ok = (uint8_t)(why == 0u);
     }
     return n;
+}
+
+/* 局部跟线的硬条件：整圈稳定、容量完整、接收代次一致、整圈年龄在预算内。
+ * 不要求正前扇区有回波：单侧边界可见而正前方开阔也是正常赛道。
+ * 用整圈最早时刻保守检查，不能拿解析完成时间冒充采集时间。 */
+uint8_t M10P_ScanUsable(const M10P_Scan *scan, uint32_t now_us)
+{
+    return scan && !scan->overflow && !scan->unstable && scan->count <= M10P_SCAN_CAPACITY &&
+           scan->epoch == LidarRx_epoch && (uint32_t)(now_us-scan->start_us) <= M10P_MAX_AGE_US;
 }

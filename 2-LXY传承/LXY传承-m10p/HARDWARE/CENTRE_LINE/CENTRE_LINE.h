@@ -1,139 +1,27 @@
-/**
- * @file    CENTRE_LINE.h
- * @brief   中线检测、PID控制与路径拟合模块
- *
- * 本模块实现雷达小车的核心循线算法：
- * - 最小二乘法直线拟合雷达点云，提取道路边界
- * - 多模式PD舵机转向控制（9种模式应对不同路况）
- * - 速度PID控制（增量式和位置式两种）
- * - 曲率计算，用于弯道检测
- *
- * 整体架构：
- *   雷达数据 -> 最小二乘拟合 -> 中线参数(k,b) -> 多模式PD -> 舵机PWM
- *   编码器   -> 速度PID / 位置式PI        -> 电机PWM
- */
-
-#ifndef _CENTRE_LINE_H
-#define _CENTRE_LINE_H
-
-#include "math.h"
+#ifndef CENTRE_LINE_H
+#define CENTRE_LINE_H
 #include "stm32f4xx.h"
-#include "Servo.h"
-#include "LEIDA_DATA.h"
+#include "path_track.h"
+#include "m10p.h"
 
-extern uint16_t forward;
-extern float paodao_distance;
+#define SERVO_PWM_MIN 1170 /* 右打满 */
+#define SERVO_PWM_MID 1445
+#define SERVO_PWM_MAX 1720 /* 左打满 */
 
-/* 拟合直线参数：y = k*x + b */
+/* 舵机三组增益：双侧直道、双侧弯道、单侧路径；速度环只使用 kp/ki/kd。 */
 typedef struct
 {
-    float k;  /* 斜率 */
-    float b;  /* 截距 */
-} Midline_type;
-
-/* PID控制器参数块
- * 支持三组kp/kd对应不同转向模式：
- *   kp/kd     -> 直道/垂线模式 (flag 0,5,6,7)
- *   kp_2/kd_2 -> 大转弯模式 (flag 3,4,8,9)
- *   kp_3/kd_3 -> 小转弯模式 (flag 1,2)
- */
-typedef struct
-{
-    float kp;
-    float kp_2;
-    float kp_3;
-    float ki;
-    float kd;
-    float kd_2;
-    float kd_3;
-
-    float v_set;     /* 速度设定 */
-    float v_fb;      /* 速度反馈 */
-
-    float err_ll;    /* 上上次误差 */
-    float err_l;     /* 上次误差 */
-    float err;       /* 当前误差 */
-    float err_sum;   /* 误差积分 */
-    float erry;
-
-    float out;       /* PID输出 */
-    float out_max;   /* 输出上限 */
-    float out_min;   /* 输出下限 */
+    float kp, kp_2, kp_3, ki, kd, kd_2, kd_3;
+    float err, err_l, err_sum;
 } pid_type;
-
-extern pid_type Servo_pd;
-extern uint8_t Servo_PD_valid;
-void Midline_PD_Reset(void);
-extern pid_type Speed_pid;
-extern Midline_type Midline;
-extern Midline_type Midline2;
-extern Midline_type Midline3;
-extern Midline_type Midline_forward;
-extern Midline_type Midline_forward_2;
-extern Midline_type Midline_forward_3;
-
-extern float BLUE_DIS_LEFT;
-extern float BLUE_DIS_RIGHT;
-extern float BLUE_Y_LEFT;
-extern float BLUE_Y_RIGHT;
-extern float BLUE_Y_STRA;
-extern float BLUE_Y_STRA_SEL;
-
-/* ==================== 20261008 新增可调项 ====================
- * 车宽26cm / 锥桶通道50cm / 雷达在车头后14cm → 单侧余量仅120mm，
- * 这三个量直接决定"居中目标"和"修正权限"，实车必须重新标定。 */
-extern float CENTER_X_TARGET_MM;  /* 车体系里赛道中线应在的横向位置(mm)，原硬编码 50 */
-extern float MODE0_ERR_CLAMP_MM;  /* 直道中线模式误差限幅(mm)，原硬编码 200 */
-extern float TURN_MAG_MIN;        /* 转弯模式合成误差下限，原无下限(急弯反而最弱) */
-
-/* ===== 舵机行程参数 (循线模式: PD输出限幅 + 中位 + 强制打满) =====
- * LXY车默认:  MIN=1360, MAX=1800, MID=1565
- * 换谢露车只改这三行: MIN=1170, MAX=1720, MID=1445
- * 单位: 真实PWM值 (main.c里MID除以10转成servo_midpwm的/10格式) */
-#define SERVO_PWM_MIN 1170   /* 右打满 */
-#define SERVO_PWM_MAX 1720   /* 左打满 */
-#define SERVO_PWM_MID 1445   /* 中位 */
-
-uint16_t Midline_PD(_LEIDA_DATA_plane centerline[], pid_type *midline_pid, Midline_type *midline,
-                    float servo_midpwm, uint16_t CENTER_cnt_start, uint16_t CENTER_cnt_end, uint16_t flag);
-/* 主循环先计算候选，再由弯道状态仲裁，最后只写一次舵机。 */
-uint16_t Midline_PD_Calculate(_LEIDA_DATA_plane points[], pid_type *pid, Midline_type *line,
-                            float mid, uint16_t start, uint16_t end, uint16_t mode);
-
-#define TURN_GUARD_US 350000u
-#define TURN_EXIT_FRAMES 2u
-#define TURN_EXIT_MIN_US 60000u /* 两帧直道证据间隔至少一圈下限，避免83ms扫描被迫等第三帧 */
-#define TURN_EXIT_ERROR_MM 100.0f
-#define TURN_ENTRY_PWM 75.0f /* 入弯附加量同时不超过本帧|P|，不放大小误差噪声 */
-#define TURN_ENTRY_MIN_PWM 45.0f /* 入弯首帧的最小补力(原为0): 刚识别到急弯时P往往很小，
-                                  * 没有下限就等于没有入弯补偿。约占单边行程275的16%。 */
-#define TURN_MIN_OFFSET 20  /* 接近中位的候选不能成为弯道保持依据 */
-#define TURN_RETRACT_PWM 60 /* 同模式单次明显收舵，需要出弯确认或期限到达 */
-
-/* ==================== 20261008 转向稳定化 (实车日志归因) ====================
- * 实测 v2_1008_175104: 弯中 LEFT/RIGHT_duandian 只有 19~130mm 且左右逐帧翻转,
- * 造成 mode 9→0→4→3→4→3 跳变、舵机 1643→1444→1609→1720→1170 甩动。
- * 下面三个量分别针对: ①假的断点 ②把弯道误判成直道 ③甩舵幅度。 */
-extern float duandian_MIN_Y;  /* 断点y投影下限(mm): 小于此值的目标贴在车侧, 不是弯道开口 */
-extern float STRAIGHT_MIN_K;  /* 判定"通道确实直"所需的最小 |Midline.k|: 弯里中线是斜的, |k|很小 */
-extern float SERVO_MAX_STEP;  /* 每帧舵机PWM最大变化量(计数): 限幅甩舵 */
-typedef struct {
-    uint32_t observed_us, straight_since_us;
-    uint16_t mode, pwm;
-    uint8_t active, straight_frames;
-} TurnGuard;
-uint16_t TurnGuard_Apply(TurnGuard *state, uint16_t mode, uint8_t valid,
-                        uint8_t straight, uint16_t pwm, uint32_t now, uint8_t *held);
-
-void Midline_PD_Init(pid_type *midline_pid, float kp, float kp_2, float kp_3, float kd, float kd_2, float kd_3);
-void Speed_PID_Init(pid_type *midline_pid, float kp, float ki, float kd);
+extern pid_type Servo_pd, Speed_pid;
+extern uint8_t Servo_PD_valid; /* 本帧确实采用新 PD 输出，不包含保舵 */
+extern float CENTER_X_TARGET_MM, MODE0_ERR_CLAMP_MM;
+extern float PATH_PREVIEW_MM, PATH_WIDTH_MM;
+extern PathObservation Steering_path;
+extern PathCommand Steering_command;
+void Steering_Init(void);
+void Steering_Update(const M10P_Scan *scan, const PathPoint *points, uint16_t count);
+void Speed_PID_Init(pid_type *pid, float kp, float ki, float kd);
 float PID_realize(float speed_now, float speed_mubiao, pid_type *speed_pid);
-
-/* 最小二乘法直线拟合：对 centerline[startline..endline] 拟合 y = k*x + b */
-uint8_t Midline_fit(_LEIDA_DATA_plane *centerline, int startline, int endline, Midline_type *midline);
-
-/* 三点法（Menger）曲率计算 */
-float curvity_cal(_LEIDA_DATA_plane LEIDA_DATA_CENTER[], uint16_t counter);
-float curvity_cal1(float x1, float y1, float x2, float y2, float x3, float y3);
-
 #endif
