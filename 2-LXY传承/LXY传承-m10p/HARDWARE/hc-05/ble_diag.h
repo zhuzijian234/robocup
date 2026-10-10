@@ -1,6 +1,7 @@
 #ifndef BLE_DIAG_H
 #define BLE_DIAG_H
 #include "stm32f4xx.h"
+#include "path_track.h"
 #define DIAG_LAYOUT "rc26-mask31-v2.1"
 #define DIAG_LIDAR_ID 3u /* 1 LD14P, 2 M10, 3 M10P; parser must match */
 #define DIAG_INPUT_KIND 1u /* 0 DMA block, 1 complete scan */
@@ -28,6 +29,8 @@ void Diag_Field(uint8_t i, float value, uint8_t valid);
 void Diag_HeldField(uint8_t i,float value,uint8_t valid);
 void Diag_Submit(uint16_t mode, uint16_t raw, uint16_t speed, uint8_t perception_ok);
 void Diag_Poll(void);
+/* 在Diag_Submit之后、释放扫描前调用；保存有界前方点云，不在控制路径发送文本。 */
+void Diag_CloudCapture(const PathPoint *points, uint16_t count, uint32_t epoch);
 uint8_t Diag_Command(char *line);
 uint8_t Diag_Parameter(uint16_t key, float *ptr, float value);
 void Diag_ConfigStart(void);

@@ -83,6 +83,11 @@ static void step(uint32_t now, uint8_t valid, uint16_t pwm)
 {
     Path_Control(&control, &path, &gains, valid, now, pwm, &command);
 }
+static void confirmed_build(unsigned n)
+{
+    build(n);
+    build(n); /* 两帧空间相容的圆弧，而不是单帧放宽识别门槛。 */
+}
 int main(void)
 {
     unsigned n, i;
@@ -280,13 +285,15 @@ int main(void)
     memset(&geometry, 0, sizeof geometry);
     memset(&control, 0, sizeof control);
     build(cone_road(800, -242, 650));
+    CHECK(path.avoid_state == AVOID_CANDIDATE && path.avoid_offset == 0);
+    build(cone_road(800, -242, 650));
     CHECK(path.valid && path.avoid_y > 600 && path.avoid_y < 700);
     CHECK(path.avoid_offset > 50 && path.avoid_offset < 110 && path.target_x > 0);
     CHECK(path.avoid_offset < path.width * .5f - VEHICLE_HALF_CLEAR_MM);
     step(100000, 1, 1445);
     CHECK(command.applied && command.pwm < 1445);
     memset(&geometry, 0, sizeof geometry);
-    build(cone_road(800, 242, 650));
+    confirmed_build(cone_road(800, 242, 650));
     CHECK(path.valid && path.avoid_offset < -50 && path.target_x < 0);
     step(200000, 1, command.pwm);
     CHECK(command.applied && command.pwm > 1445 && command.d_reset);
@@ -317,25 +324,26 @@ int main(void)
         float y = 350 + i * 100.0f;
         PathPoint cone = {.12f * y - 242 * sqrtf(1 + .12f * .12f), y};
         memset(&geometry, 0, sizeof geometry);
-        build(scene(800, .12f, &cone, 1));
+        confirmed_build(scene(800, .12f, &cone, 1));
         CHECK(path.valid && path.avoid_offset > 5 && path.avoid_y > 0);
         cone.x = -.12f * y + 242 * sqrtf(1 + .12f * .12f);
         memset(&geometry, 0, sizeof geometry);
-        build(scene(800, -.12f, &cone, 1));
+        confirmed_build(scene(800, -.12f, &cone, 1));
         CHECK(path.valid && path.avoid_offset < -5 && path.avoid_y > 0);
     }
     {
         PathPoint cones[2] = {{-242, 600}, {242, 1000}};
         memset(&geometry, 0, sizeof geometry);
-        build(scene(800, 0, cones, 2));
+        confirmed_build(scene(800, 0, cones, 2));
         CHECK(path.valid && path.avoid_offset > 0 && path.avoid_y < 650);
         cones[0].x = -5000;
-        build(scene(800, 0, cones, 2));
+        confirmed_build(scene(800, 0, cones, 2));
         CHECK(path.valid && path.avoid_offset < 0 && path.avoid_y > 950);
     }
     /* 标定偏移也计入底座/对侧预算；普通斜墙和墙外物体不触发避让。 */
     memset(&geometry, 0, sizeof geometry);
     n = cone_road(800, -242, 650);
+    Path_Build(&geometry, points, (uint16_t)n, 500, 700, -27, &path);
     Path_Build(&geometry, points, (uint16_t)n, 500, 700, -27, &path);
     CHECK(path.valid && path.avoid_offset > 95 && path.avoid_offset < 120);
     memset(&geometry, 0, sizeof geometry);
@@ -353,6 +361,38 @@ int main(void)
         CHECK(!cone_center(points, 0, 10, &center));
         CHECK(!cone_center(points, 0, 1, &center));
     }
+    /* 复现第三次seq7454的危险组合：道路误差15.9，释放残余15.2。
+     * 旧版把候选中位1445写入，随后WAIT_EXIT一直保持中位。 */
+    memset(&control, 0, sizeof control);
+    memset(&path, 0, sizeof path);
+    control.bend = 1;
+    path.valid = 1; path.source = PATH_DUAL; path.near_a = -.18f;
+    path.target_x = -.7f; path.avoid_offset = 15.2f;
+    path.avoid_state = AVOID_RELEASE; path.ref_y = 700;
+    step(100000, 1, 1600);
+    CHECK(!command.applied && command.pwm == 1600 && command.reason == PATH_WAIT_EXIT);
+    CHECK(fabsf(command.road_error-15.9f)<.01f && !command.avoid_override);
+    path.avoid_state = AVOID_HOLD;
+    step(180000, 1, 1600);
+    CHECK(!command.applied && command.pwm == 1600);
+    path.avoid_state = AVOID_ACTIVE;
+    step(260000, 1, 1600);
+    CHECK(command.applied && command.avoid_override && command.gate_reason == PATH_WAIT_EXIT);
+    /* 弯道宽度不学习；诊断需区别无点/跨度不足/拟合成功。 */
+    memset(&geometry, 0, sizeof geometry);
+    build(road(.3f, 0, 3));
+    CHECK(path.valid && path.width_frozen && path.width_measured && geometry.width == 500);
+    build(0);
+    CHECK(path.geometry_reason == GEOM_NEAR_MISSING &&
+          (path.near_fit[0].rejected & (FIT_POINTS|FIT_SPAN)) == (FIT_POINTS|FIT_SPAN));
+    /* 原固定400mm不在支持区；约425~740mm的可见边界仍可提供近段参考。 */
+    n=road(0,0,1);
+    for(i=0;i<n;++i)
+        if(points[i].y<405 || (points[i].y>448 && points[i].y<500) || points[i].y>749)
+            points[i].y=3000;
+    build(n);
+    CHECK(path.valid && path.near_ref_y > 400 && path.near_ref_y <= 450);
+    CHECK(path.near_ref_y >= path.near_fit[0].min_y && path.ref_y <= path.near_fit[0].max_y);
     printf("PASS %u production path geometry / steering checks\n", checks);
     return 0;
 }

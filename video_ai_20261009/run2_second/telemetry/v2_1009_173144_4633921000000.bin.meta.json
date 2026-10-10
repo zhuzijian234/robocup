@@ -1,0 +1,25 @@
+{
+  "run_uuid": "d05c4d7a-dad0-4a01-b794-662652e13067",
+  "started_utc": "2026-10-09T09:31:44.979953+00:00",
+  "host_version": "v2.1",
+  "host_sha256": "932917ebf1ceae1a250600babc323964faa9ba06023a83ae6deebecea06025ac",
+  "protocol": 2,
+  "port": "COM6",
+  "baud": 115200,
+  "requested_rate": 1,
+  "version": 1,
+  "clock": "host_monotonic",
+  "duration_s": 8.483999999999469,
+  "bytes": 62141,
+  "sha256": "8cd63a5329b4baefd4dcb292cb5c3fd9ed213e705a64dd7acb85c3ee04ce5b1a",
+  "ended_utc": "2026-10-09T09:31:53.465282+00:00",
+  "end_reason": "error",
+  "error": "V2协商/配置超时，未进入正式采集",
+  "commands": [
+    {
+      "t": 0.0,
+      "command": "info"
+    }
+  ],
+  "configs": {}
+}

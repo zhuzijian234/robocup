@@ -27,6 +27,11 @@ DETAIL_F = "pd_err_previous pd_err pd_p pd_d pd_kp pd_kd pwm_unclamped pwm_mid r
 # DETAIL schema 2 uses 208 bytes; legacy schema 1 keeps its 176-byte meanings.
 PATH_U = "schema control_seq param_revision input_seq detail_flags process_us previous_source source path_reason command_applied far_valid hold_count left_near_count right_near_count left_far_count right_far_count width_source bend_code front_points candidate_pwm final_pwm input_drop_total tx_drop_total motor_drop_total".split()
 PATH_F = DETAIL_F[:8] + "near_x far_x ref_y near_a far_a track_width left_rms right_rms left_span right_span left_gap right_gap left_far_rms right_far_rms left_far_span right_far_span".split()
+PATH_EXTRA_U = "schema control_seq param_revision input_seq geometry_reason fit_rejected avoid_state avoid_confirm cone_candidates width_frozen gate_reason avoid_override".split()
+PATH_EXTRA_F = "road_target target_x road_error avoid_offset near_ref_y width_candidate cone_x cone_y cone_lateral avoid_required avoid_allowed avoid_y".split() + [
+    f"{side}_{field}" for side in ("left_near", "right_near", "left_far", "right_far")
+    for field in ("a", "b", "min_y", "max_y")]
+CLOUD_U = "schema snapshot_id frame_index control_seq param_revision input_seq input_us epoch trigger_flags total_points offset count".split()
 MOTOR_FIELDS = "sample_us encoder_raw motor_pwm speed_float target_float motor_integral motor_prelimit motor_flags".split()
 
 M10P_FIELDS = "schema packets bad_length bad_tail bad_angle bad_speed invalid_slots high_reflect discontinuities scans rejected scan_overflow ready_drop epoch rx_blocks rx_peak rx_late copy_max_cycles scan_seq front_age_us front_bins left_bins right_bins clearance_mm motor_permitted effective_target_milli".split()
@@ -131,6 +136,24 @@ class Decoder:
             if schema == 2 and (msg['source'] > 3 or msg['path_reason'] > 6 or
                     msg['command_applied'] > 1 or msg['far_valid'] > 1 or msg['bend_code'] > 2):
                 raise ValueError("PATH enum")
+        elif kind==8:
+            if n != 176: raise ValueError("PATH_EXTRA length")
+            msg.update(zip(PATH_EXTRA_U, struct.unpack_from('<12I', payload)))
+            msg.update(zip(PATH_EXTRA_F, struct.unpack_from('<28f', payload, 48)))
+            if (msg['schema'] != 1 or msg['geometry_reason'] > 4 or msg['avoid_state'] > 4 or
+                    msg['width_frozen'] > 1 or msg['gate_reason'] > 6 or msg['avoid_override'] > 1 or
+                    msg['fit_rejected'] & 0xc0c0c0c0 or
+                    any(not math.isfinite(msg[k]) for k in PATH_EXTRA_F)):
+                raise ValueError("PATH_EXTRA values")
+        elif kind==9:
+            if len(payload) < 48: raise ValueError("CLOUD prefix")
+            msg.update(zip(CLOUD_U, struct.unpack_from('<12I', payload)))
+            if (msg['schema'] != 1 or msg['frame_index'] > 3 or msg['total_points'] > 400 or
+                    msg['count'] > 40 or msg['offset'] + msg['count'] > msg['total_points'] or
+                    (msg['count'] == 0 and msg['total_points'] != 0) or
+                    msg['trigger_flags'] & ~31 or len(payload) != 48 + 4 * msg['count']):
+                raise ValueError("CLOUD bounds")
+            msg['points'] = list(struct.iter_unpack('<hh', payload[48:]))
         elif kind==6:
             if len(payload)<16:raise ValueError("MOTOR prefix")
             schema,count,first,rev,dropped=struct.unpack_from('<HHIII',payload)
@@ -232,7 +255,10 @@ class Handshake:
 
 def analyze(parser,field_names):
     preroll=getattr(parser,"meta",{}).get("pre_roll_s",0)
-    rows=[r for r in parser.records if r.get("version")==2 and (r.get("host_t") is None or r["host_t"]>=preroll)]
+    formal_end=getattr(parser,"meta",{}).get("formal_end_s", math.inf)
+    def in_run(row):
+        return row.get('host_t') is None or preroll <= row['host_t'] <= formal_end
+    rows=[r for r in parser.records if r.get("version")==2 and in_run(r)]
     periods=[r["control_dt_us"]/1000 for r in rows if r["valid_mask"]&(1<<30)]
     errors=[r["Speed_now"]-r["Speed_mubiao"] for r in rows if math.isfinite(r["Speed_now"]) and math.isfinite(r["Speed_mubiao"]) and not r["clipped_mask"]&((1<<18)|(1<<19))]
     jumps=[]
@@ -246,7 +272,7 @@ def analyze(parser,field_names):
     keys={detail_key(r) for r in rows}
     details=[m for m in parser.v2.messages if m['type']==5 and detail_key(m) in keys]
     motors=[s for m in parser.v2.messages if m['type']==6 for s in m['samples']
-            if s['host_t'] is None or s['host_t']>=preroll]
+            if in_run(s)]
     paired={detail_key(m) for m in details}
     motor_gaps=0
     for a,b in zip(motors,motors[1:]):
@@ -261,6 +287,12 @@ def analyze(parser,field_names):
         radar_packets=sum(m.get('radar_packets',0) for m in details),
         motor_drop_max=max((m['motor_dropped'] for m in parser.v2.messages if m['type']==6),default=0),
         pd_d_abs_max=max((abs(m['pd_d']) for m in details if m['detail_flags']&1 and math.isfinite(m['pd_d'])),default=None))
+    extensions=[m for m in parser.v2.messages if m['type']==8 and detail_key(m) in keys]
+    diagnosis.update(path_extra_frames=len(extensions),
+                     geometry_reasons=dict(Counter(m['geometry_reason'] for m in extensions)),
+                     avoidance_states=dict(Counter(m['avoid_state'] for m in extensions)),
+                     avoidance_overrides=sum(m['avoid_override'] for m in extensions),
+                     snapshot_chunks=sum(m['type']==9 for m in parser.v2.messages))
     unknown=sum((r["session"],r["param_revision"]) not in parser.v2.configs for r in rows)
     return dict(v2=True,n_frames=len(rows),bad_frames=parser.bad_frames,dropped=parser.v2.missing,
         duration_s=parser.capture_duration,periods=periods,speed_error=sum(errors)/len(errors) if errors else None,
@@ -278,9 +310,56 @@ def write_extensions(parser,path):
     motors=[s for m in parser.v2.messages if m['type']==6 for s in m['samples']]
     for suffix,rows,names in [('.detail.csv',details,['session','tx_seq','host_t']+list(dict.fromkeys(DETAIL_U+DETAIL_F+PATH_U+PATH_F))),
         ('.m10p.csv',[m for m in parser.v2.messages if m['type']==7],['session','tx_seq','host_t']+M10P_FIELDS),
-        ('.motor.csv',motors,['session','param_revision','sample_seq','host_t']+MOTOR_FIELDS+['encoder_signed'])]:
+        ('.motor.csv',motors,['session','param_revision','sample_seq','host_t']+MOTOR_FIELDS+['encoder_signed']),
+        ('.path.csv',[m for m in parser.v2.messages if m['type']==8],['session','tx_seq','host_t']+PATH_EXTRA_U+PATH_EXTRA_F)]:
         with open(str(base)+suffix,'w',newline='',encoding='utf-8-sig') as f:
             writer=csv.DictWriter(f,fieldnames=names,extrasaction='ignore');writer.writeheader();writer.writerows(rows)
+    write_clouds(parser.v2.messages, base)
+
+
+def assemble_clouds(messages):
+    """按会话/快照/帧重组；丢块或元数据冲突显式标记，绝不补零伪造完整点云。"""
+    groups = {}
+    metadata = CLOUD_U[3:10]
+    for m in messages:
+        if m['type'] != 9:
+            continue
+        key = (m['session'], m['snapshot_id'], m['frame_index'])
+        group = groups.setdefault(key, {'meta': m, 'points': {}, 'conflict': False})
+        if any(group['meta'][k] != m[k] for k in metadata):
+            group['conflict'] = True
+        for index, point in enumerate(m['points'], m['offset']):
+            if index in group['points'] and group['points'][index] != point:
+                group['conflict'] = True
+            group['points'][index] = point
+    return groups
+
+
+def cloud_dump_complete(messages, session, snapshot, count):
+    groups = assemble_clouds(messages)
+    for index in range(count):
+        group = groups.get((session, snapshot, index))
+        if not group or group['conflict'] or set(group['points']) != set(range(group['meta']['total_points'])):
+            return False
+    return True
+
+
+def write_clouds(messages, base):
+    groups = assemble_clouds(messages)
+    fields = ['session', 'snapshot_id', 'frame_index'] + CLOUD_U[3:10] + ['received_points', 'complete', 'conflict']
+    with open(str(base)+'.cloud_frames.csv', 'w', newline='', encoding='utf-8-sig') as f, \
+         open(str(base)+'.cloud.csv', 'w', newline='', encoding='utf-8-sig') as p:
+        fw = csv.DictWriter(f, fieldnames=fields, extrasaction='ignore')
+        pw = csv.DictWriter(p, fieldnames=fields+['point_index', 'x_mm', 'y_mm'], extrasaction='ignore')
+        fw.writeheader(); pw.writeheader()
+        for key, group in sorted(groups.items()):
+            row = dict(group['meta'])
+            row.update(received_points=len(group['points']), conflict=int(group['conflict']),
+                       complete=int(not group['conflict'] and
+                                    set(group['points']) == set(range(row['total_points']))))
+            fw.writerow(row)
+            for index, (x, y) in sorted(group['points'].items()):
+                pw.writerow(dict(row, point_index=index, x_mm=x, y_mm=y))
 
 def report(result,path,name=""):
     p=result["periods"];dur=result["duration_s"]

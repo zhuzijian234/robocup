@@ -15,6 +15,20 @@ enum
     PATH_RIGHT,
     PATH_NONE
 };
+/* 位图可以同时报告多个拒绝原因，0 表示该拟合通过。 */
+enum
+{
+    FIT_POINTS = 1, FIT_SPAN = 2, FIT_GAP = 4,
+    FIT_DEGENERATE = 8, FIT_RMS = 16, FIT_SLOPE = 32
+};
+enum
+{
+    GEOM_OK, GEOM_ARGUMENT, GEOM_NEAR_MISSING, GEOM_CONFLICT, GEOM_SUPPORT
+};
+enum
+{
+    AVOID_CLEAR, AVOID_CANDIDATE, AVOID_ACTIVE, AVOID_HOLD, AVOID_RELEASE
+};
 enum
 {
     PATH_APPLY,
@@ -30,7 +44,7 @@ typedef struct
     float a, b; /* x = a*y + b，前向直线不会除以零 */
     float min_y, max_y, rms, gap;
     uint16_t count; /* 独立的 100 mm 前向分区数量，不是密集点数量 */
-    uint8_t valid;
+    uint8_t valid, rejected;
 } PathFit;
 typedef struct
 {
@@ -38,6 +52,10 @@ typedef struct
     float near_x, far_x, near_a, far_a, ref_y, target_x;
     float width, width_candidate;
     float avoid_offset, avoid_y; /* 避让附加横移(mm)、当前锥桶前向位置；不改变车速 */
+    float near_ref_y; /* 近段实际参考位置；必须位于本帧边界支持范围内 */
+    float cone_x, cone_y, cone_lateral, avoid_required, avoid_allowed;
+    uint16_t cone_candidates;
+    uint8_t geometry_reason, avoid_state, avoid_confirm, width_frozen;
     uint8_t valid, far_valid, source, width_measured, straight;
 } PathObservation;
 typedef struct
@@ -47,6 +65,8 @@ typedef struct
     float avoid_offset; /* 相对本帧道路中线的避让偏移，过桶后逐步归零 */
     uint8_t avoid_hold;
     uint8_t measured;
+    float candidate_x, candidate_y;
+    uint8_t candidate_frames;
 } PathGeometry;
 typedef struct
 {
@@ -65,6 +85,8 @@ typedef struct
 typedef struct
 {
     float error, p, d, kp, kd, unclamped;
+    float road_error; /* 未叠加避让、未限幅的道路误差，诊断不再反推 */
+    uint8_t gate_reason, avoid_override; /* 保留被避让覆盖前的道路裁决 */
     uint16_t candidate_pwm, pwm;
     uint8_t computed, applied, reason, source, previous_source, d_reset;
     int8_t bend;

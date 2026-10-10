@@ -16,11 +16,13 @@ PathCommand Steering_command;
 static PathGeometry geometry;
 static PathController controller;
 static uint32_t previous_revision;
+static uint32_t previous_scan_us;
 
 void Steering_Init(void)
 {
     memset(&controller, 0, sizeof controller);
     memset(&geometry, 0, sizeof geometry);
+    previous_scan_us = 0;
     memset(&Servo_pd, 0, sizeof Servo_pd);
     Servo_pd.kp = 0.035f;
     Servo_pd.kd = 0.035f;
@@ -38,6 +40,12 @@ void Steering_Update(const M10P_Scan *scan, const PathPoint *points, uint16_t co
     PathGeometry previous_geometry = geometry;
     PathObservation *path = &Steering_path;
     PathCommand *command = &Steering_command;
+    if (!scan || (uint32_t)(scan->end_us - previous_scan_us) > 250000u)
+    {
+        geometry.candidate_frames = geometry.avoid_hold = 0;
+        geometry.avoid_offset = 0;
+    }
+    previous_scan_us = scan ? scan->end_us : 0;
     if (!M10P_ScanUsable(scan, Diag_TimeUs()))
         count = 0;
     Path_Build(&geometry, points, count, PATH_WIDTH_MM, PATH_PREVIEW_MM, CENTER_X_TARGET_MM, path);
@@ -48,10 +56,18 @@ void Steering_Update(const M10P_Scan *scan, const PathPoint *points, uint16_t co
     if (!scan_valid)
     {
         geometry = previous_geometry;
+        geometry.candidate_frames = geometry.avoid_hold = 0;
+        geometry.avoid_offset = 0;
         path->valid = path->far_valid = path->width_measured = 0;
         path->avoid_offset = path->avoid_y = 0;
+        path->avoid_state = AVOID_CLEAR;
         path->source = PATH_NONE;
         path->width = geometry.width;
+    }
+    if (!path->valid)
+    {
+        geometry.candidate_frames = geometry.avoid_hold = 0;
+        geometry.avoid_offset = 0;
     }
     if (previous_revision != Diag_revision)
     {

@@ -118,6 +118,7 @@ int main(void)
         else
             Diag_HeldField(11, Steering_path.width, 1);
         Diag_Submit(mode, scan->count, scan->dps, Steering_command.applied);
+        Diag_CloudCapture(LEIDA_front_points, count, scan->epoch);
         BLE_Tune_Telemetry(Servo_pd.err, (float)TIM3->CCR1, mode);
         M10P_Release(scan);
 #endif
