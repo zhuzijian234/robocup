@@ -1,0 +1,5 @@
+﻿session,snapshot_id,frame_index,control_seq,param_revision,input_seq,input_us,epoch,trigger_flags,total_points,received_points,complete,conflict
+950730947,2,0,19646,1,19646,1640484042,1,0,249,249,1,0
+950730947,2,1,19647,1,19647,1640562736,1,0,248,248,1,0
+950730947,2,2,19648,1,19648,1640651950,1,1,251,251,1,0
+950730947,2,3,19649,1,19649,1640730598,1,1,249,249,1,0

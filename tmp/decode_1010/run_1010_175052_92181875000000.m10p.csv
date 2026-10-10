@@ -1,0 +1,1 @@
+﻿session,tx_seq,host_t,schema,packets,bad_length,bad_tail,bad_angle,bad_speed,invalid_slots,high_reflect,discontinuities,scans,rejected,scan_overflow,ready_drop,epoch,rx_blocks,rx_peak,rx_late,copy_max_cycles,scan_seq,front_age_us,front_bins,left_bins,right_bins,clearance_mm,motor_permitted,effective_target_milli
