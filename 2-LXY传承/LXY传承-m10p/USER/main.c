@@ -1,6 +1,6 @@
 /** STM32F407ZG / M10P：完整扫描 → 局部路径 → 转向；TIM5 独立运行定速 PI。
  * 雷达 PA2/PA3 USART2；蓝牙 PC6/PC7 USART6；舵机 PA6 TIM3_CH1；
- * 电机 PA1 TIM2_CH2、方向 PB15；编码器 PD12/PD13 TIM4。
+ * 电机 PA5 TIM2_CH1、方向 PB15；编码器 PD12/PD13 TIM4。
  */
 #include "stm32f4xx.h"
 #include "usart.h"
