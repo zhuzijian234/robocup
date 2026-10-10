@@ -1,6 +1,6 @@
 /** STM32F407ZG / M10P：完整扫描 → 局部路径 → 转向；TIM5 独立运行定速 PI。
  * 雷达 PA2/PA3 USART2；蓝牙 PC6/PC7 USART6；舵机 PA6 TIM3_CH1；
- * 电机 PA1 TIM2_CH2、方向 PB15；编码器 PD12/PD13 TIM4。
+ * 电机 PA5 TIM2_CH1、方向 PB15；编码器 PD12/PD13 TIM4。
  */
 #include "stm32f4xx.h"
 #include "usart.h"
@@ -17,27 +17,27 @@
 #include "test.h"
 #include "m10p_vehicle.h"
 
-/* 0 循迹；1 舵机；2 电机；3 蓝牙；4 PA1 高/PB15 低静态测量。 */
+/* 0 循迹；1 舵机；2 电机；3 蓝牙；4 PA5 高/PB15 低静态测量。 */
 #define HW_TEST_SELECT 0
 #if HW_TEST_SELECT == 4
 /**
- * PA1(PWM) + PB15(方向) 纯GPIO测试：不初始化雷达、蓝牙、舵机及电机定时器。
- * PA1持续输出高电平、PB15持续输出低电平，用于检查新PWM引脚的拉高能力。
- * 万用表直流电压档：黑表笔接STM32 GND，红表笔分别接PA1、PB15。
- * 预期：PA1恒定约3.3V、PB15恒定约0V，不产生PWM或高低切换。
- * 测量时断开驱动板控制线；PA1恒高若接到驱动板，可能使电机全速转动。
+ * PA5(PWM) + PB15(方向) 纯GPIO测试：不初始化雷达、蓝牙、舵机及电机定时器。
+ * PA5持续输出高电平、PB15持续输出低电平，用于检查新PWM引脚的拉高能力。
+ * 万用表直流电压档：黑表笔接STM32 GND，红表笔分别接PA5、PB15。
+ * 预期：PA5恒定约3.3V、PB15恒定约0V，不产生PWM或高低切换。
+ * 测量时断开驱动板控制线；PA5恒高若接到驱动板，可能使电机全速转动。
  */
 int main(void)
 {
     GPIO_InitTypeDef gpio;
 
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOB, ENABLE);
-    /* 先写好两个引脚的输出锁存器(PA1=高, PB15=低), 再打开输出,
+    /* 先写好两个引脚的输出锁存器(PA5=高, PB15=低), 再打开输出,
      * 避免初始化瞬间出现电平跳变。 */
-    GPIO_SetBits(GPIOA, GPIO_Pin_1);
+    GPIO_SetBits(GPIOA, GPIO_Pin_5);
     GPIO_ResetBits(GPIOB, GPIO_Pin_15);
     GPIO_StructInit(&gpio);
-    gpio.GPIO_Pin = GPIO_Pin_1;
+    gpio.GPIO_Pin = GPIO_Pin_5;
     gpio.GPIO_Mode = GPIO_Mode_OUT; /* 普通推挽输出，不使用AF1/PWM */
     gpio.GPIO_OType = GPIO_OType_PP;
     gpio.GPIO_Speed = GPIO_Speed_2MHz;

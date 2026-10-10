@@ -1,17 +1,17 @@
 /**
  * @file PWM.c
  * @brief M10P小车执行器驱动：电机PWM、舵机PWM及编码器。
- * TIM2_CH2/PA1：电机；TIM3_CH1/PA6：舵机；TIM4/PD12、PD13：编码器。
+ * TIM2_CH1/PA5：电机；TIM3_CH1/PA6：舵机；TIM4/PD12、PD13：编码器。
  * M10P内部驱动雷达电机，本模块只初始化小车执行器。
  */
 #include "stm32f4xx.h"
 #include "PWM.h"
 
 /**
- * @brief  TIM2 CH2 PWM初始化 (PA1) — 电机PWM
+ * @brief  TIM2 CH1 PWM初始化 (PA5) — 电机PWM
  *
- * M144Z-M4 Mini Board: PA1直接引出到JP1第5脚，使用AF1映射TIM2_CH2。
- * 占空比写入和诊断读取同步使用CCR2；定时器时钟及PWM频率保持不变。
+ * 电机PWM恢复使用PA5，通过AF1映射TIM2_CH1。
+ * 占空比写入和诊断读取同步使用CCR1；定时器时钟及PWM频率保持不变。
  */
 void TIM2_PWM_Init(u32 psc, u32 arr, u32 pulse)
 {
@@ -22,9 +22,9 @@ void TIM2_PWM_Init(u32 psc, u32 arr, u32 pulse)
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
 
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource1, GPIO_AF_TIM2);
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_TIM2);
 
-    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_1;            /* PA1 */
+    GPIO_InitStructure.GPIO_Pin   = GPIO_Pin_5;            /* PA5 */
     GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
     GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
@@ -37,14 +37,14 @@ void TIM2_PWM_Init(u32 psc, u32 arr, u32 pulse)
     TIM_TimeBaseStructure.TIM_ClockDivision   = TIM_CKD_DIV1;
     TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
 
-    /* TIM2 CH2 PWM模式1；PA1高电平有效，比较值为0时保持低电平。 */
+    /* TIM2 CH1 PWM模式1；PA5高电平有效，比较值为0时保持低电平。 */
     TIM_OCInitStructure.TIM_OCMode      = TIM_OCMode_PWM1;
     TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable; /*使能比较输出,使比较结果输出到引脚上*/
     TIM_OCInitStructure.TIM_OCPolarity  = TIM_OCPolarity_High;   /*输出极性=高有效*/
     TIM_OCInitStructure.TIM_Pulse       = pulse;                 /*初始比较值,即ccr*/
-    TIM_OC2Init(TIM2, &TIM_OCInitStructure);
+    TIM_OC1Init(TIM2, &TIM_OCInitStructure);
 
-    TIM_OC2PreloadConfig(TIM2, TIM_OCPreload_Enable);
+    TIM_OC1PreloadConfig(TIM2, TIM_OCPreload_Enable);
     TIM_ARRPreloadConfig(TIM2, ENABLE);
     TIM_Cmd(TIM2, ENABLE);
 }
