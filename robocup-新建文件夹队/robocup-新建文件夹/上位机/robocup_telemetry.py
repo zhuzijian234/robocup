@@ -1049,11 +1049,13 @@ def cmd_capture_v2(a):
             # 正式行驶窗口在此结束，导出期间的数据不混入速度/动作统计。
             if formal is not None:
                 meta['formal_end_s']=time.monotonic()-start
-            if formal is not None and 'cloud=1' in (handshake.info or ''):
-                print('正式采集结束，正在导出冻结点云（最多12秒）', flush=True)
+            if formal is not None and any(x in (handshake.info or '') for x in ('cloud=1', 'cloud=2')):
+                # 双快照最多3200点，按40点/200ms发送需要16秒，额外留队列排空余量。
+                dump_timeout = 24 if 'cloud=2' in handshake.info else 12
+                print(f'正式采集结束，正在导出冻结点云（最多{dump_timeout}秒）', flush=True)
                 cursor=len(parser.ascii_lines)
                 send('cloud freeze\n');send('cloud dump\n')
-                deadline=time.monotonic()+12;last_status=time.monotonic();sending=False
+                deadline=time.monotonic()+dump_timeout;last_status=time.monotonic();sending=False
                 sent=False;snapshot=0;frame_count=0
                 meta['cloud_dump']='timeout_or_incomplete'
                 while time.monotonic()<deadline:
@@ -1069,7 +1071,8 @@ def cmd_capture_v2(a):
                         if line.startswith('CLOUD '):
                             status=dict(pair.split('=',1) for pair in line.split()[1:] if '=' in pair)
                             snapshot=int(status.get('id',0));frame_count=int(status.get('frames',0))
-                            if not 0<=frame_count<=4:raise ValueError('CLOUD frame count')
+                            max_frames = 8 if 'cloud=2' in handshake.info else 4
+                            if not 0<=frame_count<=max_frames:raise ValueError('CLOUD frame count')
                             sending |= 'sending=1' in line
                             sent |= sending and 'sending=0' in line
                             if 'frames=0 ' in line:

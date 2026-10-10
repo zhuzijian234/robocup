@@ -148,10 +148,13 @@ class Decoder:
         elif kind==9:
             if len(payload) < 48: raise ValueError("CLOUD prefix")
             msg.update(zip(CLOUD_U, struct.unpack_from('<12I', payload)))
-            if (msg['schema'] != 1 or msg['frame_index'] > 3 or msg['total_points'] > 400 or
+            # schema 1：首次事件4帧；schema 2：首次事件+停止时末段，最多8帧。
+            if (msg['schema'] not in (1, 2) or
+                msg['frame_index'] > (3 if msg['schema'] == 1 else 7) or msg['total_points'] > 400 or
                     msg['count'] > 40 or msg['offset'] + msg['count'] > msg['total_points'] or
                     (msg['count'] == 0 and msg['total_points'] != 0) or
-                    msg['trigger_flags'] & ~31 or len(payload) != 48 + 4 * msg['count']):
+                    msg['trigger_flags'] & ~(31 if msg['schema'] == 1 else 63) or
+                    len(payload) != 48 + 4 * msg['count']):
                 raise ValueError("CLOUD bounds")
             msg['points'] = list(struct.iter_unpack('<hh', payload[48:]))
         elif kind==6:

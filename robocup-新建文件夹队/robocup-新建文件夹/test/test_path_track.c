@@ -193,9 +193,9 @@ int main(void)
     turn = command.pwm;
     build(road(0, 0, 3));
     step(1400000, 1, turn);
-    CHECK(!command.applied && command.reason == PATH_WAIT_EXIT);
-    step(1450000, 1, turn);
-    CHECK(!command.applied);
+    CHECK(command.applied && command.gate_reason == PATH_WAIT_EXIT && command.pwm == 1445 && command.bend != 0);
+    step(1450000, 1, 1445);
+    CHECK(!command.applied && command.bend != 0);
     step(1480000, 1, turn);
     CHECK(command.applied && command.reason == PATH_EXIT && command.pwm == 1445);
     build(road(.4f, 0, 3));
@@ -210,7 +210,7 @@ int main(void)
     step(1900000, 1, turn);
     step(2000000, 0, turn);
     step(2100000, 1, turn);
-    CHECK(!command.applied);
+    CHECK(command.applied && command.pwm == 1445 && command.bend != 0);
     step(2180000, 1, turn);
     CHECK(command.applied);
     memset(&control, 0, sizeof control);
@@ -224,7 +224,7 @@ int main(void)
     build(road(0, -150, 3));
     CHECK(path.straight);
     step(200000, 1, turn);
-    CHECK(!command.applied);
+    CHECK(command.applied && command.pwm == 1445 && command.bend != 0);
     step(300000, 1, turn);
     CHECK(command.applied && command.pwm > 1445 && command.bend == 0);
     /* 无数据经过很久：下一帧不能复用上一帧的出弯证据。 */
@@ -234,7 +234,7 @@ int main(void)
     build(road(0, 0, 3));
     step(500000, 1, turn);
     step(1500000, 1, turn);
-    CHECK(!command.applied);
+    CHECK(command.applied && command.pwm == 1445 && command.bend != 0);
     step(1600000, 1, turn);
     CHECK(command.applied);
 
@@ -277,7 +277,7 @@ int main(void)
     build(road(.11f, 0, 3));
     path.far_valid = 0;
     step(400000, 1, 1520);
-    CHECK(!command.applied);
+    CHECK(command.applied && command.pwm == 1445 && command.gate_reason == PATH_WAIT_REVERSE);
     step(480000, 1, 1520);
     CHECK(command.applied && command.reason == PATH_REVERSE && command.pwm < 1445);
 
@@ -393,6 +393,39 @@ int main(void)
     build(n);
     CHECK(path.valid && path.near_ref_y > 400 && path.near_ref_y <= 450);
     CHECK(path.near_ref_y >= path.near_fit[0].min_y && path.ref_y <= path.near_fit[0].max_y);
+    /* 相同目标方位、不同实际参考距离：缩短参考不能让控制量按距离塌缩。
+     * 超过归一化上限时仍有界，不修改真实target_x和ref_y。 */
+    memset(&path,0,sizeof path);
+    path.valid=1; path.source=PATH_RIGHT; path.near_a=.3f;
+    path.target_x=140; path.ref_y=700;
+    memset(&control,0,sizeof control);
+    step(100000,1,1445); turn=command.pwm;
+    path.target_x=100; path.ref_y=500;
+    memset(&control,0,sizeof control);
+    step(100000,1,1445);
+    CHECK(command.pwm==turn && fabsf(command.error+140)<.01f);
+    CHECK(path.target_x==100 && path.ref_y==500 && command.road_error==-100);
+    path.target_x=50; path.ref_y=250;
+    memset(&control,0,sizeof control);
+    step(100000,1,1445);
+    CHECK(command.error==-75);
+
+    /* 两侧冲突不能仅凭远段连续就指向对墙；无共同支持也不能恢复。 */
+    {
+        PathFit near[2]={{0}},far[2]={{0}};
+        near[0].valid=near[1].valid=far[1].valid=1;
+        near[0].min_y=near[1].min_y=100;
+        near[0].max_y=near[1].max_y=700;
+        near[0].b=-250; near[1].b=250;
+        far[1].min_y=550; far[1].max_y=1200; far[1].b=250;
+        CHECK(recovery_side(near,far,1,500,700));
+        near[0].b=-100;
+        CHECK(!recovery_side(near,far,1,500,700));
+        near[0].b=-250; far[1].b=400;
+        CHECK(!recovery_side(near,far,1,500,700));
+        far[1].b=250; near[0].max_y=250;
+        CHECK(!recovery_side(near,far,1,500,700));
+    }
     printf("PASS %u production path geometry / steering checks\n", checks);
     return 0;
 }

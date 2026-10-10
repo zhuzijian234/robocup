@@ -109,12 +109,17 @@ int main(void){
  if(cloud_state!=2 || cloud_used!=4 || cloud_next!=2)return 3;
  control_seq=999;Diag_CloudCapture(points,400,99);
  if(cloud_ring[1].control!=6)return 4;
+ cloud_freeze();
+ if(cloud_count()!=8 || !recent_frozen)return 8;
+ control_seq=1000;Diag_CloudCapture(points,400,100);
+ if(cloud_recent[(recent_next+3)&3].control!=999)return 9;
+ cloud_freeze(); /* 重复停止不能重写末段。 */
  cloud_sending=1;cloud_frame=0;cloud_offset=0;
  queue_accept=0;cloud_poll(200);
  if(cloud_offset || cloud_frame || emitted!=1)return 5;
  queue_accept=1;cloud_poll(199);if(emitted!=1)return 6;
- for(i=1;i<=40;++i)cloud_poll(i*200);
- if(cloud_sending || emitted!=41)return 7;
+ for(i=1;i<=80;++i)cloud_poll(i*200);
+ if(cloud_sending || emitted!=81)return 7;
  return 0;
 }
 '''
@@ -127,11 +132,15 @@ extra=d.messages[0]
 assert extra['type']==8 and extra['fit_rejected']==3 and extra['near_ref_y']==425
 assert abs(extra['road_error']-15.9)<.001 and extra['gate_reason']==2
 clouds=d.messages[1:]
-assert len(clouds)==40 and sum(c['count'] for c in clouds)==1600
-assert {c['control_seq'] for c in clouds}=={3,4,5,6}
+assert len(clouds)==80 and sum(c['count'] for c in clouds)==3200
+assert {c['control_seq'] for c in clouds[:40]}=={3,4,5,6}
+assert {c['control_seq'] for c in clouds[40:]}=={4,5,6,999}
+assert all(c['trigger_flags'] & 32 for c in clouds[40:])
+assert clouds[-1]['trigger_flags'] & 8 and clouds[-1]['frame_index']==7
 assert clouds[0]['points'][0]==(-200,100) and clouds[-1]['offset']==360
 v2.write_clouds(d.messages,OUT/'production_snapshot')
 import csv
 with (OUT/'production_snapshot.cloud_frames.csv').open(encoding='utf-8-sig') as stream:
     assert all(r['complete']=='1' for r in csv.DictReader(stream))
-print('PASS production C -> PC PATH extra and 4-frame/1600-point snapshot, freeze/throttle/retry')
+assert v2.cloud_dump_complete(d.messages,clouds[0]['session'],clouds[0]['snapshot_id'],8)
+print('PASS production C -> PC PATH extra and dual 8-frame/3200-point snapshot, freeze/throttle/retry')

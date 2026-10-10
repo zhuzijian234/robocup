@@ -266,7 +266,7 @@ class App:
     def stop_capture(self, quiet=False):
         if getattr(self,"v2_worker",None) is not None:
             with open(self.v2_stop,"w") as f:f.write("stop")
-            self.log("已请求结束采集；新固件会继续导出点云（最多12秒），然后保存文件。")
+            self.log("已请求结束采集；新固件会继续导出点云（双快照固件最多24秒），然后保存文件。")
             return None
         self.capturing = False
         self.diag_pending = False

@@ -72,6 +72,19 @@ class PathExtraTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             decoder.accept(v2.packet(8, struct.pack('<12I28f', *u, *f)), [], [], 0)
 
+    def test_dual_snapshot_schema_and_bounds(self):
+        parser = core.StreamParser()
+        for index in range(8):
+            parser.feed(cloud(index+1, 0, [(index, 100)], total=1,
+                              schema=2, frame_index=index, trigger_flags=32 if index>=4 else 1))
+        messages=parser.v2.messages
+        self.assertEqual(len(messages),8)
+        self.assertTrue(v2.cloud_dump_complete(messages,messages[0]['session'],7,8))
+        for packet in (cloud(20,0,[(0,100)],total=1,schema=2,frame_index=8),
+                       cloud(21,0,[(0,100)],total=1,schema=1,trigger_flags=32)):
+            with self.assertRaises(ValueError):
+                v2.Decoder().accept(packet,[],[],0)
+
     def test_capture_waits_for_cloud_after_completion_ack(self):
         from test_v2 import config_frames, control
         class Serial:
@@ -80,14 +93,16 @@ class PathExtraTests(unittest.TestCase):
             def write(self, command):
                 text=command.decode().strip()
                 if text=='info':
-                    self.buffer+=f'INFO proto=1,2 layout={v2.LAYOUT} fw=fake cloud=1\r\n'.encode()
+                    self.buffer+=f'INFO proto=1,2 layout={v2.LAYOUT} fw=fake cloud=2\r\n'.encode()
                 elif text.startswith('cloud '):
                     if text=='cloud dump':
                         self.dump=True
-                        self.buffer+=b'CLOUD id=7 state=2 frames=1 sending=1\r\nCLOUD id=7 state=2 frames=1 sending=0\r\n'
-                        payload=struct.pack('<12Ihh',1,7,0,123,2,99,123456,4,1,1,0,1,-10,100)
-                        self.tail=v2.packet(9,payload,self.seq,self.session);self.seq+=1
-                    else:self.buffer+=b'CLOUD id=7 state=2 frames=1 sending=0\r\n'
+                        self.buffer+=b'CLOUD id=7 state=2 frames=8 sending=1\r\nCLOUD id=7 state=2 frames=8 sending=0\r\n'
+                        for index in range(8):
+                            payload=struct.pack('<12Ihh',2,7,index,123+index,2,99+index,123456,4,
+                                                40 if index>=4 else 1,1,0,1,-10,100)
+                            self.tail+=v2.packet(9,payload,self.seq,self.session);self.seq+=1
+                    else:self.buffer+=b'CLOUD id=7 state=2 frames=8 sending=0\r\n'
                 else:
                     self.buffer+=('OK '+text+'\r\n').encode()
                     if text.startswith('session '):self.session=int(text.split()[1])
@@ -106,7 +121,7 @@ class PathExtraTests(unittest.TestCase):
             args=SimpleNamespace(port='FAKE',baud=115200,sec=.02,rate=1,out=str(path),stop_file=None)
             self.assertEqual(core.cmd_capture_v2(args),0)
             parsed=core.parse_file(str(path))
-            self.assertTrue(v2.cloud_dump_complete(parsed.v2.messages,parsed.meta['session'],7,1))
+            self.assertTrue(v2.cloud_dump_complete(parsed.v2.messages,parsed.meta['session'],7,8))
             self.assertEqual(parsed.meta['cloud_dump'],'sent_check_csv_completeness')
             self.assertIn('formal_end_s',parsed.meta)
 

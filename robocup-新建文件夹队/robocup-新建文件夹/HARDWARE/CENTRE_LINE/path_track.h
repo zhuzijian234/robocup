@@ -84,7 +84,7 @@ typedef struct
 } PathController;
 typedef struct
 {
-    float error, p, d, kp, kd, unclamped;
+    float error, p, d, kp, kd, unclamped; /* error为700mm基准有界归一化误差，非原始横移 */
     float road_error; /* 未叠加避让、未限幅的道路误差，诊断不再反推 */
     uint8_t gate_reason, avoid_override; /* 保留被避让覆盖前的道路裁决 */
     uint16_t candidate_pwm, pwm;

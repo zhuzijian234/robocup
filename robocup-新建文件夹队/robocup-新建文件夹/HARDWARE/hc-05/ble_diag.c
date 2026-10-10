@@ -36,14 +36,16 @@ typedef struct {
 static MotorSample motor_ring[64];
 static volatile uint32_t motor_head, motor_tail, motor_seq, motor_dropped;
 static uint32_t hold_count;
-/* 4帧有界诊断：触发前两帧、触发帧、触发后一帧。只记录送入路径算法的前方点。
- * 自动冻结后不再覆盖；cloud dump才低速发送，正常循迹期间不传整圈点云。 */
+/* 首次事件4帧 + 最近4帧：早期异常冻结第一组后，第二组仍滚动记录。
+ * cloud freeze冻结末段；cloud dump低速导出两组，正常循迹不发送整圈点云。 */
 typedef struct {
     uint32_t control, revision, input, us, epoch, reason;
     uint16_t count;
     int16_t xy[400][2];
 } CloudFrame;
 static CloudFrame cloud_ring[4];
+static CloudFrame cloud_recent[4];
+static uint8_t recent_next, recent_used, recent_frozen;
 static uint32_t cloud_id, cloud_last_ms;
 static uint8_t cloud_state, cloud_next, cloud_used, cloud_post, cloud_good;
 static uint8_t cloud_sending, cloud_frame;
@@ -53,6 +55,24 @@ static void cloud_arm(void)
     ++cloud_id;
     cloud_state = 1;
     cloud_next = cloud_used = cloud_post = cloud_good = cloud_sending = 0;
+    recent_next = recent_used = recent_frozen = 0;
+}
+
+static uint8_t cloud_count(void)
+{
+    return cloud_used+(recent_frozen ? recent_used : 0);
+}
+
+/* 同一主循环调用，停止时不等待新的扫描；重复freeze不会改变已冻结数据。 */
+static void cloud_freeze(void)
+{
+    if (recent_frozen || cloud_sending)
+        return;
+    recent_frozen = 1;
+    if (recent_used)
+        cloud_recent[(recent_next+3)&3].reason |= 8u;
+    if (cloud_used)
+        cloud_state = 2;
 }
 
 void Diag_CloudCapture(const PathPoint *points, uint16_t count, uint32_t epoch)
@@ -60,7 +80,7 @@ void Diag_CloudCapture(const PathPoint *points, uint16_t count, uint32_t epoch)
     CloudFrame *s;
     uint16_t i;
     uint32_t reason;
-    if (Diag_mode != 3 || !Diag_session || cloud_state != 1 || !points || count > 400)
+    if (Diag_mode != 3 || !Diag_session || recent_frozen || !points || count > 400)
         return;
     /* 转换前检查范围：异常浮点不能触发未定义的浮点到整数转换。 */
     for (i = 0; i < count; ++i)
@@ -71,19 +91,25 @@ void Diag_CloudCapture(const PathPoint *points, uint16_t count, uint32_t epoch)
              (Steering_path.avoid_state == AVOID_ACTIVE ? 2u : 0u) |
              (Steering_command.computed && !Steering_command.applied ? 4u : 0u) |
              (Steering_command.reason == PATH_BAD_SCAN ? 16u : 0u);
-    s = &cloud_ring[cloud_next];
+    s = &cloud_recent[recent_next];
     s->control = control_seq;
     s->revision = Diag_revision;
     s->input = Diag_input_seq;
     s->us = Diag_input_us;
     s->epoch = epoch;
-    s->reason = reason;
+    s->reason = reason | 32u; /* 位5标记末段滚动快照，不冒充首次触发现场。 */
     s->count = count;
     for (i = 0; i < count; ++i)
     {
         s->xy[i][0] = (int16_t)points[i].x;
         s->xy[i][1] = (int16_t)points[i].y;
     }
+    recent_next = (recent_next+1)&3;
+    if (recent_used < 4) ++recent_used;
+    if (cloud_state != 1)
+        return;
+    cloud_ring[cloud_next] = *s;
+    cloud_ring[cloud_next].reason = reason;
     cloud_next = (cloud_next + 1) & 3;
     if (cloud_used < 4) ++cloud_used;
     if (cloud_post)
@@ -394,10 +420,13 @@ static void cloud_poll(uint32_t now)
     uint16_t n, i;
     if (!cloud_sending || Diag_mode != 3 || now-cloud_last_ms < 200u || !BLE_NormalSpace())
         return;
-    s=&cloud_ring[(cloud_next+4-cloud_used+cloud_frame)&3];
+    if (cloud_frame < cloud_used)
+        s=&cloud_ring[(cloud_next+4-cloud_used+cloud_frame)&3];
+    else
+        s=&cloud_recent[(recent_next+4-recent_used+cloud_frame-cloud_used)&3];
     n=s->count-cloud_offset;
     if (n>40) n=40;
-    u[0]=1; u[1]=cloud_id; u[2]=cloud_frame; u[3]=s->control; u[4]=s->revision;
+    u[0]=2; u[1]=cloud_id; u[2]=cloud_frame; u[3]=s->control; u[4]=s->revision;
     u[5]=s->input; u[6]=s->us; u[7]=s->epoch; u[8]=s->reason;
     u[9]=s->count; u[10]=cloud_offset; u[11]=n;
     header(9,(uint16_t)(64+4*n));
@@ -409,7 +438,7 @@ static void cloud_poll(uint32_t now)
     if(cloud_offset==s->count)
     {
         cloud_offset=0;
-        if(++cloud_frame==cloud_used) cloud_sending=0;
+        if(++cloud_frame==cloud_count()) cloud_sending=0;
     }
 }
 
@@ -554,7 +583,7 @@ static void config_poll(void)
             number = 1000;
             break;
         case 10:
-            text = "mm;CCR;encoder_units;x=a*y+b;PD=source-reset-Dcap150;exit=near+far+2frames60ms;spd=race-fixed;request=CFG108";
+            text = "mm;CCR;encoder_units;x=a*y+b;PD=ref700-cap1.5-Dcap150;exit=confirm-reduce;spd=race-fixed;request=CFG108";
             break;
         case 11:
             number = DMA_USART2_RX_BUF_LEN;
@@ -656,12 +685,7 @@ uint8_t Diag_Command(char *line)
     char ack[180];
     if (!strncmp(line,"cloud ",6)) {
         if (!strcmp(line+6,"arm")) cloud_arm();
-        else if (!strcmp(line+6,"freeze")) {
-            if (cloud_used && cloud_state==1) {
-                cloud_ring[(cloud_next+3)&3].reason |= 8u;
-                cloud_state=2;
-            }
-        }
+        else if (!strcmp(line+6,"freeze")) cloud_freeze();
         else if (!strcmp(line+6,"dump")) {
             if (cloud_state==2 && cloud_used && !cloud_sending) {
                 cloud_frame=0; cloud_offset=0; cloud_sending=1;
@@ -671,12 +695,12 @@ uint8_t Diag_Command(char *line)
             Diag_Reject("ERR cloud command\r\n"); return 1;
         }
         sprintf(ack,"CLOUD id=%lu state=%u frames=%u sending=%u\r\n",
-                (unsigned long)cloud_id,cloud_state,cloud_used,cloud_sending);
+                (unsigned long)cloud_id,cloud_state,cloud_count(),cloud_sending);
         Send_Bluetooth_Data(ack);
         return 1;
     }
     if (!strcmp(line, "info")) {
-        sprintf(ack, "INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=4 input=%u atomic=0 detail=2 motor=1 extra=1 cloud=1\r\n", DIAG_LAYOUT, DIAG_BUILD_ID, (unsigned)DIAG_LIDAR_ID, (unsigned)DIAG_INPUT_KIND);
+        sprintf(ack, "INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=4 input=%u atomic=0 detail=2 motor=1 extra=1 cloud=2\r\n", DIAG_LAYOUT, DIAG_BUILD_ID, (unsigned)DIAG_LIDAR_ID, (unsigned)DIAG_INPUT_KIND);
         Send_Bluetooth_Data(ack);
         return 1;
     }

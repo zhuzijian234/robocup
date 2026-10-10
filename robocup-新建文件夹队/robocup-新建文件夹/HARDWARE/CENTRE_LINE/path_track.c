@@ -174,6 +174,37 @@ static float direction(const PathFit *left, const PathFit *right, uint8_t source
     return source == PATH_DUAL ? 0.5f * (left->a + right->a) : source == PATH_LEFT ? left->a : right->a;
 }
 
+/* 冲突时只允许有独立连续性证据的单侧接管，不因“某侧RMS略小”盲猜。
+ * 近远段必须在实际接缝相连，远段覆盖预瞄；候选中线在共同可见区内
+ * 还须给另一面保留轮外沿及侧隙，避免单侧半宽偏移指到对墙上。 */
+static uint8_t recovery_side(const PathFit *near, const PathFit *far, uint8_t side,
+                             float width, float preview)
+{
+    const PathFit *n = &near[side], *f = &far[side], *other = &near[1-side];
+    float lo, hi, join, y, center, clearance;
+    unsigned i;
+    if (!n->valid || !f->valid || n->rms > 35)
+        return 0;
+    join = f->min_y;
+    if (n->max_y < join-50 || f->min_y > preview+100 || f->max_y < preview-100 ||
+        fabsf(at(n, join)-at(f, join)) > 80 || fabsf(n->a-f->a) > .8f)
+        return 0;
+    lo = fmaxf(n->min_y, other->min_y);
+    hi = fminf(n->max_y, other->max_y);
+    if (hi-lo < 200)
+        return 0;
+    for (i=0; i<3; ++i)
+    {
+        y = lo+(hi-lo)*i*.5f;
+        center = at(n,y)+(side ? -1 : 1)*width*.5f*sqrtf(1+n->a*n->a);
+        clearance = (side ? center-at(other,y) : at(other,y)-center) /
+                    sqrtf(1+other->a*other->a);
+        if (clearance < VEHICLE_HALF_CLEAR_MM)
+            return 0;
+    }
+    return 1;
+}
+
 /* 输入已按雷达角度排列。仅接纳独立、具有圆弧形状的小簇；平墙短片、单点噪声和
  * 连续围挡不作为锥桶。用已知截面圆拟合中心，不能把可见圆弧表面当作底座边缘。 */
 static uint8_t cone_center(const PathPoint *points, uint16_t begin, uint16_t end, PathPoint *center)
@@ -379,8 +410,13 @@ void Path_Build(PathGeometry *state, const PathPoint *points, uint16_t count, fl
         }
         else
         {
-            /* 两面互相矛盾且质量相近时不猜方向；显著较好的单侧才接管。 */
-            if (near[0].rms + 20 < near[1].rms)
+            uint8_t left = recovery_side(near, far, 0, state->width, preview_y);
+            uint8_t right = recovery_side(near, far, 1, state->width, preview_y);
+            /* 真实回放中内侧结束、外侧连续，却因斜率差被整帧弃用。
+             * 优先唯一连续候选；两个候选同样可信且冲突时仍拒绝猜方向。 */
+            if (left != right)
+                source = left ? PATH_LEFT : PATH_RIGHT;
+            else if (near[0].rms + 20 < near[1].rms)
                 source = PATH_LEFT;
             else if (near[1].rms + 20 < near[0].rms)
                 source = PATH_RIGHT;
@@ -606,6 +642,11 @@ void Path_Control(PathController *state, const PathObservation *path, const Path
         out->avoid_override = 1;
         out->reason = PATH_APPLY;
     }
+    /* 将实际可见目标的横向误差换到700mm基准的有界角度尺度。
+     * 仅改变控制误差尺度，不制造700mm处的虚假点；短参考最多放大1.5倍。
+     * road_error仍保存原始毫米误差供诊断，避让横移不重复放大。 */
+    if (path->ref_y >= 250 && path->ref_y < 700)
+        out->error *= bounded(700.0f/path->ref_y, 1, 1.5f);
     out->error -= path->avoid_offset;
     /* 状态确定后限幅：确认出弯的这一帧就恢复直道限幅。 */
     limit = curved || state->bend ? 500.0f : g->straight_limit;
@@ -633,6 +674,25 @@ void Path_Control(PathController *state, const PathObservation *path, const Path
     out->bend = state->bend;
     if (wait)
     {
+        const PathFit *near = &path->near_fit[path->source == PATH_RIGHT ? 1 : 0];
+        float old_delta = (float)actual_pwm-g->pwm_mid;
+        float new_delta = (float)out->candidate_pwm-g->pwm_mid;
+        /* 等待确认只限制反打，不冻结有证据的减舵。近段方向已支持目标或
+         * 近远段均已直时，允许旧弯舵量减小到中位；确认后才跨中位反打。
+         * 残余避让不获得减舵权限，避免恢复旧的“释放偏移强制回中”问题。 */
+        if (near->valid && near->count >= 4 && near->rms <= 35 &&
+            path->avoid_offset == 0 &&
+            (path->straight || (fabsf(path->near_a) > .10f && sign(-path->near_a) == wanted)))
+        {
+            if (old_delta*new_delta < 0)
+                new_delta = 0;
+            if (fabsf(new_delta) < fabsf(old_delta))
+            {
+                out->pwm = (uint16_t)(g->pwm_mid+new_delta);
+                out->applied = 1;
+                out->reason = PATH_APPLY; /* gate_reason保留原等待原因。 */
+            }
+        }
         state->history = 0;
         return;
     }
