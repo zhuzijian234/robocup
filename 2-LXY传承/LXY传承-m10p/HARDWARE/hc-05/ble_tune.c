@@ -188,7 +188,7 @@ static void Tune_ApplyOne(char *line)
     {
         char status[192];
         sprintf(status, "motor race=1 pwm=%u target_x100=%ld speed_x100=%ld frame_age_us=%lu\r\n",
-                (unsigned)TIM2->CCR1, (long)(Radar_effective_target * 100), (long)(Speed_now * 100),
+                (unsigned)TIM2->CCR2, (long)(Radar_effective_target * 100), (long)(Speed_now * 100),
                 (unsigned long)Radar_ControlAgeUs());
         Send_Bluetooth_Data(status);
         return;
