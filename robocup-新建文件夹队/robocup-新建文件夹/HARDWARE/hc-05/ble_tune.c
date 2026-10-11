@@ -54,14 +54,14 @@ static const Param_t param_tab[] = {
     {"kd3", &Servo_pd.kd_3, 0, 1000, 105, 3},
     {"sp_kp", &Speed_pid.kp, 0, 5000, 106, 2},
     {"sp_ki", &Speed_pid.ki, 0, 5000, 107, 3},
-    {"spd", &Speed_mubiao, 0, 17, 108, 0},
+    {"spd", &Speed_mubiao, 0, 18, 108, 0},
     {"angle", &BLUE_ANGLE_LEFT_RIGHT, 0, 90, 115, 0}, /* 仅开口诊断 */
     {"cx", &CENTER_X_TARGET_MM, -300, 300, 116, 0},
     {"eclamp", &MODE0_ERR_CLAMP_MM, 100, 500, 117, 0},
     {"dy", &duandian_MIN_Y, 0, 550, 118, 0}, /* 仅开口诊断 */
     {"preview", &PATH_PREVIEW_MM, 600, 1100, 121, 0},
     {"width", &PATH_WIDTH_MM, 400, 900, 122, 0},
-    {"bendspd", &RACE_BEND_SPEED, 6, 12, 123, 0},
+    {"bendspd", &RACE_BEND_SPEED, 6, 16, 123, 0},
     {"accel", &RACE_ACCEL, 1, 10, 124, 0},
     {"decel", &RACE_DECEL, 4, 30, 125, 0},
 };
