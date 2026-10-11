@@ -1,0 +1,103 @@
+[
+  {
+    "tag": "212056",
+    "formal_s": 8.577999999994063,
+    "counts": {
+      "1": 56,
+      "5": 50,
+      "2": 2
+    },
+    "clouds": 8,
+    "cloud_complete": true,
+    "source_bin_sha256": "daed606ae35827f2720221a41f1dbe70c59ff36dc6e2989a9ba37427aeb6e1c5",
+    "missing_extra": 3
+  },
+  {
+    "tag": "212730",
+    "formal_s": 8.25,
+    "counts": {
+      "1": 88,
+      "5": 16
+    },
+    "clouds": 8,
+    "cloud_complete": true,
+    "source_bin_sha256": "e510d9ed214558cda7d1b651c90d02fb52bb47ab41f7804039422c25145cb7cf",
+    "missing_extra": 2
+  },
+  {
+    "tag": "213339",
+    "formal_s": 4.218000000008033,
+    "counts": {
+      "5": 32,
+      "1": 22,
+      "2": 1
+    },
+    "clouds": 8,
+    "cloud_complete": true,
+    "source_bin_sha256": "fd7bb40fca872d792ecbe7472e75437c10c2f22455c23c0c0d03608cfa63a6a7",
+    "missing_extra": 2
+  },
+  {
+    "tag": "213609",
+    "formal_s": 3.922000000005937,
+    "counts": {
+      "1": 31,
+      "5": 20,
+      "2": 1
+    },
+    "clouds": 8,
+    "cloud_complete": true,
+    "source_bin_sha256": "68528b219fd60684dd652075ca09e32d23ac5f84cbeae312a8bc4b59dcda72b0",
+    "missing_extra": 3
+  },
+  {
+    "tag": "213856",
+    "formal_s": 6.5939999999973224,
+    "counts": {
+      "1": 65,
+      "5": 18
+    },
+    "clouds": 8,
+    "cloud_complete": true,
+    "source_bin_sha256": "5797c9d9fe9d23e0da52d2644ac3541a62aa33f1f5c2d63d0093669e19920c89",
+    "missing_extra": 2
+  },
+  {
+    "tag": "214152",
+    "formal_s": 3.4530000000086147,
+    "counts": {
+      "1": 28,
+      "5": 13,
+      "2": 5
+    },
+    "clouds": 8,
+    "cloud_complete": true,
+    "source_bin_sha256": "63a07872102c25c1992c2b038635da7e0a1fecc8edbba72b4b16475e1e99c857",
+    "missing_extra": 2
+  },
+  {
+    "tag": "214444",
+    "formal_s": 3.4530000000086147,
+    "counts": {
+      "1": 38,
+      "5": 8
+    },
+    "clouds": 8,
+    "cloud_complete": true,
+    "source_bin_sha256": "fb13f6508a13d14a019d72d9d23f70155b5f3c2c6fef7aa614d331db8c92b385",
+    "missing_extra": 3
+  },
+  {
+    "tag": "220019",
+    "formal_s": 4.35899999999674,
+    "counts": {
+      "1": 52,
+      "2": 1,
+      "5": 4
+    },
+    "clouds": 8,
+    "cloud_complete": true,
+    "source_bin_sha256": "5390423e1b575c7da676b5fb805b59ab3d76f4c854b48e2073ce725613dde4f6",
+    "missing_extra": 2
+  }
+]

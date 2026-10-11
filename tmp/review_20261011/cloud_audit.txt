@@ -1,0 +1,80 @@
+
+CLOUD 212056
+2621 device_t 2.585 geom 0 source 2 width 0.0 rms 0.0 44.4710807800293 slope 0.0 -0.6433935165405273 fit 50528259 trigger 0 complete True
+2622 device_t 2.663 geom 0 source 2 width 0.0 rms 0.0 56.396480560302734 slope 0.0 -0.7615830898284912 fit 50528259 trigger 0 complete True
+2623 device_t 2.752 geom 2 source 3 width 0.0 rms 0.0 60.33238983154297 slope 0.0 -0.8767820596694946 fit 50532355 trigger 1 complete True
+2624 device_t 2.831 geom 0 source 2 width 0.0 rms 0.0 39.94631576538086 slope 0.0 -0.8167927861213684 fit 50528259 trigger 0 complete True
+2716 device_t 10.506 geom 3 source 3 width 5.695389747619629 rms 14.727499008178711 1.6981772184371948 slope 0.32267042994499207 0.22495029866695404 fit 50528256 trigger 33 complete True
+2717 device_t 10.584 geom 0 source 1 width 0.0 rms 8.3639554977417 0.0 slope 0.31487467885017395 0.0 fit 50529024 trigger 36 complete True
+2718 device_t 10.674 geom 0 source 2 width 0.0 rms 0.0 2.7457685470581055 slope 0.0 0.22543802857398987 fit 50528259 trigger 32 complete True
+2719 device_t 10.752 geom 3 source 3 width 3.0950188636779785 rms 11.907257080078125 3.4049923419952393 slope 0.269154816865921 0.21026277542114258 fit 50528256 trigger 41 complete True
+
+CLOUD 212730
+7348 device_t 2.92 geom 0 source 2 width 0.0 rms 0.0 34.69614028930664 slope 0.0 -0.6053053140640259 fit 50528259 trigger 0 complete True
+7349 device_t 2.999 geom 0 source 2 width 0.0 rms 0.0 40.47193145751953 slope 0.0 -0.7216295599937439 fit 50528259 trigger 0 complete True
+7350 device_t 3.088 geom 2 source 3 width 0.0 rms 0.0 64.26262664794922 slope 0.0 -1.0770155191421509 fit 50532355 trigger 1 complete True
+7351 device_t 3.166 geom 2 source 3 width 0.0 rms 0.0 60.68246078491211 slope 0.0 -1.2191020250320435 fit 50532355 trigger 1 complete True
+7431 device_t 9.836 geom 0 source 2 width 0.0 rms 0.0 11.02365493774414 slope 0.0 -0.5827521085739136 fit 16973827 trigger 32 complete True
+7432 device_t 9.925 geom 0 source 2 width 0.0 rms 0.0 7.241579055786133 slope 0.0 -0.5337055325508118 fit 196611 trigger 32 complete True
+7433 device_t 10.004 geom 0 source 2 width 0.0 rms 0.0 2.9383389949798584 slope 0.0 -0.4794899523258209 fit 196611 trigger 32 complete True
+7434 device_t 10.093 geom 0 source 2 width 0.0 rms 0.0 8.35451889038086 slope 0.0 -0.4365263879299164 fit 196611 trigger 40 complete True
+
+CLOUD 213339
+11771 device_t 2.416 geom 0 source 2 width 0.0 rms 0.0 34.85654830932617 slope 0.0 -0.6643946766853333 fit 50528259 trigger 0 complete True
+11772 device_t 2.506 geom 0 source 2 width 0.0 rms 0.0 39.246368408203125 slope 0.0 -0.7974153757095337 fit 50528259 trigger 0 complete True
+11773 device_t 2.584 geom 0 source 2 width 0.0 rms 0.0 45.693721771240234 slope 0.0 -0.9628949165344238 fit 50528259 trigger 2 complete True
+11774 device_t 2.662 geom 0 source 2 width 0.0 rms 0.0 25.660844802856445 slope 0.0 -0.9019709825515747 fit 50528259 trigger 0 complete True
+11815 device_t 6.085 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 0.0 fit 50528771 trigger 33 complete True
+11816 device_t 6.163 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 0.0 fit 50529027 trigger 33 complete True
+11817 device_t 6.252 geom 0 source 2 width 0.0 rms 0.0 1.054679274559021 slope 0.0 0.25857776403427124 fit 50528259 trigger 32 complete True
+11818 device_t 6.331 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 0.0 fit 50529027 trigger 41 complete True
+
+CLOUD 213609
+13550 device_t 1.006 geom 0 source 2 width 412.7682800292969 rms 12.295984268188477 0.8993198275566101 slope 0.09348271042108536 -0.09993445873260498 fit 196608 trigger 0 complete True
+13551 device_t 1.085 geom 0 source 2 width 405.7829284667969 rms 12.533955574035645 2.296900510787964 slope 0.11452335119247437 -0.11094114929437637 fit 196608 trigger 0 complete True
+13552 device_t 1.174 geom 3 source 3 width 392.63409423828125 rms 11.340262413024902 2.751221179962158 slope 0.12474687397480011 -0.1260049194097519 fit 196608 trigger 1 complete True
+13553 device_t 1.253 geom 3 source 3 width 378.2464599609375 rms 12.29920482635498 3.7708699703216553 slope 0.1829131692647934 -0.13904207944869995 fit 196608 trigger 1 complete True
+13608 device_t 5.839 geom 0 source 2 width 0.0 rms 0.0 21.179834365844727 slope 0.0 -0.3190775513648987 fit 50528259 trigger 32 complete True
+13609 device_t 5.917 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 0.0 fit 50529027 trigger 33 complete True
+13610 device_t 6.007 geom 0 source 2 width 0.0 rms 0.0 33.262054443359375 slope 0.0 -0.6207051277160645 fit 50528259 trigger 32 complete True
+13611 device_t 6.085 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 0.0 fit 50529027 trigger 41 complete True
+
+CLOUD 213856
+15578 device_t 2.921 geom 0 source 2 width 0.0 rms 0.0 48.232242584228516 slope 0.0 -0.6914475560188293 fit 50528259 trigger 0 complete True
+15579 device_t 2.999 geom 0 source 2 width 0.0 rms 0.0 57.20191955566406 slope 0.0 -0.8225084543228149 fit 50528259 trigger 0 complete True
+15580 device_t 3.089 geom 2 source 3 width 0.0 rms 0.0 60.852298736572266 slope 0.0 -0.9129190444946289 fit 50532355 trigger 1 complete True
+15581 device_t 3.167 geom 0 source 2 width 0.0 rms 0.0 59.2239990234375 slope 0.0 -1.0221683979034424 fit 50528259 trigger 0 complete True
+15645 device_t 8.504 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 0.0 fit 50529027 trigger 33 complete True
+15646 device_t 8.594 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 0.0 fit 50529027 trigger 33 complete True
+15647 device_t 8.672 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 0.0 fit 50529027 trigger 33 complete True
+15648 device_t 8.75 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 0.0 fit 50529027 trigger 41 complete True
+
+CLOUD 214152
+17678 device_t 1.834 geom  source  width  rms   slope   fit  trigger 0 complete True
+17679 device_t 1.912 geom  source  width  rms   slope   fit  trigger 0 complete True
+17680 device_t 2.002 geom 2 source 3 width 0.0 rms 0.0 72.84233856201172 slope 0.0 -1.272403359413147 fit 50532355 trigger 1 complete True
+17681 device_t 2.08 geom 0 source 2 width 0.0 rms 0.0 54.586692810058594 slope 0.0 -1.3370293378829956 fit 50528259 trigger 0 complete True
+17720 device_t 5.337 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 0.0 fit 50529027 trigger 33 complete True
+17721 device_t 5.415 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 0.0 fit 50529027 trigger 33 complete True
+17722 device_t 5.505 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 0.0 fit 50529027 trigger 33 complete True
+17723 device_t 5.583 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 0.0 fit 50529027 trigger 41 complete True
+
+CLOUD 214444
+19748 device_t 2.171 geom 0 source 2 width 0.0 rms 0.0 35.020931243896484 slope 0.0 -0.8595243096351624 fit 50528259 trigger 0 complete True
+19749 device_t 2.249 geom 0 source 2 width 0.0 rms 0.0 17.46419906616211 slope 0.0 -0.6926708817481995 fit 50528259 trigger 0 complete True
+19750 device_t 2.338 geom 2 source 3 width 0.0 rms 0.0 0.0 slope 0.0 -1.841749906539917 fit 50529027 trigger 1 complete True
+19751 device_t 2.417 geom 2 source 3 width 0.0 rms 0.0 73.14131927490234 slope 0.0 -1.9344415664672852 fit 50540545 trigger 1 complete True
+19783 device_t 5.092 geom 0 source 2 width 0.0 rms 0.0 31.315475463867188 slope 0.0 -0.46995827555656433 fit 537067523 trigger 32 complete True
+19784 device_t 5.17 geom 0 source 2 width 0.0 rms 0.0 31.907655715942383 slope 0.0 -0.4816845655441284 fit 537067523 trigger 32 complete True
+19785 device_t 5.259 geom 0 source 2 width 0.0 rms 0.0 38.47340393066406 slope 0.0 -0.48190927505493164 fit 537067523 trigger 32 complete True
+19786 device_t 5.338 geom 0 source 2 width 0.0 rms 0.0 38.10685729980469 slope 0.0 -0.4737016558647156 fit 805502979 trigger 40 complete True
+
+CLOUD 220019
+2051 device_t 4.755 geom 0 source 2 width 521.1234741210938 rms 7.598236083984375 29.543855667114258 slope 0.24110905826091766 0.09330971539020538 fit 196608 trigger 0 complete True
+2052 device_t 4.834 geom 0 source 0 width 515.0980834960938 rms 7.213979721069336 28.904674530029297 slope 0.1949225813150406 -0.04453442990779877 fit 50528256 trigger 0 complete True
+2053 device_t 4.996 geom 3 source 3 width 487.61767578125 rms 2.6980044841766357 17.447484970092773 slope 0.11881306022405624 -0.23548577725887299 fit 50528256 trigger 1 complete True
+2054 device_t 5.086 geom 3 source 3 width 465.2411804199219 rms 1.83344304561615 9.776541709899902 slope 0.11069413274526596 -0.32517021894454956 fit 50528256 trigger 1 complete True
+2054 device_t 5.086 geom 3 source 3 width 465.2411804199219 rms 1.83344304561615 9.776541709899902 slope 0.11069413274526596 -0.32517021894454956 fit 50528256 trigger 33 complete True
+2055 device_t 5.164 geom 3 source 3 width 437.50994873046875 rms 5.604607105255127 7.617522716522217 slope 0.06959962844848633 -0.4019792675971985 fit 50528256 trigger 33 complete True
+2056 device_t 5.254 geom 3 source 3 width 402.89312744140625 rms 5.2087507247924805 4.986374855041504 slope 0.04013730585575104 -0.47172024846076965 fit 50528256 trigger 33 complete True
+2057 device_t 5.332 geom 0 source 2 width 0.0 rms 0.0 2.0157856941223145 slope 0.0 -0.5182885527610779 fit 50528259 trigger 40 complete True

@@ -230,6 +230,12 @@ void USART2_IRQHandler(void)
 {
     volatile uint32_t status = USART2->SR;
     if (status & (USART_SR_ORE | USART_SR_FE | USART_SR_NE)) {
+        /* 清错前保存SR分类；一次中断可能同时置多个标志，总数仍只增加一次。 */
+        if (status & USART_SR_ORE) ++Diag_uart_ore;
+        if (status & USART_SR_FE) ++Diag_uart_fe;
+        if (status & USART_SR_NE) ++Diag_uart_ne;
+        Diag_uart_last_us=Diag_TimeUs();
+        Diag_uart_input_seq=Diag_input_seq;
         status = USART2->DR;
         Diag_uart_errors++;
         LidarRx_Fault();

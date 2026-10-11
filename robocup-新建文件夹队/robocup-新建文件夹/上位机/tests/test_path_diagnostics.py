@@ -39,8 +39,8 @@ class PathDiagnostics(unittest.TestCase):
         source=(project/'HARDWARE/hc-05/ble_tune.c').read_text(encoding='utf-8')
         entries=re.findall(r'\{"(\w+)"\s*,\s*&[\w.]+\s*,\s*-?\d+\s*,\s*\d+\s*,\s*(\d+)\s*,\s*\d+\}',source)
         keys={int(key):name for name,key in entries}
-        self.assertEqual(set(keys),v2.PATH_KEYS-set(range(1,15)))
-        self.assertEqual(len(keys),15)
+        self.assertEqual(set(keys),v2.RACE_KEYS-set(range(1,15)))
+        self.assertEqual(len(keys),18)
         for key,name in keys.items(): self.assertEqual(v2.KEYS[key],name)
         config={key:0 for key in v2.PATH_KEYS}
         config.update({1:v2.LAYOUT,2:'test-path',3:3,4:4,5:1,6:115200,7:1})
@@ -58,6 +58,16 @@ class PathDiagnostics(unittest.TestCase):
         parser.feed(v2.packet(5,short)+path_packet(1))
         self.assertGreater(parser.bad_frames,0)
         self.assertEqual(len(parser.v2.messages),1)
+
+    def test_race_registry_requires_speed_parameters(self):
+        for complete in (False,True):
+            config={key:0 for key in (v2.RACE_KEYS if complete else v2.PATH_KEYS)}
+            config.update({1:v2.LAYOUT,2:'test-race',3:3,4:4,5:1,6:115200,7:1,10:'spd=curve-plan'})
+            parser=core.StreamParser()
+            for i,(key,value) in enumerate(config.items()):
+                parser.feed(v2.packet(3,struct.pack('<IIHH',1,0,i,len(config))+v2.tlv(key,value),i))
+            self.assertEqual(bool(parser.v2.configs),complete)
+            if complete:self.assertIn('bendspd',parser.v2.configs[(1,0)])
 
     def test_labels_follow_algorithm(self):
         self.assertEqual(core.mode_name(1,4),'左侧路径')

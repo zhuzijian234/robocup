@@ -15,13 +15,15 @@ uint8_t Diag_mode = 1, Diag_rate = 1;
 uint32_t Diag_revision = 0, Diag_session = 0;
 volatile uint32_t Diag_input_seq, Diag_input_ms, Diag_input_us, Diag_input_drop;
 volatile uint32_t Diag_uart_errors, Diag_dma_errors, Diag_rx_overflow;
+volatile uint32_t Diag_uart_ore, Diag_uart_fe, Diag_uart_ne;
+volatile uint32_t Diag_uart_last_us, Diag_uart_input_seq;
 static volatile uint32_t tick_ms;
 static uint32_t tx_seq, control_seq, last_us, last_ms, last_valid_ms, process_max;
 static uint32_t begin_us, in_ms, mask, updated, last_health;
 static uint8_t have_control, have_valid, last_ok, sample, config_pending, config_index;
 static uint32_t config_id;
-static float fields[26], config_params[15];
-static uint16_t config_keys[15];
+static float fields[26], config_params[18];
+static uint16_t config_keys[18];
 static uint8_t frame[256];
 uint32_t Diag_detail_u[24];
 float Diag_detail_f[24];
@@ -45,7 +47,7 @@ typedef struct {
 } CloudFrame;
 static CloudFrame cloud_ring[4];
 static CloudFrame cloud_recent[4];
-static uint8_t recent_next, recent_used, recent_frozen;
+static uint8_t recent_next, recent_used, recent_frozen, recent_good, recent_bad;
 static uint32_t cloud_id, cloud_last_ms;
 static uint8_t cloud_state, cloud_next, cloud_used, cloud_post, cloud_good;
 static uint8_t cloud_sending, cloud_frame;
@@ -55,7 +57,7 @@ static void cloud_arm(void)
     ++cloud_id;
     cloud_state = 1;
     cloud_next = cloud_used = cloud_post = cloud_good = cloud_sending = 0;
-    recent_next = recent_used = recent_frozen = 0;
+    recent_next = recent_used = recent_frozen = recent_good = recent_bad = 0;
 }
 
 static uint8_t cloud_count(void)
@@ -106,8 +108,16 @@ void Diag_CloudCapture(const PathPoint *points, uint16_t count, uint32_t epoch)
     }
     recent_next = (recent_next+1)&3;
     if (recent_used < 4) ++recent_used;
-    if (cloud_state != 1)
+    if (cloud_state != 1) {
+        /* 首次事件以后先要求6帧恢复，再锁存新的连续两帧失败。
+         * 以便留下“正在丢路径”的过程，而不是等待人按停止时只剩贴墙点云。
+         * 位5仍表示第二组，未置手动位3则为自动事件冻结。 */
+        if (Steering_path.valid) {recent_bad=0;if(recent_good<6) ++recent_good;}
+        else if (recent_good>=6) {
+            if (++recent_bad>=2) recent_frozen=1;
+        } else recent_good=0; /* 未恢复满6个连续有效帧，不把摆车片段拼成恢复。 */
         return;
+    }
     cloud_ring[cloud_next] = *s;
     cloud_ring[cloud_next].reason = reason;
     cloud_next = (cloud_next + 1) & 3;
@@ -361,6 +371,32 @@ static void motor_poll(void)
         motor_tail = tail + n;
     }
 }
+
+/* 第10类低频诊断：路径补充模型、速度规划、USART2错误细分。
+ * 主循环发送；每4个控制序号最多一帧，避免挤占CONTROL/编码器遥测。 */
+static void race_submit(void)
+{
+    uint32_t values[14], irq;
+    float data[10];
+    if (Diag_mode!=3 || !Diag_session || (control_seq & 3u) || !BLE_NormalSpace()) return;
+    values[0]=1;values[1]=control_seq;values[2]=Diag_revision;values[3]=Diag_input_seq;
+    values[4]=Steering_path.model;values[5]=Steering_path.curve_rejected;
+    values[6]=Steering_path.s_preview;values[7]=Steering_speed_reason;
+    irq=__get_PRIMASK();__disable_irq();
+    values[8]=Diag_uart_ore;values[9]=Diag_uart_fe;values[10]=Diag_uart_ne;
+    values[11]=Diag_uart_last_us;values[12]=Diag_uart_input_seq;
+    values[13]=Steering_speed_us;
+    __set_PRIMASK(irq);
+    data[0]=Steering_path.support_mm;data[1]=Steering_path.heading_rad;
+    data[2]=Steering_path.preview_heading_rad;data[3]=Steering_path.turn_distance_mm;
+    data[4]=Steering_speed_limit;data[5]=Radar_effective_target;
+    data[6]=Speed_mubiao;data[7]=RACE_BEND_SPEED;
+    data[8]=RACE_ACCEL;data[9]=RACE_DECEL;
+    header(10,112);
+    memcpy(frame+14,values,sizeof values);memcpy(frame+70,data,sizeof data);
+    BLE_Queue(frame,112,1);
+}
+
 static void detail_submit(uint32_t elapsed, uint8_t action, uint8_t ok)
 {
     uint8_t i;
@@ -528,13 +564,14 @@ void Diag_Submit(uint16_t mode, uint16_t raw, uint16_t speed, uint8_t ok)
     BLE_Queue(frame, 108, 0);
     detail_submit(now - begin_us, action, ok);
     path_extra_submit();
+    race_submit();
 }
-/* 配置键稳定；算法 4 删除的旧参数不再注册。总计 14 元数据 + 15 个有效参数。 */
-#define CFG_COUNT 29
+/* 配置键稳定；算法 4 删除的旧参数不再注册。总计 14 元数据 + 18 个有效参数。 */
+#define CFG_COUNT 32
 void Diag_ConfigStart(void)
 {
     uint8_t i;
-    for (i = 0; i < 15; i++)
+    for (i = 0; i < 18; i++)
         Tune_ConfigValue(i, &config_keys[i], &config_params[i]);
     config_pending = 1;
     config_index = 0;
@@ -583,7 +620,7 @@ static void config_poll(void)
             number = 1000;
             break;
         case 10:
-            text = "mm;CCR;encoder_units;x=a*y+b;PD=ref700-cap1.5-Dcap150;exit=confirm-reduce;spd=race-fixed;request=CFG108";
+            text = "mm;CCR;encoder_units;x=a*y+b;PD=ref700-cap1.5-Dcap150;exit=confirm-reduce;spd=curve-plan;max=108;bend=123;acc=124;dec=125";
             break;
         case 11:
             number = DMA_USART2_RX_BUF_LEN;
@@ -592,7 +629,7 @@ static void config_poll(void)
             number = LEIDA_DATA_COUNTER;
             break;
         case 13:
-            text = "path=local-dual/single;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121";
+            text = "path=local+contour;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121";
             break;
         case 14:
             text = "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720";
@@ -700,7 +737,7 @@ uint8_t Diag_Command(char *line)
         return 1;
     }
     if (!strcmp(line, "info")) {
-        sprintf(ack, "INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=4 input=%u atomic=0 detail=2 motor=1 extra=1 cloud=2\r\n", DIAG_LAYOUT, DIAG_BUILD_ID, (unsigned)DIAG_LIDAR_ID, (unsigned)DIAG_INPUT_KIND);
+        sprintf(ack, "INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=4 input=%u atomic=0 detail=2 motor=1 extra=1 cloud=2 race=1\r\n", DIAG_LAYOUT, DIAG_BUILD_ID, (unsigned)DIAG_LIDAR_ID, (unsigned)DIAG_INPUT_KIND);
         Send_Bluetooth_Data(ack);
         return 1;
     }

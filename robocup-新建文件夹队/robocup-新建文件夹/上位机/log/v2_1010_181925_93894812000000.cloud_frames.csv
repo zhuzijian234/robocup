@@ -1,5 +1,0 @@
-﻿session,snapshot_id,frame_index,control_seq,param_revision,input_seq,input_us,epoch,trigger_flags,total_points,received_points,complete,conflict
-1631160076,3,0,22476,2,22476,1876380431,1,0,245,245,1,0
-1631160076,3,1,22477,2,22477,1876469594,1,0,243,243,1,0
-1631160076,3,2,22478,2,22478,1876548173,1,1,247,247,1,0
-1631160076,3,3,22479,2,22479,1876637776,1,0,248,248,1,0

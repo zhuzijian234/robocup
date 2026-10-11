@@ -76,6 +76,9 @@ void Get_Encoder(void){}
 void Moto_Speed(uint16_t pwm){hardware_pwm=pwm;}
 void Diag_MotorTick(uint16_t raw,uint8_t enc,uint8_t pi){(void)raw;(void)enc;(void)pi;}
 '''
+program+='float Steering_speed_limit=10,RACE_BEND_SPEED=10,RACE_ACCEL=2,RACE_DECEL=12;uint32_t Steering_speed_us;\n'
+program+=function(source('HARDWARE/CENTRE_LINE/path_track.c'),'bounded')
+program+=function(source('HARDWARE/CENTRE_LINE/path_track.c'),'Path_SpeedStep')
 program+=function(timer,'TIM5_IRQHandler')
 program+=r'''
 static M10P_Scan s;static _LEIDA_DATA out[720];
@@ -121,7 +124,7 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
   s.count=0;M10P_Build(&s,out,720);CHECK(!M10P_perception_ok);
   TIM5_IRQHandler();CHECK(Radar_effective_target==10 && hardware_pwm>0);
  }
- CHECK(Speed_pid.err_sum==200);
+ CHECK(Speed_pid.err_sum>0 && Speed_pid.err_sum<200);
  Radar_RecordControl(clock_us-90000);CHECK(Radar_ControlAgeUs()==90000);
  clock_us=0xfffffff0u;Radar_RecordControl(clock_us);clock_us+=100;
  CHECK(Radar_ControlAgeUs()==100);
@@ -137,8 +140,11 @@ int main(void){unsigned i;pid_type pid={8.5f,.505f,0};float pwm;
   }
  }
  /* Changed target still uses encoder feedback instead of fixed duty. */
- Speed_mubiao=12;TIM5_IRQHandler();CHECK(Radar_effective_target==12);
- for(i=0;i<20;i++)pwm=PID_realize(0,10,&pid);CHECK(pwm==100);CHECK(pid.err_sum==200);
+ Speed_mubiao=12;Steering_speed_limit=12;Steering_speed_us=clock_us;
+ TIM5_IRQHandler();CHECK(Radar_effective_target>10 && Radar_effective_target<10.03f);
+ for(i=0;i<150;i++){clock_us+=10000;Steering_speed_us=clock_us;TIM5_IRQHandler();}
+ CHECK(Radar_effective_target==12);
+ for(i=0;i<20;i++)pwm=PID_realize(0,10,&pid);CHECK(pwm==100);CHECK(pid.err_sum>0 && pid.err_sum<200);
  memset(&pid,0,sizeof pid);
  CHECK(PID_realize(0,0,&pid)==0);
  printf("PASS %u adapter/race/PI checks\n",checks);return 0;

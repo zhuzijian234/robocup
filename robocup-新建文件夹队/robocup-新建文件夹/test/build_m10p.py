@@ -41,7 +41,7 @@ for f in target.findall('./Groups/Group/Files/File'):
     objects.append(obj)
 else:
     scatter = PROJECT.parent/'m10p.sct'
-    cmd = [str(BIN/'armlink.exe'), '--cpu=Cortex-M4.fp.sp', '--library_type=microlib', '--scatter', str(scatter), '--map', '--symbols', '--info=sizes', '--list', str(WORK/'robocup_m10p.map'), '-o', str(WORK/'robocup_m10p.axf')] + [str(p) for p in objects+libs]
+    cmd = [str(BIN/'armlink.exe'), '--cpu=Cortex-M4.fp.sp', '--library_type=microlib', '--scatter', str(scatter), '--map', '--symbols', '--callgraph', '--info=sizes', '--list', str(WORK/'robocup_m10p.map'), '-o', str(WORK/'robocup_m10p.axf')] + [str(p) for p in objects+libs]
     proc = subprocess.run(cmd, capture_output=True)
     records.append(dict(file='LINK', command=cmd, exit=proc.returncode, output=(proc.stdout+proc.stderr).decode('utf-8', errors='replace')))
 for p in PROJECT.parent.parent.rglob('*.h'):
@@ -63,7 +63,7 @@ if not summary['failures']:
     # Publish through a sibling file created in OUT, inheriting OUT's ACL.
     # Moving straight out of tempfile.mkdtemp carries its owner-only Windows
     # ACL, making firmware unreadable to the user's IDE/Git account.
-    for suffix in ('axf','map','hex'):
+    for suffix in ('axf','map','hex','htm'):
         destination = OUT/('robocup_m10p.'+suffix)
         published = OUT/(WORK.name+'_'+destination.name+'.publish')
         with published.open('xb') as stream:

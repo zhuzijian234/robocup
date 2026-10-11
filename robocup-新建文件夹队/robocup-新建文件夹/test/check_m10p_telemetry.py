@@ -144,3 +144,64 @@ with (OUT/'production_snapshot.cloud_frames.csv').open(encoding='utf-8-sig') as 
     assert all(r['complete']=='1' for r in csv.DictReader(stream))
 assert v2.cloud_dump_complete(d.messages,clouds[0]['session'],clouds[0]['snapshot_id'],8)
 print('PASS production C -> PC PATH extra and dual 8-frame/3200-point snapshot, freeze/throttle/retry')
+
+# 第二组自动冻结必须等到连续恢复，再捕获连续失效；第一次孤立抖点不抢占缓存。
+auto_code=extended_code[:extended_code.index('int main(void)')]+r'''
+int main(void){
+ PathPoint p[1]={{100,200}};unsigned i;
+ cloud_arm();Steering_path.valid=1;
+ for(i=1;i<=4;++i){control_seq=i;Diag_CloudCapture(p,1,2);}
+ Steering_path.valid=0;
+ for(i=5;i<=6;++i){control_seq=i;Diag_CloudCapture(p,1,2);}
+ if(cloud_state!=2)return 1;
+ Steering_path.valid=1;
+ for(i=7;i<=9;++i){control_seq=i;Diag_CloudCapture(p,1,2);}
+ Steering_path.valid=0;control_seq=10;Diag_CloudCapture(p,1,2);
+ if(recent_good || recent_frozen)return 2;
+ Steering_path.valid=1;
+ for(i=11;i<=16;++i){control_seq=i;Diag_CloudCapture(p,1,2);}
+ Steering_path.valid=0;control_seq=17;Diag_CloudCapture(p,1,2);
+ if(recent_frozen)return 3;
+ control_seq=18;Diag_CloudCapture(p,1,2);
+ if(!recent_frozen || cloud_count()!=8)return 4;
+ if(cloud_recent[(recent_next+3)&3].control!=18)return 5;
+ control_seq=99;Diag_CloudCapture(p,1,2);cloud_freeze();
+ if(cloud_recent[(recent_next+3)&3].control!=18 || (cloud_recent[(recent_next+3)&3].reason&8))return 6;
+ puts("PASS second cloud auto-freeze: recovery, isolated failure, persistent failure, immutable event");return 0;
+}
+'''
+p=OUT/'cloud_auto.c';p.write_text(auto_code,encoding='utf-8');run('cloud_auto',p)
+
+race_code=base+header+r'''
+uint32_t control_seq=4,Diag_revision=7,Diag_input_seq=100;
+uint32_t Diag_uart_ore=2,Diag_uart_fe=3,Diag_uart_ne=4,Diag_uart_last_us=12345,Diag_uart_input_seq=99;
+uint32_t Steering_speed_us=998000;
+uint8_t Steering_speed_reason=1;
+float Steering_speed_limit=10,Speed_mubiao=17,RACE_BEND_SPEED=10,RACE_ACCEL=2,RACE_DECEL=12;
+PathObservation Steering_path;
+uint32_t __get_PRIMASK(void){return 0;}
+void __disable_irq(void){}
+void __set_PRIMASK(uint32_t p){(void)p;}
+'''+fn('race_submit')+r'''
+int main(void){
+ Steering_path.model=2;Steering_path.support_mm=700;Steering_path.heading_rad=.3f;
+ Steering_path.preview_heading_rad=-.4f;Steering_path.s_preview=1;Steering_path.turn_distance_mm=400;
+ race_submit();control_seq=5;race_submit();return emitted==1?0:1;
+}
+'''
+p=OUT/'race_codec.c';p.write_text(race_code,encoding='utf-8');r=run('race_codec',p)
+raw=bytes.fromhex(r['output'].strip());assert len(raw)==112
+d=v2.Decoder();d.accept(raw,[],[],0.0);m=d.messages[0]
+assert m['model']==2 and m['s_preview']==1 and m['speed_ceiling']==17 and m['bend_speed']==10
+assert m['uart_ore']==2 and m['uart_fe']==3 and m['uart_ne']==4 and m['uart_input_seq']==99
+assert m['support_mm']==700 and m['speed_reason']==1 and m['speed_plan_us']==998000
+import struct
+for payload in (raw[14:-2][:-4],struct.pack('<I',2)+raw[18:-2],raw[14:70]+struct.pack('<f',float('nan'))+raw[74:-2]):
+    try:v2.Decoder().accept(v2.packet(10,payload,1,123),[],[],0.0)
+    except ValueError:pass
+    else:raise AssertionError('invalid race frame accepted')
+from types import SimpleNamespace
+v2.write_extensions(SimpleNamespace(v2=d),OUT/'production_race')
+with (OUT/'production_race.race.csv').open(encoding='utf-8-sig') as stream:
+    assert next(csv.DictReader(stream))['speed_ceiling']=='17.0'
+print('PASS production C -> PC RACE schema/fields/rate/export; invalid length/schema/nonfinite rejected')

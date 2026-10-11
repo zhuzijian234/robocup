@@ -12,6 +12,8 @@ extern uint8_t Diag_mode, Diag_rate;
 extern uint32_t Diag_revision, Diag_session;
 extern volatile uint32_t Diag_input_seq, Diag_input_ms, Diag_input_us, Diag_input_drop;
 extern volatile uint32_t Diag_uart_errors, Diag_dma_errors, Diag_rx_overflow;
+extern volatile uint32_t Diag_uart_ore, Diag_uart_fe, Diag_uart_ne;
+extern volatile uint32_t Diag_uart_last_us, Diag_uart_input_seq;
 extern volatile uint32_t Diag_tx_drop;
 uint16_t Diag_CRC(const uint8_t *p, uint16_t n);
 int16_t Diag_Encode(uint8_t index, float v, uint8_t *valid, uint8_t *clipped);

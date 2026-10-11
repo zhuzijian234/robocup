@@ -3,6 +3,7 @@
 #include "ble_diag.h"
 #include "m10p_vehicle.h"
 #include "Servo.h"
+#include "moto.h"
 #include <string.h>
 
 pid_type Servo_pd, Speed_pid;
@@ -15,6 +16,11 @@ PathObservation Steering_path;
 PathCommand Steering_command;
 static PathGeometry geometry;
 static PathController controller;
+static PathSpeed speed_plan;
+float RACE_BEND_SPEED = 10.0f, RACE_ACCEL = 2.0f, RACE_DECEL = 12.0f;
+volatile float Steering_speed_limit = 10.0f;
+volatile uint32_t Steering_speed_us;
+volatile uint8_t Steering_speed_reason = 3;
 static uint32_t previous_revision;
 static uint32_t previous_scan_us;
 
@@ -22,6 +28,9 @@ void Steering_Init(void)
 {
     memset(&controller, 0, sizeof controller);
     memset(&geometry, 0, sizeof geometry);
+    memset(&speed_plan, 0, sizeof speed_plan);
+    Steering_speed_us = 0;
+    Steering_speed_limit = RACE_BEND_SPEED;
     previous_scan_us = 0;
     memset(&Servo_pd, 0, sizeof Servo_pd);
     Servo_pd.kp = 0.035f;
@@ -48,7 +57,8 @@ void Steering_Update(const M10P_Scan *scan, const PathPoint *points, uint16_t co
     previous_scan_us = scan ? scan->end_us : 0;
     if (!M10P_ScanUsable(scan, Diag_TimeUs()))
         count = 0;
-    Path_Build(&geometry, points, count, PATH_WIDTH_MM, PATH_PREVIEW_MM, CENTER_X_TARGET_MM, path);
+    Path_Build(&geometry, points, count, PATH_WIDTH_MM, Path_Preview(PATH_PREVIEW_MM, Speed_now),
+               CENTER_X_TARGET_MM, path);
     now = Diag_TimeUs();
     /* 接收代次/时效与几何质量分开：单侧可用不要求两侧桶数同时达标。
      * 计算结束再查一次代次和年龄，避免处理期间 DMA 异常使旧帧被执行。 */
@@ -74,6 +84,7 @@ void Steering_Update(const M10P_Scan *scan, const PathPoint *points, uint16_t co
         controller.history = 0; /* 在线改变预瞄/标定不制造假 D */
         previous_revision = Diag_revision;
     }
+    gains.speed = Speed_now;
     gains.kp = Servo_pd.kp;
     gains.kd = Servo_pd.kd;
     gains.turn_kp = Servo_pd.kp_2;
@@ -86,6 +97,16 @@ void Steering_Update(const M10P_Scan *scan, const PathPoint *points, uint16_t co
     gains.pwm_mid = SERVO_PWM_MID;
     gains.pwm_max = SERVO_PWM_MAX;
     Path_Control(&controller, path, &gains, scan_valid, now, (uint16_t)TIM3->CCR1, command);
+    /* 单次短临界区发布上限、时间和原因，10ms中断不会读到半份配置。 */
+    {
+        float limit = Path_SpeedLimit(&speed_plan, path, scan_valid, Speed_mubiao, RACE_BEND_SPEED, now);
+        uint32_t irq = __get_PRIMASK();
+        __disable_irq();
+        Steering_speed_limit = limit;
+        Steering_speed_us = now;
+        Steering_speed_reason = speed_plan.reason;
+        __set_PRIMASK(irq);
+    }
     Servo_PD_valid = command->applied;
     M10P_steer_source = command->applied ? path->source : M10P_SRC_HOLD;
     if (command->computed)
@@ -146,7 +167,7 @@ void Speed_PID_Init(pid_type *pid, float kp, float ki, float kd)
     pid->kd = kd;
 }
 
-/* TIM5 每 10 ms 调用；目标固定，雷达/路径异常不参与速度环。 */
+/* TIM5每10ms调用；速度目标平滑变化，雷达失效仅降低竞速上限，不自动停车。 */
 float PID_realize(float speed_now, float speed_mubiao, pid_type *speed_pid)
 {
     float moto_pwm = 0;
@@ -154,8 +175,14 @@ float PID_realize(float speed_now, float speed_mubiao, pid_type *speed_pid)
     /* 计算当前偏差 */
     speed_pid->err = speed_mubiao - speed_now;
 
-    /* 累加积分 */
-    speed_pid->err_sum += speed_pid->err;
+    /* 条件积分：饱和且误差继续推向饱和方向时不再堆积；允许反向误差立即解饱和。 */
+    {
+        float next = speed_pid->err_sum + speed_pid->err;
+        float raw = speed_pid->kp * speed_pid->err + speed_pid->ki * speed_pid->err_sum +
+                    speed_pid->kd * (speed_pid->err - speed_pid->err_l);
+        if (!((raw >= 100 && speed_pid->err > 0) || (raw <= 0 && speed_pid->err < 0)))
+            speed_pid->err_sum = next;
+    }
 
     /* 积分抗饱和 */
     if (speed_pid->err_sum >= 200)

@@ -122,8 +122,7 @@ static PathFit fit(const PathPoint *points, uint16_t count, float low, float hig
         out.count = n;
         if (!n)
             out.min_y = out.max_y = 0;
-        out.rejected = (n < 4 ? FIT_POINTS : 0) |
-                       (out.max_y - out.min_y < MIN_SPAN_MM ? FIT_SPAN : 0) |
+        out.rejected = (n < 4 ? FIT_POINTS : 0) | (out.max_y - out.min_y < MIN_SPAN_MM ? FIT_SPAN : 0) |
                        (out.gap > MAX_GAP_MM ? FIT_GAP : 0);
         if (out.rejected)
             return out;
@@ -177,28 +176,27 @@ static float direction(const PathFit *left, const PathFit *right, uint8_t source
 /* 冲突时只允许有独立连续性证据的单侧接管，不因“某侧RMS略小”盲猜。
  * 近远段必须在实际接缝相连，远段覆盖预瞄；候选中线在共同可见区内
  * 还须给另一面保留轮外沿及侧隙，避免单侧半宽偏移指到对墙上。 */
-static uint8_t recovery_side(const PathFit *near, const PathFit *far, uint8_t side,
-                             float width, float preview)
+static uint8_t recovery_side(const PathFit *near, const PathFit *far, uint8_t side, float width,
+                             float preview)
 {
-    const PathFit *n = &near[side], *f = &far[side], *other = &near[1-side];
+    const PathFit *n = &near[side], *f = &far[side], *other = &near[1 - side];
     float lo, hi, join, y, center, clearance;
     unsigned i;
     if (!n->valid || !f->valid || n->rms > 35)
         return 0;
     join = f->min_y;
-    if (n->max_y < join-50 || f->min_y > preview+100 || f->max_y < preview-100 ||
-        fabsf(at(n, join)-at(f, join)) > 80 || fabsf(n->a-f->a) > .8f)
+    if (n->max_y < join - 50 || f->min_y > preview + 100 || f->max_y < preview - 100 ||
+        fabsf(at(n, join) - at(f, join)) > 80 || fabsf(n->a - f->a) > .8f)
         return 0;
     lo = fmaxf(n->min_y, other->min_y);
     hi = fminf(n->max_y, other->max_y);
-    if (hi-lo < 200)
+    if (hi - lo < 200)
         return 0;
-    for (i=0; i<3; ++i)
+    for (i = 0; i < 3; ++i)
     {
-        y = lo+(hi-lo)*i*.5f;
-        center = at(n,y)+(side ? -1 : 1)*width*.5f*sqrtf(1+n->a*n->a);
-        clearance = (side ? center-at(other,y) : at(other,y)-center) /
-                    sqrtf(1+other->a*other->a);
+        y = lo + (hi - lo) * i * .5f;
+        center = at(n, y) + (side ? -1 : 1) * width * .5f * sqrtf(1 + n->a * n->a);
+        clearance = (side ? center - at(other, y) : at(other, y) - center) / sqrtf(1 + other->a * other->a);
         if (clearance < VEHICLE_HALF_CLEAR_MM)
             return 0;
     }
@@ -213,6 +211,8 @@ static uint8_t cone_center(const PathPoint *points, uint16_t begin, uint16_t end
     float dx, dy, chord2, mx, my, h, nx, ny, bulge = 0, residual = 0;
     if (end - begin < 4)
         return 0;
+    if (points[begin].y < 125 || points[end - 1].y < 125)
+        return 0; /* y=100mm裁剪可能把连续内墙切成小圆弧，不授予“桶”身份。 */
     dx = points[end - 1].x - points[begin].x;
     dy = points[end - 1].y - points[begin].y;
     chord2 = dx * dx + dy * dy;
@@ -232,14 +232,13 @@ static uint8_t cone_center(const PathPoint *points, uint16_t begin, uint16_t end
     {
         float x = points[i].x - center->x, y = points[i].y - center->y;
         float e = sqrtf(x * x + y * y) - CONE_SCAN_RADIUS_MM;
-        float cross = fabsf(dx * (points[i].y - points[begin].y) -
-                            dy * (points[i].x - points[begin].x));
+        float cross = fabsf(dx * (points[i].y - points[begin].y) - dy * (points[i].x - points[begin].x));
         if (cross > bulge)
             bulge = cross;
         residual += e * e;
     }
-    return bulge * bulge >= 4 * 4 * chord2 && residual <= (end - begin) * 12 * 12 &&
-           center->y >= 100 && center->y <= 1100;
+    return bulge * bulge >= 4 * 4 * chord2 && residual <= (end - begin) * 12 * 12 && center->y >= 100 &&
+           center->y <= 1100;
 }
 
 /* 避让处必须有本帧边界支持；分区均值的边缘仅允许50mm容差。 */
@@ -283,13 +282,13 @@ static void avoid_cones(PathGeometry *state, const PathPoint *points, uint16_t c
         }
         if (cone_center(points, begin, end, &cone))
         {
-            uint8_t use_far = out->far_valid && cone.y >= 550 &&
-                              supports_y(out->far_fit, out->source, cone.y);
+            uint8_t use_far =
+                out->far_valid && cone.y >= 550 && supports_y(out->far_fit, out->source, cone.y);
             /* 近处用近段，远处有可信远段才使用远段；禁止跨很远外推避让。 */
             a = use_far ? out->far_a : out->near_a;
             ++out->cone_candidates;
-            path_x = use_far ? out->far_x + a * (cone.y - out->ref_y) :
-                              out->near_x + a * (cone.y - out->near_ref_y);
+            path_x = use_far ? out->far_x + a * (cone.y - out->ref_y)
+                             : out->near_x + a * (cone.y - out->near_ref_y);
             scale = sqrtf(1 + a * a);
             lateral = (cone.x - path_x) / scale;
             required = CONE_BASE_ENVELOPE_MM + body_clearance - fabsf(lateral);
@@ -298,9 +297,9 @@ static void avoid_cones(PathGeometry *state, const PathPoint *points, uint16_t c
                 fabsf(lateral) <= out->width * 0.5f + 60)
             {
                 /* 中线附近沿既有避让方向通过，避免圆心小幅抖动导致左右反复切换。 */
-                shift = fabsf(lateral) < 30 && state->avoid_offset != 0 ?
-                            (state->avoid_offset > 0 ? required : -required) :
-                            (lateral <= 0 ? required : -required);
+                shift = fabsf(lateral) < 30 && state->avoid_offset != 0
+                            ? (state->avoid_offset > 0 ? required : -required)
+                            : (lateral <= 0 ? required : -required);
                 /* 1.1m开始平滑介入，800mm内给出完整避让偏移。 */
                 shift *= bounded((1100 - cone.y) / 300, 0, 1);
                 requested = bounded(shift * scale, -allowance * normal, allowance * normal);
@@ -354,8 +353,8 @@ static void avoid_cones(PathGeometry *state, const PathPoint *points, uint16_t c
     out->target_x += out->avoid_offset;
 }
 
-void Path_Build(PathGeometry *state, const PathPoint *points, uint16_t count, float configured_width,
-                float preview_y, float center_x, PathObservation *out)
+static void build_lines(PathGeometry *state, const PathPoint *points, uint16_t count, float configured_width,
+                        float preview_y, float center_x, PathObservation *out)
 {
     PathPoint samples[STRIPS];
     PathFit *near, *far;
@@ -389,6 +388,12 @@ void Path_Build(PathGeometry *state, const PathPoint *points, uint16_t count, fl
     }
     near = out->near_fit;
     far = out->far_fit;
+    /* 弯道尺度限制须先于来源选择，否则900mm支持不足会错拒原有700mm路径。
+     * 远段仍读550~1300mm；只限制实际跟踪目标，不删掉前方弯向证据。 */
+    for (side = 0; side < 2; ++side)
+        if (preview_y > 700 && ((near[side].valid && fabsf(near[side].a) > .14f) ||
+                               (far[side].valid && fabsf(far[side].a) > .14f)))
+            preview_y = 700;
     out->geometry_reason = GEOM_NEAR_MISSING;
     if (!near[0].valid && !near[1].valid)
     {
@@ -456,9 +461,9 @@ void Path_Build(PathGeometry *state, const PathPoint *points, uint16_t count, fl
         out->width = out->width_candidate;
         out->width_measured = 1; /* 本帧实测与写入历史是两个不同状态。 */
     }
-    if (source == PATH_DUAL && fabsf(near[0].a) < .10f && fabsf(near[1].a) < .10f &&
-        far[0].valid && far[1].valid && fabsf(far[0].a) < .10f && fabsf(far[1].a) < .10f &&
-        near[0].rms < 30 && near[1].rms < 30 && !state->avoid_offset && !state->candidate_frames)
+    if (source == PATH_DUAL && fabsf(near[0].a) < .10f && fabsf(near[1].a) < .10f && far[0].valid &&
+        far[1].valid && fabsf(far[0].a) < .10f && fabsf(far[1].a) < .10f && near[0].rms < 30 &&
+        near[1].rms < 30 && !state->avoid_offset && !state->candidate_frames)
     {
         /* 只在近远段一致的直道学习宽度，弯道透视变化不能污染后续单侧偏移。 */
         width = out->width_candidate;
@@ -473,8 +478,8 @@ void Path_Build(PathGeometry *state, const PathPoint *points, uint16_t count, fl
     {
         uint8_t available = far[1].valid ? 1 : 0;
         float join_y = far[available].min_y;
-        if (near[available].max_y >= join_y - 50 &&
-            far[available].min_y <= preview_y + 100 && far[available].max_y >= preview_y - 100 &&
+        if (near[available].max_y >= join_y - 50 && far[available].min_y <= preview_y + 100 &&
+            far[available].max_y >= preview_y - 100 &&
             fabsf(at(&near[available], join_y) - at(&far[available], join_y)) <= 80 &&
             fabsf(near[available].a - far[available].a) <= 0.8f)
         {
@@ -526,6 +531,354 @@ void Path_Build(PathGeometry *state, const PathPoint *points, uint16_t count, fl
     out->straight = out->far_valid && fabsf(out->near_a) < 0.10f && fabsf(out->far_a) < 0.10f &&
                     fabsf(out->near_a - out->far_a) < 0.10f && fabsf(out->far_x - out->near_x) < 60;
     avoid_cones(state, points, count, center_x, out);
+}
+
+/* 急弯补充模型只处理同帧、相邻射线的连续轮廓；固定空间抽样而非密集点投票。
+ * 不扩大原直线RMS容差，不把没有回波的区域当作出口。最多32个等距工作点。 */
+#define CURVE_N 32
+
+typedef struct
+{
+    PathPoint wall[CURVE_N], center[CURVE_N];
+    float yaw[CURVE_N];
+    uint16_t n;
+} CurveWork;
+
+static float point_distance(PathPoint a, PathPoint b)
+{
+    float x = a.x - b.x, y = a.y - b.y;
+    return sqrtf(x * x + y * y);
+}
+
+/* 每条中心线小段均检查所有已见占用；150mm包含130mm轮外沿及20mm余量。
+ * 这是可见范围的局部通路检查，不冒充后轴运动学或不可见侧后方扫掠。 */
+static uint8_t corridor_clear(const PathPoint *points, uint16_t count, PathPoint a, PathPoint b)
+{
+    uint16_t i;
+    float dx = b.x - a.x, dy = b.y - a.y, length2 = dx * dx + dy * dy;
+    if (length2 < 1)
+        return 0;
+    for (i = 0; i < count; ++i)
+    {
+        float u = bounded(((points[i].x - a.x) * dx + (points[i].y - a.y) * dy) / length2, 0, 1);
+        float x = points[i].x - a.x - u * dx, y = points[i].y - a.y - u * dy;
+        if (x * x + y * y < VEHICLE_HALF_CLEAR_MM * VEHICLE_HALF_CLEAR_MM)
+            return 0;
+    }
+    return 1;
+}
+
+/* 首尾差给出方向，局部正交残差验证形状；方向不依赖y跨度或无穷大斜率。 */
+static uint8_t curve_candidate(const PathPoint *points, uint16_t count, uint16_t begin, uint16_t end,
+                               int side, float width, float preview, float cx, PathObservation *candidate)
+{
+    CurveWork w;
+    PathPoint seed;
+    uint16_t i, j, lo, hi, first, stop;
+    int index, step;
+    float distance = 0, tx, ty, len, yaw0 = 0, bend = 0, total = 0, best = 1e9f;
+    float near_yaw = 0, far_yaw = 0;
+    PathPoint near_point = {0, 0}, target = {0, 0};
+    preview = fminf(preview, 700); /* 弧形跟踪不随直道提速扩大跨弯弦长。 */
+    if (end - begin < 10)
+        return 0;
+    step = points[begin].y <= points[end - 1].y ? 1 : -1;
+    index = step > 0 ? begin : end - 1;
+    seed = points[index];
+    if (seed.y > 400 || side * (seed.x - cx) < 60 || fabsf(seed.x - cx) > width * .5f + 160)
+        return 0;
+    w.n = 0;
+    for (i = begin; i < end; ++i, index += step)
+    {
+        PathPoint p = points[index];
+        distance = w.n ? point_distance(w.wall[w.n - 1], p) : 0;
+        if (w.n && distance < 55)
+            continue;
+        if (w.n == CURVE_N)
+            break;
+        w.wall[w.n++] = p;
+        distance = 0;
+    }
+    if (w.n < 7)
+        return 0;
+    for (i = 0; i < w.n; ++i)
+    {
+        lo = i > 1 ? i - 2 : 0;
+        hi = i + 2 < w.n ? i + 2 : w.n - 1;
+        tx = w.wall[hi].x - w.wall[lo].x;
+        ty = w.wall[hi].y - w.wall[lo].y;
+        len = sqrtf(tx * tx + ty * ty);
+        if (len < 80)
+            return 0;
+        tx /= len;
+        ty /= len;
+        for (j = lo; j <= hi; ++j)
+        {
+            float e = (w.wall[j].x - w.wall[lo].x) * ty - (w.wall[j].y - w.wall[lo].y) * tx;
+            if (fabsf(e) > 45)
+                return 0; /* 拐点分段可弯，不跨突变连接不相关墙。 */
+        }
+        w.yaw[i] = atan2f(tx, ty);
+        if (!i)
+            yaw0 = w.yaw[i];
+        if (fabsf(w.yaw[i] - yaw0) > bend)
+            bend = fabsf(w.yaw[i] - yaw0);
+        if (i && fabsf(w.yaw[i] - w.yaw[i - 1]) > .65f)
+            return 0;
+        w.center[i].x = w.wall[i].x - side * width * .5f * ty;
+        w.center[i].y = w.wall[i].y + side * width * .5f * tx;
+    }
+    /* 直墙不需要补充模型；很短的弧不能因密集点数多伪装成长边界。 */
+    if (bend < .25f || fabsf(yaw0) > 1.0f)
+        return 0;
+    first = 0;
+    for (i = 0; i < w.n; ++i)
+    {
+        float d = (w.center[i].x - cx) * (w.center[i].x - cx) + w.center[i].y * w.center[i].y;
+        if (w.center[i].y >= 100 && d < best)
+        {
+            best = d;
+            first = i;
+        }
+    }
+    if (best == 1e9f || first + 3 >= w.n)
+        return 0;
+    {
+        PathPoint entry = {0, 100}; /* cx是跟踪偏置，不把它误当作车体中心位置。 */
+        if (point_distance(entry, w.center[first]) > 5 &&
+            !corridor_clear(points, count, entry, w.center[first]))
+            return 0;
+    }
+    total = sqrtf(best);
+    stop = first;
+    near_point = target = w.center[first];
+    near_yaw = far_yaw = w.yaw[first];
+    for (i = first + 1; i < w.n; ++i)
+    {
+        float old = total, f;
+        len = point_distance(w.center[i - 1], w.center[i]);
+        if (len < 5 || len > 180 || w.center[i].y < 100)
+            break;
+        if (!corridor_clear(points, count, w.center[i - 1], w.center[i]))
+            break;
+        total += len;
+        stop = i;
+        if (old < 400)
+        {
+            f = bounded((400 - old) / len, 0, 1);
+            near_point.x = w.center[i - 1].x + f * (w.center[i].x - w.center[i - 1].x);
+            near_point.y = w.center[i - 1].y + f * (w.center[i].y - w.center[i - 1].y);
+            near_yaw = w.yaw[i - 1] + f * (w.yaw[i] - w.yaw[i - 1]);
+        }
+        f = bounded((preview - old) / len, 0, 1);
+        target.x = w.center[i - 1].x + f * (w.center[i].x - w.center[i - 1].x);
+        target.y = w.center[i - 1].y + f * (w.center[i].y - w.center[i - 1].y);
+        far_yaw = w.yaw[i - 1] + f * (w.yaw[i] - w.yaw[i - 1]);
+        if (total >= preview)
+            break;
+    }
+    if (stop < first + 3 || total < 400 || target.y < 150)
+        return 0;
+    candidate->valid = 1;
+    candidate->geometry_reason = GEOM_OK;
+    candidate->source = side > 0 ? PATH_RIGHT : PATH_LEFT;
+    candidate->model = 2;
+    candidate->straight = 0;
+    candidate->width = width;
+    candidate->width_frozen = 1;
+    candidate->near_x = near_point.x;
+    candidate->near_ref_y = near_point.y;
+    candidate->target_x = candidate->far_x = target.x;
+    candidate->ref_y = target.y;
+    candidate->heading_rad = near_yaw;
+    candidate->preview_heading_rad = far_yaw;
+    candidate->near_a = bounded(sinf(near_yaw) / fmaxf(cosf(near_yaw), .2f), -1.8f, 1.8f);
+    candidate->far_a = bounded(sinf(far_yaw) / fmaxf(cosf(far_yaw), .2f), -1.8f, 1.8f);
+    candidate->far_valid = total >= preview;
+    candidate->support_mm = fminf(total, preview);
+    candidate->avoid_offset = 0;
+    candidate->avoid_state = AVOID_CLEAR;
+    return 1;
+}
+
+static uint8_t recover_curve(const PathPoint *points, uint16_t count, float width, float preview, float cx,
+                             PathObservation *out)
+{
+    uint16_t begin = 0, end;
+    uint8_t found = 0;
+    PathObservation candidate, best;
+    while (begin < count)
+    {
+        end = begin + 1;
+        while (end < count && point_distance(points[end - 1], points[end]) < 100)
+            ++end;
+        candidate = *out;
+        if (curve_candidate(points, count, begin, end, 1, width, preview, cx, &candidate) ||
+            curve_candidate(points, count, begin, end, -1, width, preview, cx, &candidate))
+        {
+            if (found && (candidate.target_x - cx) * (best.target_x - cx) < 0)
+            {
+                out->curve_rejected = 2;
+                return 0; /* 两个相反出口都有证据时禁止猜方向。 */
+            }
+            if (!found || candidate.support_mm > best.support_mm)
+                best = candidate;
+            found = 1;
+        }
+        begin = end;
+    }
+    if (found)
+    {
+        *out = best;
+        return 1;
+    }
+    out->curve_rejected = 1;
+    return 0;
+}
+
+/* 无远段时只在共同可见区建立短走廊；不放宽原双侧斜率门槛或外推700mm。 */
+static uint8_t recover_local(const PathPoint *points, uint16_t count, PathObservation *out)
+{
+    const PathFit *l = &out->near_fit[0], *r = &out->near_fit[1];
+    float lo = fmaxf(l->min_y, r->min_y), hi = fminf(l->max_y, r->max_y);
+    PathPoint previous, p;
+    unsigned i;
+    if ((out->far_fit[0].rejected & (FIT_RMS | FIT_SLOPE)) ||
+        (out->far_fit[1].rejected & (FIT_RMS | FIT_SLOPE)))
+        return 0;
+    if (!l->valid || !r->valid || l->rms > 30 || r->rms > 30 || hi - lo < 250 || lo > 250 || hi < 400 ||
+        fabsf(l->a - r->a) > .65f)
+        return 0;
+    hi = fminf(hi, 550);
+    previous.x = .5f * (at(l, lo) + at(r, lo));
+    previous.y = lo;
+    for (i = 1; i <= 6; ++i)
+    {
+        float width;
+        p.y = lo + (hi - lo) * i / 6;
+        p.x = .5f * (at(l, p.y) + at(r, p.y));
+        width = at(r, p.y) - at(l, p.y);
+        if (width < 340 || width > 900 || !corridor_clear(points, count, previous, p))
+            return 0;
+        previous = p;
+    }
+    out->valid = 1;
+    out->geometry_reason = GEOM_OK;
+    out->model = 1;
+    out->source = PATH_DUAL;
+    out->near_ref_y = 400;
+    out->near_x = .5f * (at(l, 400) + at(r, 400));
+    out->near_a = .5f * (l->a + r->a);
+    out->far_valid = 0;
+    out->straight = 0;
+    out->ref_y = hi;
+    out->target_x = p.x;
+    out->support_mm = hi;
+    return 1;
+}
+
+void Path_Build(PathGeometry *state, const PathPoint *points, uint16_t count, float configured_width,
+                float preview_y, float center_x, PathObservation *out)
+{
+    build_lines(state, points, count, configured_width, preview_y, center_x, out);
+    if (out->geometry_reason == GEOM_ARGUMENT || !points || count > 400)
+        return;
+    if (out->valid && !out->far_valid && !out->avoid_offset)
+    {
+        const PathFit *n = &out->near_fit[out->source == PATH_RIGHT ? 1 : 0];
+        if (out->source != PATH_DUAL && n->rms > 45 && fabsf(n->a) > .6f)
+        {
+            PathObservation candidate = *out;
+            if (recover_curve(points, count, state->width, preview_y, center_x, &candidate) &&
+                (candidate.target_x - center_x) * (out->target_x - center_x) > 0)
+                *out = candidate; /* 弧形证据已充分时提前接管，普通/低残差S弯保持原分支。 */
+        }
+    }
+    if (!out->valid)
+    {
+        if (!recover_curve(points, count, state->width, preview_y, center_x, out))
+            recover_local(points, count, out);
+    }
+    if (!out->valid)
+        return;
+    if (out->model)
+    {
+        state->avoid_offset = 0;
+        state->avoid_hold = 0;
+        state->candidate_frames = 0;
+    }
+    if (!out->model)
+    {
+        out->heading_rad = atanf(out->near_a);
+        out->preview_heading_rad = out->far_valid ? atanf(out->far_a) : out->heading_rad;
+        out->support_mm = out->ref_y;
+    }
+    else if (out->model == 1)
+    {
+        out->heading_rad = out->preview_heading_rad = atanf(out->near_a);
+    }
+    /* S预告只描述近远段相反，不能直接改写当前弯向或最终PWM。 */
+    out->s_preview = out->far_valid && out->near_a * out->far_a < 0 && fabsf(out->near_a) > .10f &&
+                     fabsf(out->far_a) > .14f;
+    out->turn_distance_mm = out->s_preview ? out->near_ref_y : out->support_mm;
+}
+
+float Path_Preview(float base_mm, float speed)
+{
+    /* 未标定m/s时采用明确的控制单位增量；只扩大识别，不允许超出实际支持。 */
+    return bounded(base_mm + 40 * bounded(fabsf(speed) - 12, 0, 5), 600, 1100);
+}
+
+float Path_SpeedLimit(PathSpeed *s, const PathObservation *p, uint8_t valid, float ceiling, float bend_speed,
+                      uint32_t now)
+{
+    float floor = fminf(ceiling, bend_speed), curve;
+    uint8_t straight =
+        valid && p->valid && !p->model && p->straight && !p->avoid_offset && p->ref_y >= 700 && !p->s_preview;
+    s->reason = 1;
+    if (!straight)
+    {
+        s->straight_seen = 0;
+        s->straight_us = now;
+    }
+    else if (!s->straight_seen)
+    {
+        s->straight_seen = 1;
+        s->straight_us = now;
+    }
+    s->last_us = now;
+    if (!valid || !p->valid)
+    {
+        s->reason = 3;
+        return s->target = floor;
+    }
+    if (p->model || p->avoid_state || p->s_preview)
+        return s->target = floor;
+    curve = fmaxf(fabsf(p->near_a), p->far_valid ? fabsf(p->far_a) : fabsf(p->near_a));
+    if (straight && (uint32_t)(now - s->straight_us) >= 1000000u)
+    {
+        s->reason = 0;
+        return s->target = ceiling;
+    }
+    if (curve < .25f && p->far_valid && !p->s_preview)
+    {
+        s->reason = 2;
+        return s->target = fminf(ceiling, floor + 2);
+    }
+    return s->target = floor;
+}
+
+float Path_SpeedStep(float current, float ceiling, float limit, float bend_speed, uint8_t fresh, float accel,
+                     float decel, float dt)
+{
+    float target;
+    if (!(ceiling > 0))
+        return 0; /* 仅手动spd 0，不是雷达自动停车。 */
+    target = fminf(ceiling, fresh ? limit : bend_speed);
+    target = fmaxf(fminf(ceiling, bend_speed), target);
+    if (!(current > 0))
+        return fminf(target, bend_speed);
+    return current + bounded(target - current, -decel * dt, accel * dt);
 }
 
 static int8_t sign(float value)
@@ -642,11 +995,19 @@ void Path_Control(PathController *state, const PathObservation *path, const Path
         out->avoid_override = 1;
         out->reason = PATH_APPLY;
     }
+    /* 高速S预告只允许小幅提前收旧弯舵量，不能改变目标符号或绕过换向证据。
+     * <=12沿用原控制；>12最多减少10%且不超过35mm，避免重复叠加航向P。 */
+    if (g->speed > 12 && path->s_preview && !path->model && !path->avoid_offset &&
+        fabsf(path->near_a) < .65f && fabsf(out->error) > 30 && sign(-path->near_a) == sign(out->error))
+    {
+        float fraction = bounded((g->speed - 12) * .02f, 0, .10f);
+        out->error -= sign(out->error) * fminf(fabsf(out->error) * fraction, 35);
+    }
     /* 将实际可见目标的横向误差换到700mm基准的有界角度尺度。
      * 仅改变控制误差尺度，不制造700mm处的虚假点；短参考最多放大1.5倍。
      * road_error仍保存原始毫米误差供诊断，避让横移不重复放大。 */
     if (path->ref_y >= 250 && path->ref_y < 700)
-        out->error *= bounded(700.0f/path->ref_y, 1, 1.5f);
+        out->error *= bounded(700.0f / path->ref_y, 1, 1.5f);
     out->error -= path->avoid_offset;
     /* 状态确定后限幅：确认出弯的这一帧就恢复直道限幅。 */
     limit = curved || state->bend ? 500.0f : g->straight_limit;
@@ -659,7 +1020,7 @@ void Path_Control(PathController *state, const PathObservation *path, const Path
         out->kp *= 1 + 0.35f * bounded((fabsf(out->error) - 250) / 250, 0, 1);
     dt = (float)(uint32_t)(now - state->previous_us);
     out->d_reset = !state->history || path->source != state->previous_source ||
-                   path->far_valid != state->previous_far_valid ||
+                   path->far_valid != state->previous_far_valid || path->model != state->previous_model ||
                    fabsf(path->ref_y - state->previous_ref_y) > 100 || dt < 20000 || dt > 250000 ||
                    fabsf(path->avoid_offset - state->previous_avoid_offset) > 30 ||
                    out->reason == PATH_REVERSE;
@@ -675,20 +1036,20 @@ void Path_Control(PathController *state, const PathObservation *path, const Path
     if (wait)
     {
         const PathFit *near = &path->near_fit[path->source == PATH_RIGHT ? 1 : 0];
-        float old_delta = (float)actual_pwm-g->pwm_mid;
-        float new_delta = (float)out->candidate_pwm-g->pwm_mid;
+        float old_delta = (float)actual_pwm - g->pwm_mid;
+        float new_delta = (float)out->candidate_pwm - g->pwm_mid;
         /* 等待确认只限制反打，不冻结有证据的减舵。近段方向已支持目标或
          * 近远段均已直时，允许旧弯舵量减小到中位；确认后才跨中位反打。
          * 残余避让不获得减舵权限，避免恢复旧的“释放偏移强制回中”问题。 */
-        if (near->valid && near->count >= 4 && near->rms <= 35 &&
+        if (((near->valid && near->count >= 4 && near->rms <= 35) || path->model == 2) &&
             path->avoid_offset == 0 &&
             (path->straight || (fabsf(path->near_a) > .10f && sign(-path->near_a) == wanted)))
         {
-            if (old_delta*new_delta < 0)
+            if (old_delta * new_delta < 0)
                 new_delta = 0;
             if (fabsf(new_delta) < fabsf(old_delta))
             {
-                out->pwm = (uint16_t)(g->pwm_mid+new_delta);
+                out->pwm = (uint16_t)(g->pwm_mid + new_delta);
                 out->applied = 1;
                 out->reason = PATH_APPLY; /* gate_reason保留原等待原因。 */
             }
@@ -703,6 +1064,7 @@ void Path_Control(PathController *state, const PathObservation *path, const Path
     state->previous_source = path->source;
     state->previous_us = now;
     state->previous_ref_y = path->ref_y;
+    state->previous_model = path->model;
     state->previous_far_valid = path->far_valid;
     state->previous_avoid_offset = path->avoid_offset;
 }

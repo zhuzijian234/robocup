@@ -18,6 +18,10 @@ extern pid_type Servo_pd, Speed_pid;
 extern uint8_t Servo_PD_valid; /* 本帧确实采用新 PD 输出，不包含保舵 */
 extern float CENTER_X_TARGET_MM, MODE0_ERR_CLAMP_MM;
 extern float PATH_PREVIEW_MM, PATH_WIDTH_MM;
+extern float RACE_BEND_SPEED, RACE_ACCEL, RACE_DECEL;
+extern volatile float Steering_speed_limit;
+extern volatile uint32_t Steering_speed_us;
+extern volatile uint8_t Steering_speed_reason;
 extern PathObservation Steering_path;
 extern PathCommand Steering_command;
 void Steering_Init(void);

@@ -18,16 +18,28 @@ enum
 /* 位图可以同时报告多个拒绝原因，0 表示该拟合通过。 */
 enum
 {
-    FIT_POINTS = 1, FIT_SPAN = 2, FIT_GAP = 4,
-    FIT_DEGENERATE = 8, FIT_RMS = 16, FIT_SLOPE = 32
+    FIT_POINTS = 1,
+    FIT_SPAN = 2,
+    FIT_GAP = 4,
+    FIT_DEGENERATE = 8,
+    FIT_RMS = 16,
+    FIT_SLOPE = 32
 };
 enum
 {
-    GEOM_OK, GEOM_ARGUMENT, GEOM_NEAR_MISSING, GEOM_CONFLICT, GEOM_SUPPORT
+    GEOM_OK,
+    GEOM_ARGUMENT,
+    GEOM_NEAR_MISSING,
+    GEOM_CONFLICT,
+    GEOM_SUPPORT
 };
 enum
 {
-    AVOID_CLEAR, AVOID_CANDIDATE, AVOID_ACTIVE, AVOID_HOLD, AVOID_RELEASE
+    AVOID_CLEAR,
+    AVOID_CANDIDATE,
+    AVOID_ACTIVE,
+    AVOID_HOLD,
+    AVOID_RELEASE
 };
 enum
 {
@@ -52,11 +64,15 @@ typedef struct
     float near_x, far_x, near_a, far_a, ref_y, target_x;
     float width, width_candidate;
     float avoid_offset, avoid_y; /* 避让附加横移(mm)、当前锥桶前向位置；不改变车速 */
-    float near_ref_y; /* 近段实际参考位置；必须位于本帧边界支持范围内 */
+    float near_ref_y;            /* 近段实际参考位置；必须位于本帧边界支持范围内 */
     float cone_x, cone_y, cone_lateral, avoid_required, avoid_allowed;
     uint16_t cone_candidates;
     uint8_t geometry_reason, avoid_state, avoid_confirm, width_frozen;
     uint8_t valid, far_valid, source, width_measured, straight;
+    /* 0=原直线，1=近区双侧走廊，2=连续弧形边界；不改变旧source枚举。 */
+    uint8_t model, curve_rejected, s_preview;
+    float support_mm, heading_rad, preview_heading_rad;
+    float turn_distance_mm; /* S预告时为近段参考距离，尚非标定的真实拐点距离。 */
 } PathObservation;
 typedef struct
 {
@@ -73,6 +89,7 @@ typedef struct
     float kp, kd, turn_kp, turn_kd, side_kp, side_kd;
     float center_x, straight_limit;
     uint16_t pwm_min, pwm_mid, pwm_max;
+    float speed; /* 编码器控制单位；未标定前不当作m/s。 */
 } PathGains;
 typedef struct
 {
@@ -81,16 +98,30 @@ typedef struct
     float previous_avoid_offset;
     int8_t bend, pending_direction;
     uint8_t history, previous_source, previous_far_valid, evidence_frames;
+    uint8_t previous_model;
 } PathController;
 typedef struct
 {
     float error, p, d, kp, kd, unclamped; /* error为700mm基准有界归一化误差，非原始横移 */
-    float road_error; /* 未叠加避让、未限幅的道路误差，诊断不再反推 */
-    uint8_t gate_reason, avoid_override; /* 保留被避让覆盖前的道路裁决 */
+    float road_error;                     /* 未叠加避让、未限幅的道路误差，诊断不再反推 */
+    uint8_t gate_reason, avoid_override;  /* 保留被避让覆盖前的道路裁决 */
     uint16_t candidate_pwm, pwm;
     uint8_t computed, applied, reason, source, previous_source, d_reset;
     int8_t bend;
 } PathCommand;
+
+/* 速度规划只输出正的竞速上限，手动请求0仍按用户命令执行。 */
+typedef struct
+{
+    uint32_t straight_us, last_us;
+    uint8_t straight_seen, reason;
+    float target;
+} PathSpeed;
+float Path_SpeedLimit(PathSpeed *state, const PathObservation *path, uint8_t scan_valid, float ceiling,
+                      float bend_speed, uint32_t now_us);
+float Path_SpeedStep(float current, float ceiling, float limit, float bend_speed, uint8_t fresh, float accel,
+                     float decel, float dt);
+float Path_Preview(float base_mm, float speed);
 
 /* points沿雷达角度递增排列（LEIDA_FrontPoints的输出）；锥桶聚类依赖相邻射线顺序。 */
 void Path_Build(PathGeometry *state, const PathPoint *points, uint16_t count, float configured_width,

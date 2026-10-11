@@ -16,8 +16,9 @@ KEYS = {1:"layout",2:"build",3:"lidar",4:"algorithm",5:"input_kind",6:"baud",
         12:"point_capacity",13:"geometry",14:"lidar_config"}
 KEYS.update({100+i:n for i,n in enumerate(PARAMETERS)})
 LEGACY_KEYS = set(KEYS)
-KEYS.update({121:"preview",122:"width"})
+KEYS.update({121:"preview",122:"width",123:"bendspd",124:"accel",125:"decel"})
 PATH_KEYS = set(range(1,15)) | set(range(100,109)) | {115,116,117,118,121,122}
+RACE_KEYS = PATH_KEYS | {123,124,125}
 HEALTH = "uptime_ms input_age_ms valid_age_ms input_seq control_seq uart_errors dma_errors rx_overflow scan_overflow input_drop tx_drop process_max_us rx_peak param_revision status_flags unsupported_mask".split()
 EXTRA = "version session tx_seq control_seq input_end_ms control_end_ms control_dt_us valid_mask updated_mask clipped_mask action_reason motor_state lidar_id algorithm_id param_revision raw_count radar_dps segment host_t".split()
 
@@ -31,6 +32,8 @@ PATH_EXTRA_U = "schema control_seq param_revision input_seq geometry_reason fit_
 PATH_EXTRA_F = "road_target target_x road_error avoid_offset near_ref_y width_candidate cone_x cone_y cone_lateral avoid_required avoid_allowed avoid_y".split() + [
     f"{side}_{field}" for side in ("left_near", "right_near", "left_far", "right_far")
     for field in ("a", "b", "min_y", "max_y")]
+RACE_U = "schema control_seq param_revision input_seq model curve_rejected s_preview speed_reason uart_ore uart_fe uart_ne uart_last_us uart_input_seq speed_plan_us".split()
+RACE_F = "support_mm heading_rad preview_heading_rad turn_distance_mm speed_limit effective_target speed_ceiling bend_speed accel decel".split()
 CLOUD_U = "schema snapshot_id frame_index control_seq param_revision input_seq input_us epoch trigger_flags total_points offset count".split()
 MOTOR_FIELDS = "sample_us encoder_raw motor_pwm speed_float target_float motor_integral motor_prelimit motor_flags".split()
 
@@ -145,6 +148,14 @@ class Decoder:
                     msg['fit_rejected'] & 0xc0c0c0c0 or
                     any(not math.isfinite(msg[k]) for k in PATH_EXTRA_F)):
                 raise ValueError("PATH_EXTRA values")
+        elif kind==10:
+            if n != 112: raise ValueError("RACE length")
+            msg.update(zip(RACE_U,struct.unpack_from('<14I',payload)))
+            msg.update(zip(RACE_F,struct.unpack_from('<10f',payload,56)))
+            if (msg['schema'] != 1 or msg['model'] > 2 or msg['curve_rejected'] > 2 or
+                    msg['s_preview'] > 1 or msg['speed_reason'] > 3 or
+                    any(not math.isfinite(msg[k]) for k in RACE_F)):
+                raise ValueError("RACE values")
         elif kind==9:
             if len(payload) < 48: raise ValueError("CLOUD prefix")
             msg.update(zip(CLOUD_U, struct.unpack_from('<12I', payload)))
@@ -192,7 +203,8 @@ class Decoder:
             if len(chunks)==count:
                 cfg=decode_tlv(b"".join(chunks[i] for i in range(count)))
                 if cfg.get(1)!=LAYOUT: raise ValueError("unsupported layout")
-                if not (PATH_KEYS if cfg.get(4)==4 else LEGACY_KEYS)<=set(cfg): raise ValueError("incomplete registry")
+                required = RACE_KEYS if cfg.get(4)==4 and 'spd=curve-plan' in str(cfg.get(10,'')) else PATH_KEYS if cfg.get(4)==4 else LEGACY_KEYS
+                if not required<=set(cfg): raise ValueError("incomplete registry")
                 self.configs[(session,rev)]={KEYS.get(k,str(k)):v for k,v in cfg.items()}
                 del self.pending[ident]
             msg.update(config_id=cid,param_revision=rev,chunk_index=index,chunk_count=count)
@@ -296,6 +308,12 @@ def analyze(parser,field_names):
                      avoidance_states=dict(Counter(m['avoid_state'] for m in extensions)),
                      avoidance_overrides=sum(m['avoid_override'] for m in extensions),
                      snapshot_chunks=sum(m['type']==9 for m in parser.v2.messages))
+    race=[m for m in parser.v2.messages if m['type']==10 and detail_key(m) in keys]
+    diagnosis.update(race_frames=len(race),
+                     path_models=dict(Counter(m['model'] for m in race)),
+                     speed_reasons=dict(Counter(m['speed_reason'] for m in race)),
+                     s_preview_samples=sum(m['s_preview'] for m in race),
+                     uart_last=race[-1] if race else None)
     unknown=sum((r["session"],r["param_revision"]) not in parser.v2.configs for r in rows)
     return dict(v2=True,n_frames=len(rows),bad_frames=parser.bad_frames,dropped=parser.v2.missing,
         duration_s=parser.capture_duration,periods=periods,speed_error=sum(errors)/len(errors) if errors else None,
@@ -314,6 +332,7 @@ def write_extensions(parser,path):
     for suffix,rows,names in [('.detail.csv',details,['session','tx_seq','host_t']+list(dict.fromkeys(DETAIL_U+DETAIL_F+PATH_U+PATH_F))),
         ('.m10p.csv',[m for m in parser.v2.messages if m['type']==7],['session','tx_seq','host_t']+M10P_FIELDS),
         ('.motor.csv',motors,['session','param_revision','sample_seq','host_t']+MOTOR_FIELDS+['encoder_signed']),
+        ('.race.csv',[m for m in parser.v2.messages if m['type']==10],['session','tx_seq','host_t']+RACE_U+RACE_F),
         ('.path.csv',[m for m in parser.v2.messages if m['type']==8],['session','tx_seq','host_t']+PATH_EXTRA_U+PATH_EXTRA_F)]:
         with open(str(base)+suffix,'w',newline='',encoding='utf-8-sig') as f:
             writer=csv.DictWriter(f,fieldnames=names,extrasaction='ignore');writer.writeheader();writer.writerows(rows)
@@ -382,6 +401,10 @@ def report(result,path,name=""):
               "detail_frames=0 或 motor_samples=0 表示无扩展证据，不等于无异常。编码器负数是16位计数的有符号解释；必须结合方向与原始计数确认。",
               "雷达CRC统计仅为观察，不代表控制已拒收坏包；rate>1时只统计被发送的块。MOTOR筛选按整包主机接收时间，边界最多包含约80ms协商阶段样本。",
               "motor_pwm为定时器CCR指令，不是电流/转矩/实际转速。所有累计计数是本次上电值，不直接等于本次采集新增。"]
+    lines += ["", "竞速扩展另存 .race.csv，约每4个控制序号采样，不能据此重建逐帧舵机行为。",
+              "model：0原路径、1近区走廊、2连续弧形；speed_reason：0长直道、1弯道、2过渡、3证据不足。",
+              "turn_distance_mm是预告使用的参考距离，尚不是真实拐点距离；速度/加减速度均为编码器控制单位，未标定m/s。",
+              "第二组点云可在连续恢复6帧后、连续失效2帧时自动冻结；位32标记第二组，末帧带位8表示手动冻结。"]
     lines += ["", "## HEALTH", "",f"收到{len(result['health'])}条；末条：", "```json",
               json.dumps(result['health'][-1] if result['health'] else {},ensure_ascii=False,indent=2),"```",
               "unsupported_mask指示尚未实现的统计，不能把占位0解释成零错误。",

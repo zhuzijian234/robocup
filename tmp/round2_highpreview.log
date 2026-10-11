@@ -1,0 +1,132 @@
+PASS 521 race speed/preview/S-turn/corridor checks
+
+
+212056:2621 valid=1 model=2
+
+212056:2622 valid=1 model=2
+
+212056:2623 valid=1 model=2
+
+212056:2624 valid=1 model=0
+
+212056:2716 valid=0 model=0
+
+212056:2717 valid=1 model=0
+
+212056:2718 valid=1 model=0
+
+212056:2719 valid=0 model=0
+
+212730:7348 valid=1 model=0
+
+212730:7349 valid=1 model=0
+
+212730:7350 valid=1 model=2
+
+212730:7351 valid=1 model=2
+
+212730:7431 valid=1 model=0
+
+212730:7432 valid=1 model=0
+
+212730:7433 valid=1 model=0
+
+212730:7434 valid=1 model=0
+
+213339:11771 valid=1 model=0
+
+213339:11772 valid=1 model=0
+
+213339:11773 valid=1 model=0
+
+213339:11774 valid=1 model=0
+
+213339:11815 valid=0 model=0
+
+213339:11816 valid=0 model=0
+
+213339:11817 valid=1 model=0
+
+213339:11818 valid=0 model=0
+
+213609:13550 valid=1 model=0
+
+213609:13551 valid=1 model=0
+
+213609:13552 valid=1 model=1
+
+213609:13553 valid=0 model=0
+
+213609:13608 valid=1 model=0
+
+213609:13609 valid=0 model=0
+
+213609:13610 valid=1 model=0
+
+213609:13611 valid=0 model=0
+
+213856:15578 valid=1 model=2
+
+213856:15579 valid=1 model=2
+
+213856:15580 valid=1 model=2
+
+213856:15581 valid=1 model=2
+
+213856:15645 valid=0 model=0
+
+213856:15646 valid=0 model=0
+
+213856:15647 valid=0 model=0
+
+213856:15648 valid=0 model=0
+
+214152:17678 valid=1 model=0
+
+214152:17679 valid=1 model=0
+
+214152:17680 valid=1 model=2
+
+214152:17681 valid=1 model=0
+
+214152:17720 valid=0 model=0
+
+214152:17721 valid=0 model=0
+
+214152:17722 valid=0 model=0
+
+214152:17723 valid=0 model=0
+
+214444:19748 valid=1 model=0
+
+214444:19749 valid=1 model=0
+
+214444:19750 valid=0 model=0
+
+214444:19751 valid=0 model=0
+
+214444:19783 valid=1 model=0
+
+214444:19784 valid=1 model=0
+
+214444:19785 valid=1 model=0
+
+214444:19786 valid=1 model=0
+
+220019:2051 valid=1 model=0
+
+220019:2052 valid=1 model=0
+
+220019:2053 valid=1 model=2
+
+220019:2054 valid=1 model=2
+
+220019:2055 valid=1 model=2
+
+220019:2056 valid=1 model=1
+
+220019:2057 valid=1 model=0
+
+PASS 63 recorded clouds and 63 mirrored clouds
+
+

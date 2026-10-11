@@ -14,7 +14,7 @@
 #include "centre_line.h"
 #include "m10p.h"
 
-/* 竞速模式：速度环独立运行，雷达只负责转向，不再仲裁电机输出。 */
+/* 竞速模式：速度环独立运行，路径发布竞速上限，不恢复雷达自动停车。 */
 volatile uint32_t Radar_invalid_inputs = 0;
 volatile float Radar_effective_target;
 static volatile uint32_t control_end_us;
@@ -69,7 +69,12 @@ void TIM5_IRQHandler(void)
         extern uint16_t Encoder_cnt_temp;
         TIM_ClearITPendingBit(TIM5, TIM_IT_Update);
         Get_Encoder();
-        Radar_effective_target = Speed_mubiao;
+        /* 只有手动spd 0会令目标归零；短时坏帧/断流回到弯速，保留PI历史。
+         * main在短临界区发布快照，此处为唯一目标斜坡，避免雷达帧率造成阶跃。 */
+        Radar_effective_target=Path_SpeedStep(Radar_effective_target,Speed_mubiao,
+            Steering_speed_limit,RACE_BEND_SPEED,
+            Steering_speed_us && (uint32_t)(Diag_TimeUs()-Steering_speed_us)<=250000u,
+            RACE_ACCEL,RACE_DECEL,.01f);
         moto_pwm = PID_realize(Speed_now, Radar_effective_target, &Speed_pid);
         Moto_Speed(moto_pwm);
         Diag_MotorTick(Encoder_cnt_temp, 1, 1);

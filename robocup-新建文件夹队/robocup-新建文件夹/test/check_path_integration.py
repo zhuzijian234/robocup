@@ -21,6 +21,10 @@ program=r'''
 #include <string.h>
 #include "m10p.h"
 uint32_t LidarRx_epoch=1,Diag_revision,clock_us=100000;
+float Speed_now=10,Speed_mubiao=10;
+uint32_t __get_PRIMASK(void){return 0;}
+void __disable_irq(void){}
+void __set_PRIMASK(uint32_t p){(void)p;}
 uint32_t Diag_detail_u[24];float Diag_detail_f[24];
 volatile float Diag_motor_integral,Diag_motor_prelimit;
 uint8_t M10P_perception_why,M10P_steer_source;
