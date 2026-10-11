@@ -1,0 +1,76 @@
+{
+  "run_uuid": "eaebda5a-335e-4b4d-977f-892c66ebd3b1",
+  "started_utc": "2026-10-11T12:05:13.284854+00:00",
+  "host_version": "v2.1",
+  "host_sha256": "5b8cb4b7f024300ee7b17ec1ea587d8d2dee848667ccf74da6db2323f051ca55",
+  "protocol": 2,
+  "port": "COM4",
+  "baud": 115200,
+  "requested_rate": 1,
+  "version": 1,
+  "clock": "host_monotonic",
+  "duration_s": 5.639999999999418,
+  "bytes": 38651,
+  "sha256": "807c18c19cfcede65f0af55670cda96e45bf29bfdb271873c145363660f23564",
+  "ended_utc": "2026-10-11T12:05:18.914144+00:00",
+  "end_reason": "user_stop",
+  "error": null,
+  "commands": [
+    {
+      "t": 0.014999999999417923,
+      "command": "info"
+    },
+    {
+      "t": 0.6559999999990396,
+      "command": "session 3186698271"
+    },
+    {
+      "t": 1.1869999999998981,
+      "command": "tele 3"
+    },
+    {
+      "t": 1.639999999999418,
+      "command": "rate 1"
+    },
+    {
+      "t": 2.0469999999986612,
+      "command": "getcfg"
+    }
+  ],
+  "configs": {
+    "0:7": {
+      "layout": "rc26-mask31-v2.1",
+      "build": "sha256-43f8733c1e08c963",
+      "lidar": 3,
+      "algorithm": 4,
+      "input_kind": 1,
+      "baud": 115200,
+      "rate": 1,
+      "timeout_ms": 0,
+      "health_ms": 1000,
+      "units": "mm;CCR;encoder_units;x=a*y+b;PD=ref700-cap1.5-Dcap150;exit=confirm-reduce;spd=curve-plan;max=108;bend=123;acc=124;dec=125",
+      "dma_bytes": 1024,
+      "point_capacity": 800,
+      "geometry": "path=local+contour;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121",
+      "lidar_config": "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720",
+      "kp": 0.03500000014901161,
+      "kp2": 0.03999999910593033,
+      "kp3": 0.039500001817941666,
+      "kd": 0.03500000014901161,
+      "kd2": 0.02199999988079071,
+      "kd3": 0.019999999552965164,
+      "sp_kp": 8.5,
+      "sp_ki": 0.5049999952316284,
+      "spd": 17.0,
+      "angle": 90.0,
+      "cx": 10.0,
+      "eclamp": 200.0,
+      "dy": 200.0,
+      "preview": 700.0,
+      "width": 500.0,
+      "bendspd": 15.0,
+      "accel": 2.0,
+      "decel": 12.0
+    }
+  }
+}

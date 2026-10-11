@@ -1,0 +1,3 @@
+﻿session,tx_seq,host_t,schema,control_seq,param_revision,input_seq,model,curve_rejected,s_preview,speed_reason,uart_ore,uart_fe,uart_ne,uart_last_us,uart_input_seq,speed_plan_us,support_mm,heading_rad,preview_heading_rad,turn_distance_mm,speed_limit,effective_target,speed_ceiling,bend_speed,accel,decel
+3186698271,31,1.625,1,22336,6,22336,0,0,0,2,0,0,11,1768974188,21179,1865500820,700.0,-0.043631263077259064,-0.23663848638534546,700.0,17.0,17.0,17.0,15.0,2.0,12.0
+3186698271,49,2.0469999999986612,1,22340,6,22340,0,0,0,1,0,0,11,1768974188,21179,1865836383,700.0,-0.2299269586801529,-0.7795238494873047,700.0,15.0,15.0,17.0,15.0,2.0,12.0

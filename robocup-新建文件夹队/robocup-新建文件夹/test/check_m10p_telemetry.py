@@ -179,6 +179,7 @@ uint32_t Steering_speed_us=998000;
 uint8_t Steering_speed_reason=1;
 float Steering_speed_limit=10,Speed_mubiao=17,RACE_BEND_SPEED=10,RACE_ACCEL=2,RACE_DECEL=12;
 PathObservation Steering_path;
+PathCommand Steering_command;
 uint32_t __get_PRIMASK(void){return 0;}
 void __disable_irq(void){}
 void __set_PRIMASK(uint32_t p){(void)p;}
@@ -186,17 +187,22 @@ void __set_PRIMASK(uint32_t p){(void)p;}
 int main(void){
  Steering_path.model=2;Steering_path.support_mm=700;Steering_path.heading_rad=.3f;
  Steering_path.preview_heading_rad=-.4f;Steering_path.s_preview=1;Steering_path.turn_distance_mm=400;
+ Steering_path.duplicate_samples=8;Steering_path.identity_corrected=1;
+ Steering_path.outer_offset=-25;Steering_path.target_delta=-492;Steering_path.curve_checks=64;
+ Steering_command.transition_limited=1;
  race_submit();control_seq=5;race_submit();return emitted==1?0:1;
 }
 '''
 p=OUT/'race_codec.c';p.write_text(race_code,encoding='utf-8');r=run('race_codec',p)
-raw=bytes.fromhex(r['output'].strip());assert len(raw)==112
+raw=bytes.fromhex(r['output'].strip());assert len(raw)==148
 d=v2.Decoder();d.accept(raw,[],[],0.0);m=d.messages[0]
 assert m['model']==2 and m['s_preview']==1 and m['speed_ceiling']==17 and m['bend_speed']==10
 assert m['uart_ore']==2 and m['uart_fe']==3 and m['uart_ne']==4 and m['uart_input_seq']==99
 assert m['support_mm']==700 and m['speed_reason']==1 and m['speed_plan_us']==998000
+assert m['schema']==2 and m['duplicate_samples']==8 and m['identity_corrected']==1
+assert m['outer_offset']==-25 and m['target_delta']==-492 and m['curve_checks']==64 and m['transition_limited']==1
 import struct
-for payload in (raw[14:-2][:-4],struct.pack('<I',2)+raw[18:-2],raw[14:70]+struct.pack('<f',float('nan'))+raw[74:-2]):
+for payload in (raw[14:-2][:-4],struct.pack('<I',3)+raw[18:-2],raw[14:90]+struct.pack('<f',float('nan'))+raw[94:-2]):
     try:v2.Decoder().accept(v2.packet(10,payload,1,123),[],[],0.0)
     except ValueError:pass
     else:raise AssertionError('invalid race frame accepted')

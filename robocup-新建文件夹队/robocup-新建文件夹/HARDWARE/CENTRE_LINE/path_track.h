@@ -73,7 +73,19 @@ typedef struct
     uint8_t model, curve_rejected, s_preview;
     float support_mm, heading_rad, preview_heading_rad;
     float turn_distance_mm; /* S预告时为近段参考距离，尚非标定的真实拐点距离。 */
+    /* 急弯诊断与附加轨迹；原始左右枚举仍表示墙面身份，不表示转弯方向。 */
+    uint8_t duplicate_samples, duplicate_conflict, identity_corrected, target_transition;
+    uint32_t curve_checks; /* 弧形候选拒绝位图，见 CURVE_*。 */
+    float outer_offset, target_delta, bend_rad, outer_clearance;
 } PathObservation;
+
+enum
+{
+    CURVE_SHORT = 1u, CURVE_SEED = 2u, CURVE_TANGENT = 4u,
+    CURVE_RESIDUAL = 8u, CURVE_JUMP = 16u, CURVE_BEND = 32u,
+    CURVE_ENTRY = 64u, CURVE_BLOCKED = 128u, CURVE_SUPPORT = 256u,
+    CURVE_AMBIGUOUS = 512u
+};
 typedef struct
 {
     float width; /* 仅可靠双侧观测可更新；单侧使用此历史宽度 */
@@ -83,6 +95,11 @@ typedef struct
     uint8_t measured;
     float candidate_x, candidate_y;
     uint8_t candidate_frames;
+    /* 仅保存上一有效帧的几何，不复制点云；断流、坏扫描和在线改参清零。 */
+    float history_x, history_a, history_y, history_target;
+    float outer_offset;
+    uint8_t history, history_misses, acute_frames, history_model;
+    int8_t acute_direction;
 } PathGeometry;
 typedef struct
 {
@@ -99,6 +116,8 @@ typedef struct
     int8_t bend, pending_direction;
     uint8_t history, previous_source, previous_far_valid, evidence_frames;
     uint8_t previous_model;
+    float previous_near_a;
+    uint8_t transition_frames;
 } PathController;
 typedef struct
 {
@@ -108,6 +127,7 @@ typedef struct
     uint16_t candidate_pwm, pwm;
     uint8_t computed, applied, reason, source, previous_source, d_reset;
     int8_t bend;
+    uint8_t transition_limited; /* 急弯近远切换时有界减舵，不是全局PWM滤波。 */
 } PathCommand;
 
 /* 速度规划只输出正的竞速上限，手动请求0仍按用户命令执行。 */
@@ -126,6 +146,7 @@ float Path_Preview(float base_mm, float speed);
 /* points沿雷达角度递增排列（LEIDA_FrontPoints的输出）；锥桶聚类依赖相邻射线顺序。 */
 void Path_Build(PathGeometry *state, const PathPoint *points, uint16_t count, float configured_width,
                 float preview_y, float center_x, PathObservation *out);
+void Path_ClearHistory(PathGeometry *state);
 void Path_Control(PathController *state, const PathObservation *path, const PathGains *gains,
                   uint8_t scan_valid, uint32_t now_us, uint16_t actual_pwm, PathCommand *out);
 #endif

@@ -1,0 +1,72 @@
+[
+  {
+    "tag": "201004",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\右弯_v2_1011_201004_11986015000000_出弯时撞出赛道边界mp4.mp4",
+    "sha256": "231339ff9a6f18b5ac0cccc20e47a98766d34c81e870b50e2c4068942208cb4c",
+    "fps": 30.0,
+    "frames": 136,
+    "width": 720,
+    "height": 1280,
+    "duration_s": 4.533333333333333
+  },
+  {
+    "tag": "201147",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\右弯_v2_1011_201147_12088640000000_几乎快出弯成功了.mp4",
+    "sha256": "ec9bd85883554f291389959742c7068dd8c2e91778d625a5236e6c2b91d56920",
+    "fps": 30.0,
+    "frames": 150,
+    "width": 720,
+    "height": 1280,
+    "duration_s": 5.0
+  },
+  {
+    "tag": "201936",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\右弯_v2_1011_201936_12557859000000_弯道过急,不好摆.mp4",
+    "sha256": "0fe0fdbcabc412f63cd9a47d8be42024d0ed25b3d146c9620f7f7b4be4a38000",
+    "fps": 30.0,
+    "frames": 98,
+    "width": 720,
+    "height": 1280,
+    "duration_s": 3.2666666666666666
+  },
+  {
+    "tag": "195850",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\左弯-v2_1011_195850_11311812000000_摆弯略慢,贴近赛道内侧,但是没刮蹭赛道内侧边界,出弯时刮蹭外侧边界.mp4",
+    "sha256": "0ea9219e4bbdfa956213c1f8788870a3dd0f925367884c2d7599c9a78b3d7538",
+    "fps": 30.0,
+    "frames": 130,
+    "width": 720,
+    "height": 1280,
+    "duration_s": 4.333333333333333
+  },
+  {
+    "tag": "200137",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\左弯_v2_1011_200137_11478265000000_这次比上次离赛道内侧远了一些,情况改善.mp4",
+    "sha256": "8cc091fbb5a5b1d2411ed044fcf32bdbeefa0e2e78a27fc50663162b18341032",
+    "fps": 30.0,
+    "frames": 138,
+    "width": 720,
+    "height": 1280,
+    "duration_s": 4.6
+  },
+  {
+    "tag": "200513",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\左弯_遥测数据可能有损_v2_1011_200513_11694265000000_同样入弯时贴近赛道内侧,出弯时刮蹭赛道外侧.mp4",
+    "sha256": "1254182c291e17881c4af0bde09ad95043790c48b290ccbf2c676bd2aa0263cb",
+    "fps": 30.0,
+    "frames": 161,
+    "width": 720,
+    "height": 1280,
+    "duration_s": 5.366666666666666
+  },
+  {
+    "tag": "layout",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\赛道布局.mp4",
+    "sha256": "c321df4aca9b8196663c88634ad1509ff67f2e969c0a04963a58937975448ae5",
+    "fps": 30.0,
+    "frames": 1081,
+    "width": 1280,
+    "height": 720,
+    "duration_s": 36.03333333333333
+  }
+]

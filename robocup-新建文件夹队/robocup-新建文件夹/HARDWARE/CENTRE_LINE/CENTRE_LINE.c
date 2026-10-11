@@ -51,10 +51,16 @@ void Steering_Update(const M10P_Scan *scan, const PathPoint *points, uint16_t co
     PathGeometry previous_geometry = geometry;
     PathObservation *path = &Steering_path;
     PathCommand *command = &Steering_command;
+    if (previous_revision != Diag_revision)
+    {
+        Path_ClearHistory(&geometry);
+        controller.history = controller.transition_frames = 0;
+    }
     if (!scan || (uint32_t)(scan->end_us - previous_scan_us) > 250000u)
     {
         geometry.candidate_frames = geometry.avoid_hold = 0;
         geometry.avoid_offset = 0;
+        Path_ClearHistory(&geometry);
     }
     previous_scan_us = scan ? scan->end_us : 0;
     if (!M10P_ScanUsable(scan, Diag_TimeUs()))
@@ -70,6 +76,7 @@ void Steering_Update(const M10P_Scan *scan, const PathPoint *points, uint16_t co
         geometry = previous_geometry;
         geometry.candidate_frames = geometry.avoid_hold = 0;
         geometry.avoid_offset = 0;
+        Path_ClearHistory(&geometry);
         path->valid = path->far_valid = path->width_measured = 0;
         path->avoid_offset = path->avoid_y = 0;
         path->avoid_state = AVOID_CLEAR;

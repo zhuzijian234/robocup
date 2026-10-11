@@ -1024,7 +1024,9 @@ def cmd_capture_v2(a):
             last_rx=time.monotonic()
             while True:
                 if a.stop_file and os.path.exists(a.stop_file):
-                    end_reason="user_stop";break
+                    end_reason="user_stop"
+                    if formal is None:error="协商未完成即停止；原始数据已保存，不能作为正式run"
+                    break
                 chunk=serial_port.read(4096);now=time.monotonic()
                 if chunk:
                     raw.write(chunk);hasher.update(chunk)
@@ -1054,9 +1056,11 @@ def cmd_capture_v2(a):
                 dump_timeout = 24 if 'cloud=2' in handshake.info else 12
                 print(f'正式采集结束，正在导出冻结点云（最多{dump_timeout}秒）', flush=True)
                 cursor=len(parser.ascii_lines)
-                send('cloud freeze\n');send('cloud dump\n')
+                # 等freeze/status确认后再dump，避免设备尚未处理冻结命令就启动导出。
+                send('cloud freeze\n')
                 deadline=time.monotonic()+dump_timeout;last_status=time.monotonic();sending=False
-                sent=False;snapshot=0;frame_count=0
+                snapshot=0;frame_count=0
+                dump_attempts=0;last_dump=0;export_cursor=len(parser.v2.messages)
                 meta['cloud_dump']='timeout_or_incomplete'
                 while time.monotonic()<deadline:
                     chunk=serial_port.read(4096);now=time.monotonic()
@@ -1065,22 +1069,34 @@ def cmd_capture_v2(a):
                         rx.write(json.dumps({'offset':offset,'length':len(chunk),'t':now-start,
                                              'host_monotonic_ns':time.monotonic_ns()})+'\n')
                         offset+=len(chunk);parser.feed(chunk,now-start)
+                    for message in parser.v2.messages[export_cursor:]:
+                        if message['session'] != handshake.session:
+                            raise ValueError('点云导出期间设备会话改变，快照未完整')
+                        if message['type']==9:
+                            sending=True
+                    export_cursor=len(parser.v2.messages)
                     done=False
                     for item in parser.ascii_lines[cursor:]:
                         line=item['text']
                         if line.startswith('CLOUD '):
                             status=dict(pair.split('=',1) for pair in line.split()[1:] if '=' in pair)
-                            snapshot=int(status.get('id',0));frame_count=int(status.get('frames',0))
+                            current_snapshot=int(status.get('id',0))
+                            if snapshot and current_snapshot!=snapshot:
+                                raise ValueError('点云快照改变，停止混合导出')
+                            snapshot=current_snapshot;frame_count=int(status.get('frames',0))
                             max_frames = 8 if 'cloud=2' in handshake.info else 4
                             if not 0<=frame_count<=max_frames:raise ValueError('CLOUD frame count')
                             sending |= 'sending=1' in line
-                            sent |= sending and 'sending=0' in line
                             if 'frames=0 ' in line:
                                 meta['cloud_dump']='empty';done=True
+                            elif (status.get('state')=='2' and not sending and dump_attempts<3 and
+                                  (not dump_attempts or now-last_dump>=1.5)):
+                                send('cloud dump\n');dump_attempts+=1;last_dump=now
                     cursor=len(parser.ascii_lines)
                     # 发送完成ACK可能先于队列中的最后一个低优先级点云包到达。
                     # 必须实际收到全部点，不能仅凭sending=0就关闭串口。
-                    done |= sent and v2.cloud_dump_complete(parser.v2.messages,handshake.session,snapshot,frame_count)
+                    done |= bool(snapshot and frame_count and v2.cloud_dump_complete(
+                        parser.v2.messages,handshake.session,snapshot,frame_count))
                     if done:
                         if meta['cloud_dump']!='empty':meta['cloud_dump']='sent_check_csv_completeness'
                         break

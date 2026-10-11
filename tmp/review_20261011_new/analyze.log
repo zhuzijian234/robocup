@@ -1,0 +1,6 @@
+195850 frames 181 formal 30 bad 0 gaps 0 actions {1: 20, 5: 10} gate {0: 27, None: 3} clouds 8 8
+200137 frames 191 formal 30 bad 0 gaps 0 actions {1: 30} gate {0: 26, None: 3, 2: 1} clouds 8 8
+200513 frames 66 formal 0 bad 0 gaps 0 actions {} gate {} clouds 0 0
+201004 frames 180 formal 29 bad 0 gaps 0 actions {1: 24, 5: 5} gate {0: 27, None: 2} clouds 8 8
+201147 frames 345 formal 38 bad 0 gaps 0 actions {1: 33, 5: 5} gate {0: 38} clouds 0 0
+201936 frames 173 formal 23 bad 0 gaps 0 actions {1: 12, 2: 1, 5: 10} gate {0: 20, 2: 1, None: 2} clouds 8 8

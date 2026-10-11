@@ -34,6 +34,8 @@ PATH_EXTRA_F = "road_target target_x road_error avoid_offset near_ref_y width_ca
     for field in ("a", "b", "min_y", "max_y")]
 RACE_U = "schema control_seq param_revision input_seq model curve_rejected s_preview speed_reason uart_ore uart_fe uart_ne uart_last_us uart_input_seq speed_plan_us".split()
 RACE_F = "support_mm heading_rad preview_heading_rad turn_distance_mm speed_limit effective_target speed_ceiling bend_speed accel decel".split()
+RACE_ACUTE_U = "duplicate_samples identity_corrected target_transition transition_limited curve_checks".split()
+RACE_ACUTE_F = "outer_offset target_delta bend_rad outer_clearance".split()
 CLOUD_U = "schema snapshot_id frame_index control_seq param_revision input_seq input_us epoch trigger_flags total_points offset count".split()
 MOTOR_FIELDS = "sample_us encoder_raw motor_pwm speed_float target_float motor_integral motor_prelimit motor_flags".split()
 
@@ -149,22 +151,27 @@ class Decoder:
                     any(not math.isfinite(msg[k]) for k in PATH_EXTRA_F)):
                 raise ValueError("PATH_EXTRA values")
         elif kind==10:
-            if n != 112: raise ValueError("RACE length")
-            msg.update(zip(RACE_U,struct.unpack_from('<14I',payload)))
-            msg.update(zip(RACE_F,struct.unpack_from('<10f',payload,56)))
-            if (msg['schema'] != 1 or msg['model'] > 2 or msg['curve_rejected'] > 2 or
+            schema = struct.unpack_from('<I', payload)[0] if len(payload) >= 4 else 0
+            if (schema, n) not in ((1, 112), (2, 148)): raise ValueError("RACE length/schema")
+            ints = RACE_U + (RACE_ACUTE_U if schema == 2 else [])
+            floats = RACE_F + (RACE_ACUTE_F if schema == 2 else [])
+            msg.update(zip(ints,struct.unpack_from(f'<{len(ints)}I',payload)))
+            msg.update(zip(floats,struct.unpack_from(f'<{len(floats)}f',payload,4*len(ints))))
+            if (msg['model'] > 2 or msg['curve_rejected'] > 2 or
                     msg['s_preview'] > 1 or msg['speed_reason'] > 3 or
-                    any(not math.isfinite(msg[k]) for k in RACE_F)):
+                    any(not math.isfinite(msg[k]) for k in floats) or
+                    (schema == 2 and (msg['duplicate_samples'] > 12 or msg['curve_checks'] & ~1023 or
+                     any(msg[k] > 1 for k in RACE_ACUTE_U[1:4])))):
                 raise ValueError("RACE values")
         elif kind==9:
             if len(payload) < 48: raise ValueError("CLOUD prefix")
             msg.update(zip(CLOUD_U, struct.unpack_from('<12I', payload)))
-            # schema 1：首次事件4帧；schema 2：首次事件+停止时末段，最多8帧。
-            if (msg['schema'] not in (1, 2) or
+            # schema 1：4帧；schema 2/3：最多8帧；schema 3增加位64的目标/身份突变事件。
+            if (msg['schema'] not in (1, 2, 3) or
                 msg['frame_index'] > (3 if msg['schema'] == 1 else 7) or msg['total_points'] > 400 or
                     msg['count'] > 40 or msg['offset'] + msg['count'] > msg['total_points'] or
                     (msg['count'] == 0 and msg['total_points'] != 0) or
-                    msg['trigger_flags'] & ~(31 if msg['schema'] == 1 else 63) or
+                    msg['trigger_flags'] & ~({1:31, 2:63, 3:127}[msg['schema']]) or
                     len(payload) != 48 + 4 * msg['count']):
                 raise ValueError("CLOUD bounds")
             msg['points'] = list(struct.iter_unpack('<hh', payload[48:]))
@@ -240,6 +247,7 @@ class Handshake:
         self.send=send;self.parser=parser;self.session=session or secrets.randbelow(0xffffffff)+1
         self.rate=rate;self.stage=0;self.cursor=len(parser.ascii_lines)
         self.deadline=0;self.done=False;self.error=None;self.info=None
+        self.message_cursor=len(parser.v2.messages);self.session_seen=False
         self.commands=["info",f"session {self.session}","tele 3",f"rate {rate}","getcfg"]
 
     def start(self,now): self._send(now)
@@ -248,6 +256,13 @@ class Handshake:
         self.deadline=now+8
     def poll(self,now):
         if self.done:return
+        # 允许协商前队列里残留旧会话；一旦收到当前会话，随后清零/改变必须明确报错。
+        for message in self.parser.v2.messages[self.message_cursor:]:
+            if message['session'] == self.session:
+                self.session_seen=True
+            elif self.session_seen:
+                raise ValueError("协商期间设备会话改变，未进入正式采集")
+        self.message_cursor=len(self.parser.v2.messages)
         lines=self.parser.ascii_lines[self.cursor:];self.cursor=len(self.parser.ascii_lines)
         for item in lines:
             line=item["text"]
@@ -332,7 +347,7 @@ def write_extensions(parser,path):
     for suffix,rows,names in [('.detail.csv',details,['session','tx_seq','host_t']+list(dict.fromkeys(DETAIL_U+DETAIL_F+PATH_U+PATH_F))),
         ('.m10p.csv',[m for m in parser.v2.messages if m['type']==7],['session','tx_seq','host_t']+M10P_FIELDS),
         ('.motor.csv',motors,['session','param_revision','sample_seq','host_t']+MOTOR_FIELDS+['encoder_signed']),
-        ('.race.csv',[m for m in parser.v2.messages if m['type']==10],['session','tx_seq','host_t']+RACE_U+RACE_F),
+        ('.race.csv',[m for m in parser.v2.messages if m['type']==10],['session','tx_seq','host_t']+RACE_U+RACE_F+RACE_ACUTE_U+RACE_ACUTE_F),
         ('.path.csv',[m for m in parser.v2.messages if m['type']==8],['session','tx_seq','host_t']+PATH_EXTRA_U+PATH_EXTRA_F)]:
         with open(str(base)+suffix,'w',newline='',encoding='utf-8-sig') as f:
             writer=csv.DictWriter(f,fieldnames=names,extrasaction='ignore');writer.writeheader();writer.writerows(rows)

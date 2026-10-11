@@ -22,12 +22,19 @@ uint8_t BLE_Queue(const uint8_t*p,uint16_t n,uint8_t priority){
 }
 void BLE_FlushPending(void){uint8_t i;uint32_t p=__get_PRIMASK();__disable_irq();for(i=0;i<6;i++)if(i!=active && pool[i].ready){pool[i].ready=0;Diag_tx_drop++;}__set_PRIMASK(p);}
 void BLE_TxPoll(void){
-    uint8_t i;int8_t best=-1;static uint8_t connected;
+    uint8_t i;int8_t best=-1;static uint8_t connected, low_seen;
+    static uint32_t low_since;
     Bluetooth_Mode();
     if(!Get_Bluetooth_ConnectFlag()){
-        if(connected){BLE_FlushPending();Diag_session=0;}
-        connected=0;return;
+        /* STATE的一次低采样不等于会话断开。连续低100ms才清理会话，
+         * 等待期间不启动新发送；这里不阻塞主循环或雷达处理。 */
+        if (!low_seen) {low_seen=1;low_since=Diag_TimeMs();}
+        if (connected && (uint32_t)(Diag_TimeMs()-low_since)>=100u) {
+            BLE_FlushPending();Diag_session=0;connected=0;
+        }
+        return;
     }
+    low_seen=0;
     connected=1;if(active>=0)return;
     for(i=0;i<6;i++)if(pool[i].ready && (best<0 || pool[i].priority>pool[best].priority ||
        (pool[i].priority==pool[best].priority && (int32_t)(pool[i].order-pool[best].order)<0)))best=i;

@@ -92,7 +92,9 @@ void Diag_CloudCapture(const PathPoint *points, uint16_t count, uint32_t epoch)
     reason = (!Steering_path.valid ? 1u : 0u) |
              (Steering_path.avoid_state == AVOID_ACTIVE ? 2u : 0u) |
              (Steering_command.computed && !Steering_command.applied ? 4u : 0u) |
-             (Steering_command.reason == PATH_BAD_SCAN ? 16u : 0u);
+             (Steering_command.reason == PATH_BAD_SCAN ? 16u : 0u) |
+             ((Steering_path.identity_corrected || Steering_path.target_transition ||
+               Steering_command.transition_limited) ? 64u : 0u);
     s = &cloud_recent[recent_next];
     s->control = control_seq;
     s->revision = Diag_revision;
@@ -127,7 +129,7 @@ void Diag_CloudCapture(const PathPoint *points, uint16_t count, uint32_t epoch)
         cloud_state = 2;
         cloud_post = 0;
     }
-    else if (cloud_good >= 3 && (reason & 3u))
+    else if (cloud_good >= 3 && (reason & 67u))
         cloud_post = 1;
     if (Steering_path.valid && cloud_good < 3) ++cloud_good;
 }
@@ -376,25 +378,33 @@ static void motor_poll(void)
  * 主循环发送；每4个控制序号最多一帧，避免挤占CONTROL/编码器遥测。 */
 static void race_submit(void)
 {
-    uint32_t values[14], irq;
-    float data[10];
+    uint32_t values[19], irq;
+    float data[14];
     if (Diag_mode!=3 || !Diag_session || (control_seq & 3u) || !BLE_NormalSpace()) return;
-    values[0]=1;values[1]=control_seq;values[2]=Diag_revision;values[3]=Diag_input_seq;
+    values[0]=2;values[1]=control_seq;values[2]=Diag_revision;values[3]=Diag_input_seq;
     values[4]=Steering_path.model;values[5]=Steering_path.curve_rejected;
     values[6]=Steering_path.s_preview;values[7]=Steering_speed_reason;
     irq=__get_PRIMASK();__disable_irq();
     values[8]=Diag_uart_ore;values[9]=Diag_uart_fe;values[10]=Diag_uart_ne;
     values[11]=Diag_uart_last_us;values[12]=Diag_uart_input_seq;
     values[13]=Steering_speed_us;
+    values[14]=Steering_path.duplicate_samples;
+    values[15]=Steering_path.identity_corrected;
+    values[16]=Steering_path.target_transition;
+    values[17]=Steering_command.transition_limited;
+    values[18]=Steering_path.curve_checks;
     __set_PRIMASK(irq);
     data[0]=Steering_path.support_mm;data[1]=Steering_path.heading_rad;
     data[2]=Steering_path.preview_heading_rad;data[3]=Steering_path.turn_distance_mm;
     data[4]=Steering_speed_limit;data[5]=Radar_effective_target;
     data[6]=Speed_mubiao;data[7]=RACE_BEND_SPEED;
     data[8]=RACE_ACCEL;data[9]=RACE_DECEL;
-    header(10,112);
-    memcpy(frame+14,values,sizeof values);memcpy(frame+70,data,sizeof data);
-    BLE_Queue(frame,112,1);
+    data[10]=Steering_path.outer_offset;data[11]=Steering_path.target_delta;
+    data[12]=Steering_path.bend_rad;data[13]=Steering_path.outer_clearance;
+    /* schema 2明确标记新增字段；上位机同时兼容旧112字节和新148字节。 */
+    header(10,148);
+    memcpy(frame+14,values,sizeof values);memcpy(frame+90,data,sizeof data);
+    BLE_Queue(frame,148,1);
 }
 
 static void detail_submit(uint32_t elapsed, uint8_t action, uint8_t ok)
@@ -462,7 +472,7 @@ static void cloud_poll(uint32_t now)
         s=&cloud_recent[(recent_next+4-recent_used+cloud_frame-cloud_used)&3];
     n=s->count-cloud_offset;
     if (n>40) n=40;
-    u[0]=2; u[1]=cloud_id; u[2]=cloud_frame; u[3]=s->control; u[4]=s->revision;
+    u[0]=3; u[1]=cloud_id; u[2]=cloud_frame; u[3]=s->control; u[4]=s->revision;
     u[5]=s->input; u[6]=s->us; u[7]=s->epoch; u[8]=s->reason;
     u[9]=s->count; u[10]=cloud_offset; u[11]=n;
     header(9,(uint16_t)(64+4*n));
@@ -629,7 +639,7 @@ static void config_poll(void)
             number = LEIDA_DATA_COUNTER;
             break;
         case 13:
-            text = "path=local+contour;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121";
+            text = "path=local+contour;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121;acute=entry25+identity";
             break;
         case 14:
             text = "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720";
@@ -737,7 +747,7 @@ uint8_t Diag_Command(char *line)
         return 1;
     }
     if (!strcmp(line, "info")) {
-        sprintf(ack, "INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=4 input=%u atomic=0 detail=2 motor=1 extra=1 cloud=2 race=1\r\n", DIAG_LAYOUT, DIAG_BUILD_ID, (unsigned)DIAG_LIDAR_ID, (unsigned)DIAG_INPUT_KIND);
+        sprintf(ack, "INFO proto=1,2 layout=%s fw=%s lidar=%u algorithm=4 input=%u atomic=0 detail=2 motor=1 extra=1 cloud=2 race=2\r\n", DIAG_LAYOUT, DIAG_BUILD_ID, (unsigned)DIAG_LIDAR_ID, (unsigned)DIAG_INPUT_KIND);
         Send_Bluetooth_Data(ack);
         return 1;
     }
