@@ -17,8 +17,10 @@ PathCommand Steering_command;
 static PathGeometry geometry;
 static PathController controller;
 static PathSpeed speed_plan;
-float RACE_BEND_SPEED = 16.0f, RACE_ACCEL = 2.0f, RACE_DECEL = 12.0f;
-volatile float Steering_speed_limit = 16.0f;
+/* RACE_BEND_SPEED：弯道及转向证据不足时的速度上限；直道上限见 main.c 的 Speed_mubiao。
+ * 默认 17/15 来自复核方案里"稳定后的候选目标"，两者都是编码器控制单位。 */
+float RACE_BEND_SPEED = 15.0f, RACE_ACCEL = 2.0f, RACE_DECEL = 12.0f;
+volatile float Steering_speed_limit = 15.0f;
 volatile uint32_t Steering_speed_us;
 volatile uint8_t Steering_speed_reason = 3;
 static uint32_t previous_revision;
