@@ -8,7 +8,7 @@
 
 pid_type Servo_pd, Speed_pid;
 uint8_t Servo_PD_valid;
-float CENTER_X_TARGET_MM = -27.0f; /* 现有安装标定，换安装位置需重测 */
+float CENTER_X_TARGET_MM = 10.0f; /* 横向跟踪偏置，单位mm；当前实车调校值 */
 float MODE0_ERR_CLAMP_MM = 200.0f; /* 保留用户的直道限幅；弯道真实路径误差上限 500 */
 float PATH_PREVIEW_MM = 700.0f;    /* 同一前向参考，实际支持不足时明确缩短 */
 float PATH_WIDTH_MM = 500.0f;      /* 当前记录的 50 cm 通道；双侧可靠后按实测宽度更新 */

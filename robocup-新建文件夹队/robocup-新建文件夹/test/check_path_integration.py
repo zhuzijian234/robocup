@@ -54,7 +54,7 @@ int main(void){
  Steering_Init();TIM3->CCR1=1445;
  scan.epoch=1;scan.start_us=20000;scan.end_us=100000;scan.count=120;
  for(i=0;i<60;++i){
-   input[2*i].x=-277;input[2*i+1].x=223;
+   input[2*i].x=CENTER_X_TARGET_MM-250;input[2*i+1].x=CENTER_X_TARGET_MM+250;
    input[2*i].y=input[2*i+1].y=110+i*19.0f;
  }
  /* No front echo still permits a real dual/side path. */

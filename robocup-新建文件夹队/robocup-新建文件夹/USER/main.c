@@ -70,7 +70,7 @@ int main(void)
     Speed_PID_Init(&Speed_pid, 8.5f, 0.505f, 0);
     Moto_Init(42, 100, 0);
     Encoder_Init();
-    Speed_mubiao = 17; /* 默认直道上限17、弯速16；编码器PI仍按路径规划目标调速。 */
+    Speed_mubiao = 17; /* 默认直道上限17、弯速15；编码器PI仍按路径规划目标调速。 */
 #if HW_TEST_SELECT == 0
     TIM5_Int_Init(100 - 1, 8400 - 1);
 #endif
