@@ -1,0 +1,146 @@
+[
+  {
+    "tag": "01_215921",
+    "capture": "v2_1011_215921_18542828000000",
+    "video": "s弯_v2_1011_215921_18542828000000.mp4",
+    "w": 720,
+    "h": 1280,
+    "fps": 30.0,
+    "frames": 219,
+    "video_duration": 7.267,
+    "capture_duration": 18.781,
+    "offset_A_motion_start": 0.828,
+    "offset_B_motion_end": 1.483,
+    "alignment_spread_s": 0.655,
+    "motion_runs": [
+      [
+        0.83,
+        8.34
+      ],
+      [
+        8.34,
+        8.75
+      ]
+    ],
+    "moving_frames": 219,
+    "end_reason": "user_stop",
+    "ctl_rows": 220,
+    "det_rows": 217,
+    "path_rows": 212,
+    "race_rows": 33,
+    "motor_rows": 1840,
+    "spd": 17.0,
+    "bendspd": 15.0,
+    "pwm_min": 1170.0,
+    "pwm_max": 1720.0,
+    "spd_now_max": 17.2
+  },
+  {
+    "tag": "02_220025",
+    "capture": "v2_1011_220025_18606281000000",
+    "video": "s弯_v2_1011_220025_18606281000000_.mp4",
+    "w": 720,
+    "h": 1280,
+    "fps": 30.0,
+    "frames": 226,
+    "video_duration": 7.5,
+    "capture_duration": 17.969,
+    "offset_A_motion_start": 0.406,
+    "offset_B_motion_end": 1.984,
+    "alignment_spread_s": 1.578,
+    "motion_runs": [
+      [
+        0.41,
+        9.09
+      ],
+      [
+        9.09,
+        9.48
+      ]
+    ],
+    "moving_frames": 226,
+    "end_reason": "user_stop",
+    "ctl_rows": 215,
+    "det_rows": 213,
+    "path_rows": 211,
+    "race_rows": 26,
+    "motor_rows": 1783,
+    "spd": 17.0,
+    "bendspd": 15.0,
+    "pwm_min": 1170.0,
+    "pwm_max": 1718.0,
+    "spd_now_max": 17.5
+  },
+  {
+    "tag": "03_220116_表现良好",
+    "capture": "v2_1011_220116_18657781000000",
+    "video": "s弯_v2_1011_220116_18657781000000_表现良好.mp4",
+    "w": 720,
+    "h": 1280,
+    "fps": 30.0,
+    "frames": 214,
+    "video_duration": 7.1,
+    "capture_duration": 17.031,
+    "offset_A_motion_start": 0.406,
+    "offset_B_motion_end": 3.181,
+    "alignment_spread_s": 2.775,
+    "motion_runs": [
+      [
+        0.41,
+        9.89
+      ],
+      [
+        9.89,
+        10.28
+      ]
+    ],
+    "moving_frames": 214,
+    "end_reason": "user_stop",
+    "ctl_rows": 202,
+    "det_rows": 201,
+    "path_rows": 192,
+    "race_rows": 30,
+    "motor_rows": 1680,
+    "spd": 17.0,
+    "bendspd": 15.0,
+    "pwm_min": 1170.0,
+    "pwm_max": 1720.0,
+    "spd_now_max": 17.5
+  },
+  {
+    "tag": "04_220417_表现良好",
+    "capture": "v2_1011_220417_18838921000000",
+    "video": "s弯_v2_1011_220417_18838921000000_表现良好.mp4",
+    "w": 720,
+    "h": 1280,
+    "fps": 30.0,
+    "frames": 211,
+    "video_duration": 7.0,
+    "capture_duration": 17.562,
+    "offset_A_motion_start": 0.422,
+    "offset_B_motion_end": 2.468,
+    "alignment_spread_s": 2.046,
+    "motion_runs": [
+      [
+        0.42,
+        9.12
+      ],
+      [
+        9.12,
+        9.47
+      ]
+    ],
+    "moving_frames": 211,
+    "end_reason": "user_stop",
+    "ctl_rows": 210,
+    "det_rows": 207,
+    "path_rows": 198,
+    "race_rows": 33,
+    "motor_rows": 1742,
+    "spd": 17.0,
+    "bendspd": 15.0,
+    "pwm_min": 1170.0,
+    "pwm_max": 1720.0,
+    "spd_now_max": 17.6
+  }
+]

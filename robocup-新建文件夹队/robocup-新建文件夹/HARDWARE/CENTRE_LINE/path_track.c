@@ -27,6 +27,7 @@ void Path_ClearHistory(PathGeometry *state)
     state->history_model = 0;
     state->acute_direction = 0;
     state->outer_offset = 0;
+    state->s_transition_frames = state->s_straight_frames = 0;
 }
 
 static float bounded(float value, float low, float high)
@@ -211,6 +212,56 @@ static float center_at(const PathFit *left, const PathFit *right, uint8_t source
     return at(right, y) - 0.5f * width * sqrtf(1 + right->a * right->a);
 }
 
+static uint8_t corridor_clear(const PathPoint *points, uint16_t count, PathPoint a, PathPoint b);
+
+/* 直线门槛未通过时，再用同帧的空间采样核实连续弯墙。
+ * 斜率差随墙面朝向放大，因此补充比较切向角和法向接缝距离；
+ * 仍要求足够跨度、逐段连续和真实通路，不把横墙或断开的物体拼成出口。 */
+static uint8_t supported_turn_join(const PathPoint *samples, uint16_t n,
+                                   const PathPoint *points, uint16_t count,
+                                   const PathFit *near, const PathFit *far,
+                                   uint8_t side, float width, float target_y)
+{
+    uint16_t i, segments = 0;
+    float near_yaw, far_yaw, join_y, previous = 0, first = 0, last = 0;
+    PathPoint start, target;
+    if (!near->valid || (far->rejected && far->rejected != FIT_SLOPE) ||
+        far->count < 4 || near->a * far->a <= 0 || fabsf(near->a) < .10f ||
+        target_y < far->min_y || target_y > far->max_y)
+        return 0;
+    near_yaw = atanf(near->a); far_yaw = atanf(far->a);
+    join_y = far->min_y;
+    if (fabsf(far_yaw) > 1.2f || fabsf(far_yaw - near_yaw) < .15f ||
+        fabsf(far_yaw - near_yaw) > .70f || near->max_y < join_y - 50 ||
+        far->rms / sqrtf(1 + far->a * far->a) > 35 ||
+        fabsf(at(near, join_y) - at(far, join_y)) / sqrtf(1 + far->a * far->a) > 80)
+        return 0;
+    /* 至少四段真实采样；接缝附近逐段切向应平顺，不能仅凭两个拟合平均值。 */
+    for (i = 1; i < n; ++i)
+    {
+        float dx, dy, yaw;
+        if (samples[i - 1].y < 250 || samples[i].y > target_y + 350)
+            continue;
+        dx = samples[i].x - samples[i - 1].x;
+        dy = samples[i].y - samples[i - 1].y;
+        if (dy < 35 || dy > 160 || dx * dx + dy * dy > 280 * 280)
+            return 0;
+        yaw = atan2f(dx, dy);
+        if (yaw * far_yaw < 0 || (segments && fabsf(yaw - previous) > .45f))
+            return 0;
+        if (!segments) first = yaw;
+        last = previous = yaw;
+        ++segments;
+    }
+    if (segments < 4 || fabsf(last) < fabsf(first) + .15f)
+        return 0;
+    start.y = bounded(400, near->min_y, near->max_y);
+    start.x = at(near, start.y) + (side ? -1 : 1) * width * .5f * sqrtf(1 + near->a * near->a);
+    target.y = target_y;
+    target.x = at(far, target_y) + (side ? -1 : 1) * width * .5f * sqrtf(1 + far->a * far->a);
+    return corridor_clear(points, count, start, target);
+}
+
 static float direction(const PathFit *left, const PathFit *right, uint8_t source)
 {
     return source == PATH_DUAL ? 0.5f * (left->a + right->a) : source == PATH_LEFT ? left->a : right->a;
@@ -284,18 +335,11 @@ static void restore_wall_identity(const PathGeometry *state, const PathPoint *po
 /* 冲突时只允许有独立连续性证据的单侧接管，不因“某侧RMS略小”盲猜。
  * 近远段必须在实际接缝相连，远段覆盖预瞄；候选中线在共同可见区内
  * 还须给另一面保留轮外沿及侧隙，避免单侧半宽偏移指到对墙上。 */
-static uint8_t recovery_side(const PathFit *near, const PathFit *far, uint8_t side, float width,
-                             float preview)
+static uint8_t opposite_clear(const PathFit *near, uint8_t side, float width)
 {
-    const PathFit *n = &near[side], *f = &far[side], *other = &near[1 - side];
-    float lo, hi, join, y, center, clearance;
+    const PathFit *n = &near[side], *other = &near[1 - side];
+    float lo, hi, y, center, clearance;
     unsigned i;
-    if (!n->valid || !f->valid || n->rms > 35)
-        return 0;
-    join = f->min_y;
-    if (n->max_y < join - 50 || f->min_y > preview + 100 || f->max_y < preview - 100 ||
-        fabsf(at(n, join) - at(f, join)) > 80 || fabsf(n->a - f->a) > .8f)
-        return 0;
     lo = fmaxf(n->min_y, other->min_y);
     hi = fminf(n->max_y, other->max_y);
     if (hi - lo < 200)
@@ -309,6 +353,18 @@ static uint8_t recovery_side(const PathFit *near, const PathFit *far, uint8_t si
             return 0;
     }
     return 1;
+}
+
+static uint8_t recovery_side(const PathFit *near, const PathFit *far, uint8_t side, float width,
+                             float preview)
+{
+    const PathFit *n = &near[side], *f = &far[side];
+    float join = f->min_y;
+    if (!n->valid || !f->valid || n->rms > 35 || n->max_y < join - 50 ||
+        f->min_y > preview + 100 || f->max_y < preview - 100 ||
+        fabsf(at(n, join) - at(f, join)) > 80 || fabsf(n->a - f->a) > .8f)
+        return 0;
+    return opposite_clear(near, side, width);
 }
 
 /* 输入已按雷达角度排列。仅接纳独立、具有圆弧形状的小簇；平墙短片、单点噪声和
@@ -537,6 +593,18 @@ static void build_lines(PathGeometry *state, const PathPoint *points, uint16_t c
         {
             uint8_t left = recovery_side(near, far, 0, state->width, preview_y);
             uint8_t right = recovery_side(near, far, 1, state->width, preview_y);
+            /* 窄区双侧拟合冲突也使用相同的补充连接规则；不能因另一墙刚好
+             * 多出一个分区，就丢掉本帧已有连续支持的远段。仍须验证对墙余量。 */
+            if (!out->duplicate_samples && !out->identity_corrected &&
+                !state->avoid_offset && !state->candidate_frames)
+            {
+                if (!left && far[0].valid && opposite_clear(near, 0, state->width))
+                    left = supported_turn_join(samples[0], n[0], points, count,
+                                                &near[0], &far[0], 0, state->width, preview_y);
+                if (!right && far[1].valid && opposite_clear(near, 1, state->width))
+                    right = supported_turn_join(samples[1], n[1], points, count,
+                                                 &near[1], &far[1], 1, state->width, preview_y);
+            }
             /* 真实回放中内侧结束、外侧连续，却因斜率差被整帧弃用。
              * 优先唯一连续候选；两个候选同样可信且冲突时仍拒绝猜方向。 */
             if (left != right)
@@ -592,6 +660,17 @@ static void build_lines(PathGeometry *state, const PathPoint *points, uint16_t c
         out->width_frozen = 0;
         out->width = state->width;
     }
+    /* 仅斜率超限的远墙可接受补充验证：门槛附近丢一帧不应把新弯舵量拉回。
+     * 点数/跨度/残差失败仍按原规则拒绝；身份修复或避让期间不叠加此恢复。 */
+    if (!out->duplicate_samples && !out->identity_corrected && !state->avoid_offset && !state->candidate_frames)
+        for (uint8_t s = 0; s < 2; ++s)
+            if ((source == PATH_DUAL || s == side) && far[s].rejected == FIT_SLOPE &&
+                supported_turn_join(samples[s], n[s], points, count, &near[s], &far[s], s,
+                                    out->width, preview_y))
+            {
+                far[s].valid = 1;
+                far[s].rejected = 0; /* 本帧已通过补充的轮廓及通路验证。 */
+            }
     /* 双侧近段可信、但一侧远段被遮挡时，用另一侧连续边界保留预瞄。
      * 必须在两段实际接缝处位置连续，不能把横墙/下一个不相干物体接成远段。 */
     if (source == PATH_DUAL && far[0].valid != far[1].valid)
@@ -600,8 +679,11 @@ static void build_lines(PathGeometry *state, const PathPoint *points, uint16_t c
         float join_y = far[available].min_y;
         if (near[available].max_y >= join_y - 50 && far[available].min_y <= preview_y + 100 &&
             far[available].max_y >= preview_y - 100 &&
-            fabsf(at(&near[available], join_y) - at(&far[available], join_y)) <= 80 &&
-            fabsf(near[available].a - far[available].a) <= 0.8f)
+            ((fabsf(at(&near[available], join_y) - at(&far[available], join_y)) <= 80 &&
+              fabsf(near[available].a - far[available].a) <= 0.8f) ||
+             (!out->duplicate_samples && !out->identity_corrected && !state->avoid_offset &&
+              !state->candidate_frames && supported_turn_join(samples[available], n[available],
+                points, count, &near[available], &far[available], available, out->width, preview_y))))
         {
             source = available ? PATH_RIGHT : PATH_LEFT;
             side = available;
@@ -920,7 +1002,26 @@ static void acute_entry(PathGeometry *state, const PathPoint *points, uint16_t c
     PathPoint before, after;
     const PathFit *wall;
     out->outer_offset = 0;
-    if (out->s_preview || out->avoid_state != AVOID_CLEAR || out->avoid_offset)
+    /* 近远反向消失往往只是车进入S弯下一段，并非已变成独立大急弯。
+     * 最多保留六个有效扫描的外移抑制；连续两帧直道可提前退出。
+     * 这个状态只影响附加偏移，不改变弯向、控制目标确认或电机速度。 */
+    if (out->s_preview)
+    {
+        state->s_transition_frames = 6;
+        state->s_straight_frames = 0;
+    }
+    else
+    {
+        if (state->s_transition_frames) --state->s_transition_frames;
+        if (out->straight)
+        {
+            if (state->s_straight_frames < 2) ++state->s_straight_frames;
+            if (state->s_straight_frames >= 2) state->s_transition_frames = 0;
+        }
+        else
+            state->s_straight_frames = 0;
+    }
+    if (state->s_transition_frames || out->avoid_state != AVOID_CLEAR || out->avoid_offset)
     {
         state->outer_offset = 0;
         state->acute_frames = 0;

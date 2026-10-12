@@ -1,0 +1,159 @@
+[
+  {
+    "tag": "215921",
+    "video_frames": 219,
+    "fps": 30.0,
+    "video_sha256": "7259d8656bc34e41677459316584f19614d8de295715b567761e4b632dffb34e",
+    "extracted_jpeg_MAE": [
+      0.803,
+      0.749,
+      0.72,
+      0.699,
+      0.763,
+      0.711
+    ],
+    "bin_hash_matches_meta": true,
+    "formal_frames": 80,
+    "seq_gaps": [],
+    "adjacent_dt_ms": [
+      76,
+      81,
+      92
+    ],
+    "reported_control_dt_us": [
+      75679,
+      80521.0,
+      92912
+    ],
+    "max_process_us": 8310,
+    "limit_frames": [
+      3150,
+      3164
+    ],
+    "clouds_complete": 8
+  },
+  {
+    "tag": "220025",
+    "video_frames": 226,
+    "fps": 30.0,
+    "video_sha256": "5d2f58ac623e47996ea940e67d8d9d0ed183da95c0e88322e9695e9275882f09",
+    "extracted_jpeg_MAE": [
+      0.811,
+      0.725,
+      0.761,
+      0.67,
+      0.744,
+      0.704
+    ],
+    "bin_hash_matches_meta": true,
+    "formal_frames": 64,
+    "seq_gaps": [
+      {
+        "seq": [
+          3882,
+          3884
+        ],
+        "elapsed_ms": 168,
+        "reported_dt_us": 89813,
+        "input_seq": 3884,
+        "txdrop": 34,
+        "input_drop": 0
+      }
+    ],
+    "adjacent_dt_ms": [
+      76,
+      79.0,
+      92
+    ],
+    "reported_control_dt_us": [
+      75955,
+      78821.5,
+      92427
+    ],
+    "max_process_us": 8018,
+    "limit_frames": [
+      3893,
+      3926
+    ],
+    "clouds_complete": 8
+  },
+  {
+    "tag": "220116",
+    "video_frames": 214,
+    "fps": 30.0,
+    "video_sha256": "4a994babfad3bb116ef1ef8c1be344f79089b94d251c8f99c51ac3852fb15239",
+    "extracted_jpeg_MAE": [
+      0.764,
+      0.737,
+      0.746,
+      0.65,
+      0.691,
+      0.67
+    ],
+    "bin_hash_matches_meta": true,
+    "formal_frames": 62,
+    "seq_gaps": [
+      {
+        "seq": [
+          4496,
+          4499
+        ],
+        "elapsed_ms": 246,
+        "reported_dt_us": 78463,
+        "input_seq": 4499,
+        "txdrop": 50,
+        "input_drop": 0
+      }
+    ],
+    "adjacent_dt_ms": [
+      76,
+      79.0,
+      92
+    ],
+    "reported_control_dt_us": [
+      75589,
+      78929.5,
+      91855
+    ],
+    "max_process_us": 7588,
+    "limit_frames": [
+      4508,
+      4528,
+      4542
+    ],
+    "clouds_complete": 8
+  },
+  {
+    "tag": "220417",
+    "video_frames": 211,
+    "fps": 30.0,
+    "video_sha256": "95f6cfa3732d351f5d82b4d92a6a4fe062669a3da4466d0e4505e8363a211240",
+    "extracted_jpeg_MAE": [
+      0.728,
+      0.744,
+      0.77,
+      0.719,
+      0.714,
+      0.675
+    ],
+    "bin_hash_matches_meta": true,
+    "formal_frames": 60,
+    "seq_gaps": [],
+    "adjacent_dt_ms": [
+      76,
+      79,
+      92
+    ],
+    "reported_control_dt_us": [
+      75672,
+      78918.0,
+      92080
+    ],
+    "max_process_us": 7501,
+    "limit_frames": [
+      6684,
+      6704
+    ],
+    "clouds_complete": 8
+  }
+]
