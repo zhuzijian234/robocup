@@ -100,7 +100,6 @@ typedef struct
     float outer_offset;
     uint8_t history, history_misses, acute_frames, history_model;
     int8_t acute_direction;
-    uint8_t s_transition_frames, s_straight_frames; /* 仅抑制S过渡中的急弯外移，不锁舵。 */
 } PathGeometry;
 typedef struct
 {

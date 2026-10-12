@@ -160,7 +160,7 @@ targets:
             ro-base: "0x08000000"
             rw-base: "0x20000000"
             xo-base: ""
-        scatterFilePath: "USER/m10p.sct"
+        scatterFilePath: USER/m10p.sct
         storageLayout:
           RAM:
             - id: 1
@@ -245,4 +245,9 @@ targets:
         otherCmds: ""
         proType: 1
         speed: 8000
-    uploader: JLink
+      OpenOCD:
+        baseAddr: "0x08000000"
+        bin: ""
+        interface: stlink
+        target: stm32f1x
+    uploader: OpenOCD
