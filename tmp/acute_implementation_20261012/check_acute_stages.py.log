@@ -1,0 +1,18 @@
+side=-1 step=0 valid=1 phase=1 why=1 feature=929.0 goal=40.0 target=-12.1 ref=700.0
+
+side=-1 step=1 valid=1 phase=2 why=2 feature=929.0 goal=40.0 target=44.8 ref=471.0
+
+side=1 step=0 valid=1 phase=1 why=1 feature=929.0 goal=40.0 target=12.1 ref=700.0
+
+side=1 step=1 valid=1 phase=2 why=2 feature=929.0 goal=40.0 target=-26.5 ref=471.0
+
+PASS 93 acute preparation/priority/handoff/bounded-transition checks
+
+
+PASS 128 recorded clouds in contiguous blocks: geometry and PWM baseline preserved
+
+
+0300000008000000010000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000020000000000000000000000000000000000000000000000000070410000704100008841000070410000004000004041000010420000c6420000000000000000000048410000204200406744cdccccbd
+
+
+PASS production RACE schema3 encoder -> host decoder; size, offsets, enums and sequence pairing

@@ -1,0 +1,554 @@
+[
+  {
+    "tag": "160711",
+    "seq": 2184,
+    "accepted": false
+  },
+  {
+    "tag": "160711",
+    "seq": 2185,
+    "accepted": true,
+    "left_distance_mm": 188.49598890396007,
+    "right_distance_mm": 298.49599138937475,
+    "equivalent_width_mm": 486.9919802933348,
+    "outward_front_axle_offset_estimate_mm": 55.00000124270734,
+    "near_angles": [
+      0.23646566890835297,
+      0.1206850579563696
+    ]
+  },
+  {
+    "tag": "160711",
+    "seq": 2186,
+    "accepted": true,
+    "left_distance_mm": 183.67175980916477,
+    "right_distance_mm": 282.4714437903997,
+    "equivalent_width_mm": 466.14320359956446,
+    "outward_front_axle_offset_estimate_mm": 49.39984199061746,
+    "near_angles": [
+      0.2723427935627958,
+      0.19823762032964712
+    ]
+  },
+  {
+    "tag": "160711",
+    "seq": 2187,
+    "accepted": true,
+    "left_distance_mm": 177.7263523876458,
+    "right_distance_mm": 262.7614273059572,
+    "equivalent_width_mm": 440.487779693603,
+    "outward_front_axle_offset_estimate_mm": 42.51753745915572,
+    "near_angles": [
+      0.27842382627398043,
+      0.3278439059138246
+    ]
+  },
+  {
+    "tag": "161100",
+    "seq": 4931,
+    "accepted": false
+  },
+  {
+    "tag": "161100",
+    "seq": 4932,
+    "accepted": true,
+    "left_distance_mm": 205.16421217648687,
+    "right_distance_mm": 274.0391024562105,
+    "equivalent_width_mm": 479.20331463269736,
+    "outward_front_axle_offset_estimate_mm": 34.43744513986182,
+    "near_angles": [
+      0.28105713507420516,
+      0.12213009787496523
+    ]
+  },
+  {
+    "tag": "161100",
+    "seq": 4933,
+    "accepted": true,
+    "left_distance_mm": 203.68984191017176,
+    "right_distance_mm": 256.3815501971463,
+    "equivalent_width_mm": 460.07139210731805,
+    "outward_front_axle_offset_estimate_mm": 26.34585414348726,
+    "near_angles": [
+      0.2747845802334542,
+      0.14988676317746358
+    ]
+  },
+  {
+    "tag": "161100",
+    "seq": 4934,
+    "accepted": true,
+    "left_distance_mm": 202.58406396319324,
+    "right_distance_mm": 244.52711841628187,
+    "equivalent_width_mm": 447.1111823794751,
+    "outward_front_axle_offset_estimate_mm": 20.97152722654431,
+    "near_angles": [
+      0.2427310118739239,
+      0.17301616820648624
+    ]
+  },
+  {
+    "tag": "161233",
+    "seq": 6039,
+    "accepted": false
+  },
+  {
+    "tag": "161233",
+    "seq": 6040,
+    "accepted": true,
+    "left_distance_mm": 186.29574898478043,
+    "right_distance_mm": 280.42398658168014,
+    "equivalent_width_mm": 466.7197355664606,
+    "outward_front_axle_offset_estimate_mm": 47.064118798449854,
+    "near_angles": [
+      0.22879635620000544,
+      0.06675847485159907
+    ]
+  },
+  {
+    "tag": "161233",
+    "seq": 6041,
+    "accepted": true,
+    "left_distance_mm": 187.52654605107458,
+    "right_distance_mm": 266.88950728286653,
+    "equivalent_width_mm": 454.41605333394114,
+    "outward_front_axle_offset_estimate_mm": 39.68148061589598,
+    "near_angles": [
+      0.23185856144982467,
+      0.10736608508010898
+    ]
+  },
+  {
+    "tag": "161233",
+    "seq": 6042,
+    "accepted": true,
+    "left_distance_mm": 182.67454557605396,
+    "right_distance_mm": 246.04234656386436,
+    "equivalent_width_mm": 428.7168921399183,
+    "outward_front_axle_offset_estimate_mm": 31.6839004939052,
+    "near_angles": [
+      0.23547134757405747,
+      0.2492752875183381
+    ]
+  },
+  {
+    "tag": "161426",
+    "seq": 7395,
+    "accepted": true,
+    "left_distance_mm": 275.8668320823066,
+    "right_distance_mm": 233.46027698306122,
+    "equivalent_width_mm": 509.32710906536784,
+    "outward_front_axle_offset_estimate_mm": 21.203277549622683,
+    "near_angles": [
+      -0.11839548468957953,
+      -0.13009870045671088
+    ]
+  },
+  {
+    "tag": "161426",
+    "seq": 7396,
+    "accepted": true,
+    "left_distance_mm": 258.8556245328698,
+    "right_distance_mm": 241.3625562687953,
+    "equivalent_width_mm": 500.2181808016651,
+    "outward_front_axle_offset_estimate_mm": 8.746534132037254,
+    "near_angles": [
+      -0.18021256054288665,
+      -0.12230831129036068
+    ]
+  },
+  {
+    "tag": "161426",
+    "seq": 7397,
+    "accepted": true,
+    "left_distance_mm": 249.7966504523031,
+    "right_distance_mm": 257.6253016090508,
+    "equivalent_width_mm": 507.42195206135386,
+    "outward_front_axle_offset_estimate_mm": -3.914325578373834,
+    "near_angles": [
+      -0.19246220379011875,
+      -0.19366722602713338
+    ]
+  },
+  {
+    "tag": "161426",
+    "seq": 7398,
+    "accepted": true,
+    "left_distance_mm": 239.7815941334222,
+    "right_distance_mm": 264.2261000883505,
+    "equivalent_width_mm": 504.0076942217727,
+    "outward_front_axle_offset_estimate_mm": -12.222252977464152,
+    "near_angles": [
+      -0.21285905878670608,
+      -0.26313222841029044
+    ]
+  },
+  {
+    "tag": "161746",
+    "seq": 9793,
+    "accepted": true,
+    "left_distance_mm": 209.28600507549743,
+    "right_distance_mm": 279.5060404596768,
+    "equivalent_width_mm": 488.7920455351742,
+    "outward_front_axle_offset_estimate_mm": -35.110017692089684,
+    "near_angles": [
+      -0.16562269887616107,
+      -0.33192019112371635
+    ]
+  },
+  {
+    "tag": "161746",
+    "seq": 9794,
+    "accepted": true,
+    "left_distance_mm": 202.18474759242076,
+    "right_distance_mm": 259.3997520140645,
+    "equivalent_width_mm": 461.5844996064853,
+    "outward_front_axle_offset_estimate_mm": -28.607502210821877,
+    "near_angles": [
+      -0.2840890249324332,
+      -0.3014725684015398
+    ]
+  },
+  {
+    "tag": "161746",
+    "seq": 9795,
+    "accepted": true,
+    "left_distance_mm": 201.2077775795144,
+    "right_distance_mm": 243.61133944803237,
+    "equivalent_width_mm": 444.8191170275468,
+    "outward_front_axle_offset_estimate_mm": -21.201780934258977,
+    "near_angles": [
+      -0.3627966654878897,
+      -0.2977904993880453
+    ]
+  },
+  {
+    "tag": "161746",
+    "seq": 9796,
+    "accepted": true,
+    "left_distance_mm": 210.401310796133,
+    "right_distance_mm": 232.95034783692287,
+    "equivalent_width_mm": 443.3516586330559,
+    "outward_front_axle_offset_estimate_mm": -11.274518520394935,
+    "near_angles": [
+      -0.3885550476160589,
+      -0.2703260414395586
+    ]
+  },
+  {
+    "tag": "162029",
+    "seq": 571,
+    "accepted": true,
+    "left_distance_mm": 201.06503949610558,
+    "right_distance_mm": 221.8040800975276,
+    "equivalent_width_mm": 422.8691195936332,
+    "outward_front_axle_offset_estimate_mm": -10.369520300711002,
+    "near_angles": [
+      -0.22564221125620726,
+      -0.19130813092121285
+    ]
+  },
+  {
+    "tag": "162029",
+    "seq": 572,
+    "accepted": true,
+    "left_distance_mm": 202.3412080277927,
+    "right_distance_mm": 220.6068217269358,
+    "equivalent_width_mm": 422.9480297547285,
+    "outward_front_axle_offset_estimate_mm": -9.132806849571551,
+    "near_angles": [
+      -0.26129371942945856,
+      -0.2528062323550534
+    ]
+  },
+  {
+    "tag": "162029",
+    "seq": 573,
+    "accepted": true,
+    "left_distance_mm": 205.42851785795622,
+    "right_distance_mm": 214.95128209454813,
+    "equivalent_width_mm": 420.37979995250436,
+    "outward_front_axle_offset_estimate_mm": -4.7613821182959555,
+    "near_angles": [
+      -0.3178066929124366,
+      -0.2667744913519805
+    ]
+  },
+  {
+    "tag": "162029",
+    "seq": 574,
+    "accepted": true,
+    "left_distance_mm": 202.2819362664327,
+    "right_distance_mm": 206.62786405380592,
+    "equivalent_width_mm": 408.9098003202386,
+    "outward_front_axle_offset_estimate_mm": -2.172963893686614,
+    "near_angles": [
+      -0.43768737673332786,
+      -0.30536263214879744
+    ]
+  },
+  {
+    "tag": "164512",
+    "seq": 1335,
+    "accepted": true,
+    "left_distance_mm": 261.3131445799504,
+    "right_distance_mm": 269.66172710012444,
+    "equivalent_width_mm": 530.9748716800748,
+    "outward_front_axle_offset_estimate_mm": -4.174291260087017,
+    "near_angles": [
+      -0.15507831853574544,
+      -0.27506158319979096
+    ]
+  },
+  {
+    "tag": "164512",
+    "seq": 1336,
+    "accepted": true,
+    "left_distance_mm": 253.5677834029943,
+    "right_distance_mm": 263.45312109935554,
+    "equivalent_width_mm": 517.0209045023498,
+    "outward_front_axle_offset_estimate_mm": -4.942668848180617,
+    "near_angles": [
+      -0.19542753148622463,
+      -0.30768641138513364
+    ]
+  },
+  {
+    "tag": "164512",
+    "seq": 1337,
+    "accepted": true,
+    "left_distance_mm": 246.91969289153877,
+    "right_distance_mm": 256.3971465483473,
+    "equivalent_width_mm": 503.31683943988605,
+    "outward_front_axle_offset_estimate_mm": -4.738726828404253,
+    "near_angles": [
+      -0.24565243980974838,
+      -0.3511967679058027
+    ]
+  },
+  {
+    "tag": "164512",
+    "seq": 1338,
+    "accepted": true,
+    "left_distance_mm": 247.29153300960337,
+    "right_distance_mm": 245.08873700730263,
+    "equivalent_width_mm": 492.380270016906,
+    "outward_front_axle_offset_estimate_mm": 1.101398001150372,
+    "near_angles": [
+      -0.27446521970743726,
+      -0.40028939862093516
+    ]
+  },
+  {
+    "tag": "164616",
+    "seq": 2110,
+    "accepted": true,
+    "left_distance_mm": 258.16923573042214,
+    "right_distance_mm": 275.1941016314815,
+    "equivalent_width_mm": 533.3633373619036,
+    "outward_front_axle_offset_estimate_mm": -8.512432950529671,
+    "near_angles": [
+      -0.08509320972087071,
+      -0.2797877071720323
+    ]
+  },
+  {
+    "tag": "164616",
+    "seq": 2111,
+    "accepted": true,
+    "left_distance_mm": 242.74663456551363,
+    "right_distance_mm": 273.1081940377332,
+    "equivalent_width_mm": 515.8548286032468,
+    "outward_front_axle_offset_estimate_mm": -15.180779736109784,
+    "near_angles": [
+      -0.11776121015830254,
+      -0.29395438189134254
+    ]
+  },
+  {
+    "tag": "164616",
+    "seq": 2112,
+    "accepted": true,
+    "left_distance_mm": 229.40272815889313,
+    "right_distance_mm": 268.1249203056358,
+    "equivalent_width_mm": 497.5276484645289,
+    "outward_front_axle_offset_estimate_mm": -19.36109607337133,
+    "near_angles": [
+      -0.1715845464095579,
+      -0.3036745584406625
+    ]
+  },
+  {
+    "tag": "164616",
+    "seq": 2113,
+    "accepted": true,
+    "left_distance_mm": 226.13197994313265,
+    "right_distance_mm": 262.5901023572513,
+    "equivalent_width_mm": 488.72208230038393,
+    "outward_front_axle_offset_estimate_mm": -18.229061207059317,
+    "near_angles": [
+      -0.19024438927288384,
+      -0.3417551245252181
+    ]
+  },
+  {
+    "tag": "164757",
+    "seq": 3316,
+    "accepted": false
+  },
+  {
+    "tag": "164757",
+    "seq": 3317,
+    "accepted": true,
+    "left_distance_mm": 281.383808678375,
+    "right_distance_mm": 285.04618850257214,
+    "equivalent_width_mm": 566.4299971809471,
+    "outward_front_axle_offset_estimate_mm": -1.83118991209858,
+    "near_angles": [
+      -0.1055486335800599,
+      -0.28835271504486454
+    ]
+  },
+  {
+    "tag": "164757",
+    "seq": 3318,
+    "accepted": true,
+    "left_distance_mm": 261.30979071918244,
+    "right_distance_mm": 284.09473351699273,
+    "equivalent_width_mm": 545.4045242361751,
+    "outward_front_axle_offset_estimate_mm": -11.392471398905144,
+    "near_angles": [
+      -0.17507805069074614,
+      -0.282121876812543
+    ]
+  },
+  {
+    "tag": "164757",
+    "seq": 3319,
+    "accepted": true,
+    "left_distance_mm": 249.78384215809473,
+    "right_distance_mm": 283.2932753135953,
+    "equivalent_width_mm": 533.07711747169,
+    "outward_front_axle_offset_estimate_mm": -16.754716577750287,
+    "near_angles": [
+      -0.1984763664069028,
+      -0.2935607229407664
+    ]
+  },
+  {
+    "tag": "164942",
+    "seq": 4568,
+    "accepted": false
+  },
+  {
+    "tag": "164942",
+    "seq": 4569,
+    "accepted": false
+  },
+  {
+    "tag": "164942",
+    "seq": 4570,
+    "accepted": true,
+    "left_distance_mm": 266.8257919176362,
+    "right_distance_mm": 278.1058022996509,
+    "equivalent_width_mm": 544.931594217287,
+    "outward_front_axle_offset_estimate_mm": 5.640005191007361,
+    "near_angles": [
+      0.2014485036251724,
+      0.05939953899900315
+    ]
+  },
+  {
+    "tag": "164942",
+    "seq": 4571,
+    "accepted": true,
+    "left_distance_mm": 264.9576381332001,
+    "right_distance_mm": 264.92184353417144,
+    "equivalent_width_mm": 529.8794816673715,
+    "outward_front_axle_offset_estimate_mm": -0.017897299514316956,
+    "near_angles": [
+      0.24283600564488844,
+      0.15006129705658522
+    ]
+  },
+  {
+    "tag": "165050",
+    "seq": 5385,
+    "accepted": false
+  },
+  {
+    "tag": "165050",
+    "seq": 5386,
+    "accepted": false
+  },
+  {
+    "tag": "165050",
+    "seq": 5387,
+    "accepted": true,
+    "left_distance_mm": 245.85654745879557,
+    "right_distance_mm": 295.42172902061185,
+    "equivalent_width_mm": 541.2782764794074,
+    "outward_front_axle_offset_estimate_mm": 24.782590780908137,
+    "near_angles": [
+      0.23670513222998252,
+      0.09911466514633128
+    ]
+  },
+  {
+    "tag": "165050",
+    "seq": 5388,
+    "accepted": true,
+    "left_distance_mm": 243.503819795512,
+    "right_distance_mm": 276.4547518692332,
+    "equivalent_width_mm": 519.9585716647451,
+    "outward_front_axle_offset_estimate_mm": 16.475466036860595,
+    "near_angles": [
+      0.2475394723666958,
+      0.21314131362242913
+    ]
+  },
+  {
+    "tag": "165134",
+    "seq": 5913,
+    "accepted": false
+  },
+  {
+    "tag": "165134",
+    "seq": 5914,
+    "accepted": true,
+    "left_distance_mm": 254.26925291259732,
+    "right_distance_mm": 270.33819623423085,
+    "equivalent_width_mm": 524.6074491468282,
+    "outward_front_axle_offset_estimate_mm": 8.034471660816763,
+    "near_angles": [
+      0.22861033710452225,
+      0.18545773556726686
+    ]
+  },
+  {
+    "tag": "165134",
+    "seq": 5915,
+    "accepted": true,
+    "left_distance_mm": 248.10850569800397,
+    "right_distance_mm": 262.6809018831592,
+    "equivalent_width_mm": 510.7894075811632,
+    "outward_front_axle_offset_estimate_mm": 7.286198092577621,
+    "near_angles": [
+      0.2672290719516954,
+      0.2660472250135779
+    ]
+  },
+  {
+    "tag": "165134",
+    "seq": 5916,
+    "accepted": true,
+    "left_distance_mm": 240.50939684303495,
+    "right_distance_mm": 245.81297852085154,
+    "equivalent_width_mm": 486.3223753638865,
+    "outward_front_axle_offset_estimate_mm": 2.6517908389082976,
+    "near_angles": [
+      0.3313614641310005,
+      0.4349025100737776
+    ]
+  }
+]

@@ -36,6 +36,8 @@ RACE_U = "schema control_seq param_revision input_seq model curve_rejected s_pre
 RACE_F = "support_mm heading_rad preview_heading_rad turn_distance_mm speed_limit effective_target speed_ceiling bend_speed accel decel".split()
 RACE_ACUTE_U = "duplicate_samples identity_corrected target_transition transition_limited curve_checks".split()
 RACE_ACUTE_F = "outer_offset target_delta bend_rad outer_clearance".split()
+RACE_ENTRY_U = "acute_phase acute_reason acute_direction_code".split()
+RACE_ENTRY_F = "acute_position_mm acute_goal_mm acute_feature_y_mm acute_heading_rad".split()
 CLOUD_U = "schema snapshot_id frame_index control_seq param_revision input_seq input_us epoch trigger_flags total_points offset count".split()
 MOTOR_FIELDS = "sample_us encoder_raw motor_pwm speed_float target_float motor_integral motor_prelimit motor_flags".split()
 
@@ -152,16 +154,18 @@ class Decoder:
                 raise ValueError("PATH_EXTRA values")
         elif kind==10:
             schema = struct.unpack_from('<I', payload)[0] if len(payload) >= 4 else 0
-            if (schema, n) not in ((1, 112), (2, 148)): raise ValueError("RACE length/schema")
-            ints = RACE_U + (RACE_ACUTE_U if schema == 2 else [])
-            floats = RACE_F + (RACE_ACUTE_F if schema == 2 else [])
+            if (schema, n) not in ((1, 112), (2, 148), (3, 176)): raise ValueError("RACE length/schema")
+            ints = RACE_U + (RACE_ACUTE_U if schema >= 2 else []) + (RACE_ENTRY_U if schema == 3 else [])
+            floats = RACE_F + (RACE_ACUTE_F if schema >= 2 else []) + (RACE_ENTRY_F if schema == 3 else [])
             msg.update(zip(ints,struct.unpack_from(f'<{len(ints)}I',payload)))
             msg.update(zip(floats,struct.unpack_from(f'<{len(floats)}f',payload,4*len(ints))))
             if (msg['model'] > 2 or msg['curve_rejected'] > 2 or
                     msg['s_preview'] > 1 or msg['speed_reason'] > 3 or
                     any(not math.isfinite(msg[k]) for k in floats) or
-                    (schema == 2 and (msg['duplicate_samples'] > 12 or msg['curve_checks'] & ~1023 or
-                     any(msg[k] > 1 for k in RACE_ACUTE_U[1:4])))):
+                    (schema >= 2 and (msg['duplicate_samples'] > 12 or msg['curve_checks'] & ~1023 or
+                     any(msg[k] > 1 for k in RACE_ACUTE_U[1:4]))) or
+                    (schema == 3 and (msg['acute_phase'] > 4 or msg['acute_reason'] > 7 or
+                                     msg['acute_direction_code'] > 2))):
                 raise ValueError("RACE values")
         elif kind==9:
             if len(payload) < 48: raise ValueError("CLOUD prefix")
@@ -329,6 +333,11 @@ def analyze(parser,field_names):
                      speed_reasons=dict(Counter(m['speed_reason'] for m in race)),
                      s_preview_samples=sum(m['s_preview'] for m in race),
                      uart_last=race[-1] if race else None)
+    # 这是低频样本数，不能据此推算每个阶段持续了多少控制帧。
+    entry = [m for m in race if 'acute_phase' in m]
+    diagnosis.update(acute_samples=len(entry),
+                     acute_phases=dict(Counter(m['acute_phase'] for m in entry)),
+                     acute_reasons=dict(Counter(m['acute_reason'] for m in entry)))
     unknown=sum((r["session"],r["param_revision"]) not in parser.v2.configs for r in rows)
     return dict(v2=True,n_frames=len(rows),bad_frames=parser.bad_frames,dropped=parser.v2.missing,
         duration_s=parser.capture_duration,periods=periods,speed_error=sum(errors)/len(errors) if errors else None,
@@ -347,7 +356,7 @@ def write_extensions(parser,path):
     for suffix,rows,names in [('.detail.csv',details,['session','tx_seq','host_t']+list(dict.fromkeys(DETAIL_U+DETAIL_F+PATH_U+PATH_F))),
         ('.m10p.csv',[m for m in parser.v2.messages if m['type']==7],['session','tx_seq','host_t']+M10P_FIELDS),
         ('.motor.csv',motors,['session','param_revision','sample_seq','host_t']+MOTOR_FIELDS+['encoder_signed']),
-        ('.race.csv',[m for m in parser.v2.messages if m['type']==10],['session','tx_seq','host_t']+RACE_U+RACE_F+RACE_ACUTE_U+RACE_ACUTE_F),
+        ('.race.csv',[m for m in parser.v2.messages if m['type']==10],['session','tx_seq','host_t']+RACE_U+RACE_F+RACE_ACUTE_U+RACE_ACUTE_F+RACE_ENTRY_U+RACE_ENTRY_F),
         ('.path.csv',[m for m in parser.v2.messages if m['type']==8],['session','tx_seq','host_t']+PATH_EXTRA_U+PATH_EXTRA_F)]:
         with open(str(base)+suffix,'w',newline='',encoding='utf-8-sig') as f:
             writer=csv.DictWriter(f,fieldnames=names,extrasaction='ignore');writer.writeheader();writer.writerows(rows)

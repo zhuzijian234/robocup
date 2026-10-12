@@ -51,6 +51,13 @@ enum
     PATH_REVERSE,
     PATH_BAD_SCAN
 };
+/* 独立急弯附加阶段；普通循迹、S弯和锥桶仍使用原控制分支。 */
+enum { ACUTE_OFF, ACUTE_CONFIRM, ACUTE_PREPARE, ACUTE_TURN, ACUTE_EXIT };
+enum
+{
+    ACUTE_NO_EVIDENCE, ACUTE_CONFIRMING, ACUTE_POSITIONING, ACUTE_NEAR_TURN,
+    ACUTE_NO_ROOM, ACUTE_PRIORITY, ACUTE_LOST, ACUTE_EXIT_SEEN
+};
 typedef struct
 {
     float a, b; /* x = a*y + b，前向直线不会除以零 */
@@ -77,6 +84,13 @@ typedef struct
     uint8_t duplicate_samples, duplicate_conflict, identity_corrected, target_transition;
     uint32_t curve_checks; /* 弧形候选拒绝位图，见 CURVE_*。 */
     float outer_offset, target_delta, bend_rad, outer_clearance;
+    /* position/goal 为局部道路法向位置，向弯外为正；distance 仅为可见弯墙
+     * 偏离近切线的位置，不是实际拐点、剩余行驶距离或support_mm的别名。
+     * 位置/目标/特征距离/局部航向仅在CONFIRM、PREPARE阶段作为有效测量使用。 */
+    float acute_position, acute_goal, acute_distance, acute_heading;
+    float road_target_x; /* 布位前道路目标，避免向外摆舵被误判为S弯换向。 */
+    uint8_t acute_phase, acute_reason;
+    int8_t acute_direction; /* +1右弯、-1左弯，与舵机误差符号相反。 */
 } PathObservation;
 
 enum
@@ -97,9 +111,13 @@ typedef struct
     uint8_t candidate_frames;
     /* 仅保存上一有效帧的几何，不复制点云；断流、坏扫描和在线改参清零。 */
     float history_x, history_a, history_y, history_target;
-    float outer_offset;
     uint8_t history, history_misses, acute_frames, history_model;
     int8_t acute_direction;
+    uint8_t acute_phase, acute_exit_frames;
+    /* 未确认独立急弯时保留已实测的25mm远目标微调；与新入口阶段不叠加。 */
+    float baseline_offset;
+    uint8_t baseline_frames;
+    int8_t baseline_direction;
 } PathGeometry;
 typedef struct
 {
@@ -116,8 +134,9 @@ typedef struct
     int8_t bend, pending_direction;
     uint8_t history, previous_source, previous_far_valid, evidence_frames;
     uint8_t previous_model;
-    float previous_near_a;
+    float previous_near_a, previous_far_a;
     uint8_t transition_frames;
+    uint8_t previous_acute_phase, transition_used, transition_step;
 } PathController;
 typedef struct
 {

@@ -46,11 +46,17 @@ program+=without_includes(text('HARDWARE/CENTRE_LINE/path_track.c'))
 program+=without_includes(text('HARDWARE/CENTRE_LINE/CENTRE_LINE.h'))
 program+=usable
 program+=without_includes(text('HARDWARE/CENTRE_LINE/CENTRE_LINE.c'))
+# 复用已验证的左右连续弯墙输入，覆盖真正Steering_Update的布位状态清理。
+stages=text('test/test_acute_stages.c')
+program+=stages[stages.index('static unsigned corner('):stages.index('static unsigned gentle(')]
 program+=r'''
 static M10P_Scan scan;
-static PathPoint input[120];
+static PathPoint input[400];
+static void advance_scan(void){
+ clock_us+=80000;scan.start_us=clock_us-80000;scan.end_us=clock_us;scan.epoch=LidarRx_epoch;
+}
 int main(void){
- unsigned i,old_writes;float old_width;
+ unsigned i,j,n,old_writes;float old_width;
  Steering_Init();TIM3->CCR1=1445;
  scan.epoch=1;scan.start_us=20000;scan.end_us=100000;scan.count=120;
  for(i=0;i<60;++i){
@@ -81,6 +87,28 @@ int main(void){
  /* Parameter revision invalidates D history without resetting speed integral. */
  Speed_pid.err_sum=123;Diag_revision++;Steering_Update(&scan,input,120);
  CHECK(Servo_PD_valid && Steering_command.d_reset && Speed_pid.err_sum==123);
+ /* 已布位状态下：改参、长间隔、计算中接收代次改变、过期、溢出都不得继承
+  * 旧准备许可。用完整编排函数检查，不只在几何测试中手工清空状态。 */
+ for(i=0;i<5;++i){
+   Steering_Init();n=corner(input,650,1,0);scan.count=(uint16_t)n;
+   for(j=0;j<2;++j){advance_scan();Steering_Update(&scan,input,(uint16_t)n);}
+   CHECK(Steering_path.acute_phase==ACUTE_PREPARE && geometry.acute_phase==ACUTE_PREPARE);
+   old_writes=writes;advance_scan();
+   if(i==0)++Diag_revision;
+   if(i==1){clock_us+=300000;scan.start_us=clock_us-80000;scan.end_us=clock_us;}
+   if(i==2){epoch_during_build=1;calls=0;}
+   if(i==3)scan.start_us=clock_us-M10P_MAX_AGE_US-1;
+   if(i==4)M10P_perception_why=M10P_WHY_CAPACITY;
+   Steering_Update(&scan,input,(uint16_t)n);
+   if(i<2){
+     CHECK(Steering_path.acute_phase==ACUTE_CONFIRM && geometry.acute_frames==1);
+     CHECK(Steering_command.d_reset);
+   }else{
+     CHECK(writes==old_writes && !Steering_path.valid && Steering_path.acute_phase==ACUTE_OFF);
+     CHECK(geometry.acute_phase==ACUTE_OFF && geometry.acute_frames==0);
+   }
+   epoch_during_build=0;M10P_perception_why=0;
+ }
  printf("PASS %u production steering write/freshness/epoch checks\n",checks);return 0;
 }
 '''

@@ -1,0 +1,22 @@
+{
+  "binary_hashes_match": true,
+  "binary_files": 12,
+  "complete_clouds": 96,
+  "video_files": 14,
+  "formal_controls_autonomous": 274,
+  "formal_controls_manual": 279,
+  "local_position_accepted": 39,
+  "checked_document_links": 38,
+  "missing_links": [],
+  "firmware_files": {
+    "path_track.c": {
+      "sha256": "fa8a30d4dfa06e48e8dea83c8725125d759fbefad1789adb2fc9aefb37cfa50f",
+      "matches_pre_S_improvement_baseline": true
+    },
+    "path_track.h": {
+      "sha256": "bab4a2efa6a8d475713f6c56576dcfec5eb4b5360f2a18d83c677c1d79b4df00",
+      "matches_pre_S_improvement_baseline": true
+    }
+  },
+  "limits": "No synchronized video-device clock; no calibrated real corner distance or physical steering angle; proposed controller not implemented or vehicle validated."
+}

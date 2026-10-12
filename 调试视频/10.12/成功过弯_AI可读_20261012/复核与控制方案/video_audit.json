@@ -1,0 +1,142 @@
+[
+  {
+    "tag": "160711",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\e86v2_1012_160711_808515000000_右转弯,出弯时刮蹭外侧.mp4",
+    "sha256": "f1187340414927f4f0801036becc1b263e46b28fe99cec79c041d54014442351",
+    "fps": 30.0,
+    "decoded_frames": 177,
+    "last_frame_time_s": 5.866666666666666,
+    "duration_s": 5.9,
+    "alignment": "unverified; no telemetry burned onto video"
+  },
+  {
+    "tag": "161100",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\v2_1012_161100_1037562000000_右转弯.mp4",
+    "sha256": "da4c8bc1e990fb290f8188e1a3994af667157ae4532dd8e1a04a5c765d3d8034",
+    "fps": 30.0,
+    "decoded_frames": 160,
+    "last_frame_time_s": 5.3,
+    "duration_s": 5.333333333333333,
+    "alignment": "unverified; no telemetry burned onto video"
+  },
+  {
+    "tag": "161233",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\v2_1012_161233_1130140000000_右转弯,出弯时略微刮蹭赛道边界,出弯仍旧不能完整过去.mp4",
+    "sha256": "53e6f5b5070313e02278dfe728af736eef46a16d6e2f3af17a604de4d03196b1",
+    "fps": 30.0,
+    "decoded_frames": 156,
+    "last_frame_time_s": 5.166666666666667,
+    "duration_s": 5.2,
+    "alignment": "unverified; no telemetry burned onto video"
+  },
+  {
+    "tag": "161426",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\v2_1012_161426_1243328000000_左转弯_入弯时贴向外侧不明显.mp4",
+    "sha256": "f11c1cdc0dd76faa95d8d094bf5716675c058615b6637866dd7e75ac9b8b971d",
+    "fps": 30.0,
+    "decoded_frames": 174,
+    "last_frame_time_s": 5.766666666666667,
+    "duration_s": 5.8,
+    "alignment": "unverified; no telemetry burned onto video"
+  },
+  {
+    "tag": "161746",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\v2_1012_161746_1443265000000_左转弯,入弯时不太能贴向赛道外侧导致出弯时碰撞.mp4",
+    "sha256": "e2ddffcc206eada917cdff520f974dfcfb0f48db4b162b30349995dcf2319c2e",
+    "fps": 30.0,
+    "decoded_frames": 148,
+    "last_frame_time_s": 4.9,
+    "duration_s": 4.933333333333334,
+    "alignment": "unverified; no telemetry burned onto video"
+  },
+  {
+    "tag": "162029",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\v2_1012_162029_1606890000000_左转弯,表现不如右转弯,入弯后才贴向外侧,实际应该入弯前贴向外侧然后正常转大弯就能过去mp4.mp4",
+    "sha256": "f0ffb3faa589ba4180422d3c01813469beb9566c13f8cefcfe4a86f67a111764",
+    "fps": 30.0,
+    "decoded_frames": 153,
+    "last_frame_time_s": 5.066666666666666,
+    "duration_s": 5.1,
+    "alignment": "unverified; no telemetry burned onto video"
+  },
+  {
+    "tag": "164512",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\人工推车,成功过弯,左转弯_v2_1012_164512_3089484000000_电机关闭.mp4",
+    "sha256": "6ac5e945eb81fdccb8828ee49128e9e5f8ede19b63be6034c9a2382c3f03eae3",
+    "fps": 30.0,
+    "decoded_frames": 205,
+    "last_frame_time_s": 6.8,
+    "duration_s": 6.833333333333333,
+    "alignment": "unverified; no telemetry burned onto video"
+  },
+  {
+    "tag": "164942",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\人工推车_成功过弯_右转弯-v2_1012_164942_3359656000000.mp4",
+    "sha256": "10c0a49fd856d16db67137893b627474c2893795aa09d58d1e887b5359aefb75",
+    "fps": 30.0,
+    "decoded_frames": 174,
+    "last_frame_time_s": 5.766666666666667,
+    "duration_s": 5.8,
+    "alignment": "unverified; no telemetry burned onto video"
+  },
+  {
+    "tag": "manual_right_no_log",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\人工推车_成功过弯_右转弯.mp4",
+    "sha256": "7ae0b586bccc04726ac11820541a22ba815b991749c735deeeb4b871a2820075",
+    "fps": 30.0,
+    "decoded_frames": 177,
+    "last_frame_time_s": 5.866666666666666,
+    "duration_s": 5.9,
+    "alignment": "unverified; no telemetry burned onto video"
+  },
+  {
+    "tag": "165050",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\人工推车_成功过弯_右转弯v2_1012_165050_3428000000000.mp4",
+    "sha256": "8c61acfadf275a0dd1d5005e36bd2543befa2b4d70baf64d7d9482847873a180",
+    "fps": 30.0,
+    "decoded_frames": 134,
+    "last_frame_time_s": 4.433333333333334,
+    "duration_s": 4.466666666666667,
+    "alignment": "unverified; no telemetry burned onto video"
+  },
+  {
+    "tag": "165134",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\人工推车_成功过弯_右转弯v2_1012_165134_3471765000000.mp4",
+    "sha256": "7540503daffe75100a76318aec66f095a06890c2329c748b0938cd3ce3abe701",
+    "fps": 30.0,
+    "decoded_frames": 144,
+    "last_frame_time_s": 4.766666666666667,
+    "duration_s": 4.8,
+    "alignment": "unverified; no telemetry burned onto video"
+  },
+  {
+    "tag": "manual_left_no_log",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\人工推车_成功过弯_左转弯.mp4",
+    "sha256": "4a25b84700310e94c9b97ca82eeeeb144a87b459555d5b263522c1a39decfb10",
+    "fps": 30.0,
+    "decoded_frames": 237,
+    "last_frame_time_s": 7.866666666666666,
+    "duration_s": 7.9,
+    "alignment": "unverified; no telemetry burned onto video"
+  },
+  {
+    "tag": "164616",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\人工推车_成功过弯_左转弯_v2_1012_164616_3154078000000.mp4",
+    "sha256": "4f0e0d228339a8d40c1eb33c9779bf433f8747780baecbc4f2313d10b9533c49",
+    "fps": 30.0,
+    "decoded_frames": 193,
+    "last_frame_time_s": 6.4,
+    "duration_s": 6.433333333333334,
+    "alignment": "unverified; no telemetry burned onto video"
+  },
+  {
+    "tag": "164757",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\调试视频\\10.12\\人工推车_成功过弯_左转弯_v2_1012_164757_3254406000000.mp4",
+    "sha256": "2865f6857c509cee0542f355443de95809562dda81a9c3405221567af3021b1b",
+    "fps": 30.0,
+    "decoded_frames": 195,
+    "last_frame_time_s": 6.466666666666667,
+    "duration_s": 6.5,
+    "alignment": "unverified; no telemetry burned onto video"
+  }
+]

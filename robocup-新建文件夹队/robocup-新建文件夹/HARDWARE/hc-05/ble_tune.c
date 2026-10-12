@@ -174,6 +174,24 @@ static void Tune_ApplyOne(char *line)
         return;
     }
 
+    /* 急弯阶段按需读取；RACE schema 3另提供低频自动记录。
+     * position/goal向弯外为正，distance是可见弯墙特征位置，不是真实拐点。 */
+    if (strcmp(line, "acute") == 0)
+    {
+        char status[240];
+        sprintf(status,
+                "acute seq=%lu valid=%u phase=%u why=%u dir=%d pos_mm=%.1f goal_mm=%.1f "
+                "feature_y_mm=%.0f yaw=%.3f offset_mm=%.1f limited=%u\r\n",
+                (unsigned long)M10P_control_seq, (unsigned)Steering_path.valid,
+                (unsigned)Steering_path.acute_phase, (unsigned)Steering_path.acute_reason,
+                (int)Steering_path.acute_direction, (double)Steering_path.acute_position,
+                (double)Steering_path.acute_goal, (double)Steering_path.acute_distance,
+                (double)Steering_path.acute_heading, (double)Steering_path.outer_offset,
+                (unsigned)Steering_command.transition_limited);
+        Send_Bluetooth_Data(status);
+        return;
+    }
+
     /* 仅按需输出，不增加循环遥测负载；offset正值向右避让，y=0表示保持/释放阶段。 */
     if (strcmp(line, "avoid") == 0)
     {

@@ -1,0 +1,65 @@
+PASS 11 acute boundary/identity/clearance/transition checks
+
+
+PASS Bluetooth STATE glitch, persistent loss and timer wrap
+
+
+195850:17776 valid=1 model=0 duplicates=0 curve_checks=0
+
+195850:17777 valid=1 model=0 duplicates=3 curve_checks=67
+
+195850:17778 valid=0 model=0 duplicates=4 curve_checks=67
+
+195850:17779 valid=0 model=0 duplicates=9 curve_checks=67
+
+195850:17787 valid=0 model=0 duplicates=3 curve_checks=67
+
+195850:17788 valid=0 model=0 duplicates=5 curve_checks=66
+
+195850:17789 valid=0 model=0 duplicates=2 curve_checks=66
+
+195850:17790 valid=1 model=0 duplicates=2 curve_checks=0
+
+200137:19782 valid=1 model=0 duplicates=0 curve_checks=0
+
+200137:19783 valid=1 model=0 duplicates=0 curve_checks=0
+
+200137:19784 valid=1 model=0 duplicates=0 curve_checks=0
+
+200137:19785 valid=1 model=0 duplicates=0 curve_checks=0
+
+201004:25857 valid=1 model=0 duplicates=0 curve_checks=0
+
+201004:25858 valid=1 model=0 duplicates=0 curve_checks=0
+
+201004:25859 valid=0 model=0 duplicates=0 curve_checks=7
+
+201004:25860 valid=0 model=0 duplicates=0 curve_checks=7
+
+201004:25861 valid=0 model=0 duplicates=0 curve_checks=7
+
+201004:25862 valid=0 model=0 duplicates=0 curve_checks=11
+
+201004:25863 valid=0 model=0 duplicates=1 curve_checks=7
+
+201004:25864 valid=0 model=0 duplicates=1 curve_checks=3
+
+201936:305 valid=1 model=0 duplicates=0 curve_checks=0
+
+201936:306 valid=1 model=0 duplicates=0 curve_checks=0
+
+201936:307 valid=1 model=0 duplicates=0 curve_checks=3
+
+201936:308 valid=1 model=0 duplicates=0 curve_checks=11
+
+201936:317 valid=1 model=0 duplicates=3 curve_checks=67
+
+201936:318 valid=1 model=0 duplicates=2 curve_checks=66
+
+201936:319 valid=0 model=0 duplicates=2 curve_checks=67
+
+201936:320 valid=0 model=0 duplicates=2 curve_checks=67
+
+PASS 28 new acute snapshots and 28 mirrors; improved left exit preserved
+
+

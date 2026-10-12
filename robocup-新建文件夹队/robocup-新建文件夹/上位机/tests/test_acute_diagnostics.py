@@ -14,6 +14,34 @@ import telemetry_v2 as v2
 
 
 class AcuteDiagnostics(unittest.TestCase):
+    def test_entry_race_schema_and_missing_fields(self):
+        parser = core.StreamParser()
+        old = struct.pack('<19I14f', 2, *([0]*18), *([0.0]*14))
+        ints = [3]+[0]*18+[2,2,0]
+        floats = [0.0]*14+[12.5,40,925,-.1]
+        new = struct.pack('<22I18f', *ints, *floats)
+        for byte in v2.packet(10,old,0)+v2.packet(10,new,1):
+            parser.feed(bytes([byte]),0)
+        self.assertEqual(parser.bad_frames,0)
+        self.assertNotIn('acute_phase',parser.v2.messages[0])
+        self.assertEqual(parser.v2.messages[1]['acute_phase'],2)
+        self.assertEqual(parser.v2.messages[1]['acute_goal_mm'],40)
+        with tempfile.TemporaryDirectory() as directory:
+            file=Path(directory)/'entry.csv'
+            v2.write_extensions(parser,file)
+            with file.with_suffix('.race.csv').open(encoding='utf-8-sig') as stream:
+                rows=list(csv.DictReader(stream))
+            self.assertEqual(rows[0]['acute_phase'],'')
+            self.assertEqual(rows[1]['acute_phase'],'2')
+        for index,bad in ((19,5),(20,8),(21,3)):
+            invalid=ints.copy();invalid[index]=bad
+            with self.assertRaises(ValueError):
+                v2.Decoder().accept(v2.packet(10,struct.pack('<22I18f',*invalid,*floats)),[],[],0)
+        for length in (112,148,172,180):
+            malformed=(new+bytes(180))[:length-16]
+            with self.assertRaises(ValueError):
+                v2.Decoder().accept(v2.packet(10,malformed),[],[],0)
+
     def test_old_and_new_race_fragmented_and_csv(self):
         parser = core.StreamParser()
         old = struct.pack('<14I10f', 1, *([0] * 13), *([0.0] * 10))

@@ -1,0 +1,236 @@
+/* 急弯识别使用同一连续回波簇，允许外墙跨越x=0。只保存24个50mm分区，
+ * 每簇/每分区有固定上限；不复制整圈、不排序、不分配堆内存。
+ * 近切线只看100~400mm，避免把弯内远点混成“当前车身横移”。 */
+#define ACUTE_BINS 24
+typedef struct
+{
+    float a, b, yaw, distance;
+    uint16_t begin, end;
+    uint8_t valid;
+} AcuteWall;
+
+static AcuteWall acute_wall(const PathPoint *points, uint16_t count, int side)
+{
+    AcuteWall out = {0};
+    PathPoint bins[ACUTE_BINS] = {{0, 0}};
+    uint16_t sizes[ACUTE_BINS] = {0};
+    uint16_t begin = 0, end, i, seed, best = 0, n = 0;
+    float sx = 0, sy = 0, xy = 0, yy = 0, residual = 0, normal, first = 0, last = 0;
+    float departure = 0;
+    unsigned streak = 0;
+    while (begin < count)
+    {
+        end = begin + 1;
+        while (end < count && point_distance(points[end - 1], points[end]) < 100)
+            ++end;
+        seed = 0;
+        for (i = begin; i < end; ++i)
+            if (points[i].y >= 100 && points[i].y < 400 && side * points[i].x > 60)
+                ++seed;
+        if (seed > best)
+        {
+            best = seed;
+            out.begin = begin;
+            out.end = end;
+        }
+        begin = end;
+    }
+    if (best < 8) return out;
+    for (i = out.begin; i < out.end; ++i)
+    {
+        int bin;
+        if (points[i].y < 100 || points[i].y >= 1300) continue;
+        bin = (int)((points[i].y - 100) / 50);
+        bins[bin].x += points[i].x;
+        bins[bin].y += points[i].y;
+        ++sizes[bin];
+    }
+    for (i = 0; i < ACUTE_BINS; ++i)
+    {
+        if (sizes[i] < 2) continue;
+        bins[i].x /= sizes[i]; bins[i].y /= sizes[i];
+        if (i >= 6) continue;
+        if (!n) first = bins[i].y;
+        last = bins[i].y;
+        sx += bins[i].x; sy += bins[i].y;
+        xy += bins[i].x * bins[i].y; yy += bins[i].y * bins[i].y;
+        ++n;
+    }
+    if (n < 5 || first > 180 || last < 325 || last - first < 200) return out;
+    yy -= sy * sy / n;
+    if (yy < 1) return out;
+    out.a = (xy - sx * sy / n) / yy;
+    out.b = (sx - out.a * sy) / n;
+    normal = sqrtf(1 + out.a * out.a);
+    for (i = 0; i < 6; ++i)
+        if (sizes[i] >= 2)
+        {
+            float e = (bins[i].x - out.a * bins[i].y - out.b) / normal;
+            residual += e * e;
+        }
+    if (sqrtf(residual / n) > 12) return out;
+    out.valid = 1;
+    out.yaw = atanf(out.a);
+    /* 三个连续分区向弯内偏离至少40mm，且后续200mm切线转过至少0.60rad。
+     * 这是有限距离内的持续弯折，不能用远斜率大或两直线交点代替。
+     * 可见尾部出现反向折返时拒绝独立急弯，交给已有S弯分支。 */
+    for (i = 6; i < ACUTE_BINS; ++i)
+    {
+        float deviation, turn;
+        if (sizes[i] < 2) { streak = 0; continue; }
+        deviation = -side * (bins[i].x - out.a * bins[i].y - out.b) / normal;
+        if (deviation >= 40)
+        {
+            if (!streak) departure = bins[i].y;
+            if (++streak == 3 && !out.distance) out.distance = departure;
+        }
+        else streak = 0;
+        if (i < 10 || sizes[i - 4] < 2) continue;
+        turn = -side * (atan2f(bins[i].x - bins[i - 4].x,
+                              bins[i].y - bins[i - 4].y) - out.yaw);
+        if (turn < -.20f) { out.distance = 0; return out; }
+        if (out.distance && turn >= .60f && bins[i].y - out.distance <= 400)
+            out.valid = 2;
+    }
+    if (out.valid != 2) out.distance = 0;
+    return out;
+}
+
+/* 入口准备只修改有实测近墙支持的局部目标，弯向仍来自原道路目标。
+ * 主弯接管优先于达到40mm；进入TURN后不允许重新退到PREPARE追偏移。
+ * 没有实际舵角/毫米速度标定，700/950只是保守试验窗口，不声称最优距离。 */
+static void acute_entry(PathGeometry *state, const PathPoint *points, uint16_t count,
+                        float cx, PathObservation *out)
+{
+    AcuteWall wall[2];
+    float yaw, a, b, normal, width, available, goal, weight, local_y;
+    int direction = 0, side;
+    PathPoint entry = {0, 100}, target;
+    out->road_target_x = out->target_x;
+    out->outer_offset = 0;
+    if (out->s_preview || out->avoid_state != AVOID_CLEAR || out->avoid_offset)
+    {
+        acute_clear(state);
+        out->acute_reason = ACUTE_PRIORITY;
+        return;
+    }
+    /* 已进入主弯时只观察出口；原有循迹负责减舵，不增加定时锁舵。
+     * 近远反向、真实新弯或感知失效立即取消附加阶段。 */
+    if (state->acute_phase == ACUTE_TURN || state->acute_phase == ACUTE_EXIT)
+    {
+        if (out->near_a * state->acute_direction < -.10f)
+            acute_clear(state);
+        else if (out->straight)
+        {
+            if (++state->acute_exit_frames >= 2)
+                acute_clear(state);
+            else state->acute_phase = ACUTE_EXIT;
+            out->acute_reason = ACUTE_EXIT_SEEN;
+        }
+        else
+        {
+            state->acute_exit_frames = 0;
+            state->acute_phase = ACUTE_TURN;
+            out->acute_reason = ACUTE_NEAR_TURN;
+        }
+        out->acute_phase = state->acute_phase;
+        out->acute_direction = state->acute_direction;
+        return;
+    }
+    /* 首次看到时已在急弯中：仅标记主弯，绝不补做向外布位。 */
+    if (out->far_valid && out->near_a * out->far_a > 0 && fabsf(out->near_a) > .35f &&
+        fabsf(out->preview_heading_rad) > .70f &&
+        fabsf(out->preview_heading_rad) - fabsf(out->heading_rad) > .25f)
+    {
+        state->acute_phase = ACUTE_TURN;
+        state->acute_direction = out->near_a > 0 ? 1 : -1;
+        state->outer_offset = 0;
+        out->acute_phase = ACUTE_TURN;
+        out->acute_direction = state->acute_direction;
+        out->acute_reason = ACUTE_NEAR_TURN;
+        return;
+    }
+    /* 普通直道/缓弯没有远处急弯线索，省去分区扫描；门槛只影响新分支。 */
+    if (out->model || (!state->acute_phase &&
+        !((out->far_fit[0].valid && fabsf(out->far_fit[0].a) > .65f) ||
+          (out->far_fit[1].valid && fabsf(out->far_fit[1].a) > .65f))))
+    {
+        acute_clear(state);
+        return;
+    }
+    wall[0] = acute_wall(points, count, -1);
+    wall[1] = acute_wall(points, count, 1);
+    if (!wall[0].valid || !wall[1].valid || wall[0].begin == wall[1].begin ||
+        fabsf(wall[0].yaw - wall[1].yaw) > .12f)
+    {
+        acute_clear(state);
+        out->acute_reason = ACUTE_LOST;
+        return;
+    }
+    if (wall[0].distance && !wall[1].distance) direction = 1;
+    if (wall[1].distance && !wall[0].distance) direction = -1;
+    if (!direction)
+    {
+        acute_clear(state);
+        return;
+    }
+    side = direction > 0 ? 0 : 1;
+    a = .5f * (wall[0].a + wall[1].a);
+    b = .5f * (wall[0].b + wall[1].b);
+    yaw = atanf(a); normal = sqrtf(1 + a * a);
+    width = ((wall[1].a - wall[0].a) * 100 + wall[1].b - wall[0].b) / normal;
+    out->acute_position = direction * (a * 100 + b) / normal;
+    out->acute_heading = yaw;
+    out->acute_distance = wall[side].distance;
+    out->acute_direction = (int8_t)direction;
+    if (width < 390 || width > 650 || fabsf(yaw) > .22f ||
+        fabsf(out->heading_rad) > .50f || out->acute_distance <= ACUTE_TAKEOVER_MM)
+    {
+        state->acute_phase = ACUTE_TURN;
+        state->acute_direction = (int8_t)direction;
+        state->outer_offset = 0;
+        out->acute_phase = ACUTE_TURN;
+        out->acute_reason = ACUTE_NEAR_TURN;
+        return;
+    }
+    /* 385x260mm矩形的当前姿态横向投影，再留40mm余量。这里只约束入口
+     * 局部平行走廊；没有把看不见的车尾空间或未来转向轮扫掠说成已验证。 */
+    available = width * .5f - 130 * cosf(yaw) - 192.5f * fabsf(sinf(yaw)) - 40;
+    goal = fminf(ACUTE_OUTER_MM, available);
+    if (goal < 10)
+    {
+        acute_clear(state);
+        out->acute_reason = ACUTE_NO_ROOM;
+        return;
+    }
+    if (state->acute_direction != direction)
+        acute_clear(state);
+    state->acute_direction = (int8_t)direction;
+    if (state->acute_frames < 2) ++state->acute_frames;
+    state->acute_phase = state->acute_frames < 2 ? ACUTE_CONFIRM : ACUTE_PREPARE;
+    out->acute_phase = state->acute_phase;
+    out->acute_goal = goal;
+    out->acute_reason = state->acute_frames < 2 ? ACUTE_CONFIRMING : ACUTE_POSITIONING;
+    if (state->acute_frames < 2) return;
+    /* 目标是绝对局部位置，已在外侧不会再累计40mm。沿近切线追踪也会消除
+     * 向外的航向误差，不能只有横移而一直朝外墙。cx仍用于普通循迹；这里
+     * 显式抵消其数值，保证goal=40表示相对于实际局部中线的40mm。 */
+    weight = bounded((out->acute_distance - ACUTE_TAKEOVER_MM) /
+                     (ACUTE_FULL_PREP_MM - ACUTE_TAKEOVER_MM), 0, 1);
+    local_y = 450;
+    target.x = (1 - weight) * out->target_x +
+               weight * (a * local_y + b - direction * goal * normal + cx);
+    target.y = (1 - weight) * out->ref_y + weight * local_y;
+    if (!corridor_clear(points, count, entry, target))
+    {
+        acute_clear(state);
+        out->acute_phase = ACUTE_OFF;
+        out->acute_reason = ACUTE_NO_ROOM;
+        return;
+    }
+    state->outer_offset = out->outer_offset = -direction * goal * weight;
+    out->outer_clearance = width * .5f - goal;
+    out->target_x = target.x;
+    out->ref_y = target.y;
+}
+

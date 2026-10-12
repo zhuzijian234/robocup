@@ -1,0 +1,188 @@
+[
+  {
+    "tag": "01_160711_右转弯_出弯刮蹭外侧",
+    "capture": "v2_1012_160711_808515000000",
+    "video": "e86v2_1012_160711_808515000000_右转弯,出弯时刮蹭外侧.mp4",
+    "w": 720,
+    "h": 1280,
+    "fps": 30.0,
+    "frames": 177,
+    "video_duration": 5.867,
+    "capture_duration": 17.563,
+    "offset_A": 0.75,
+    "offset_B": 2.727,
+    "motion_runs": [
+      [
+        0.75,
+        8.59
+      ]
+    ],
+    "moving_frames": 177,
+    "end_reason": "user_stop",
+    "ctl_rows": 207,
+    "spd": 17.0,
+    "bendspd": 15.0
+  },
+  {
+    "tag": "02_161100_右转弯",
+    "capture": "v2_1012_161100_1037562000000",
+    "video": "v2_1012_161100_1037562000000_右转弯.mp4",
+    "w": 720,
+    "h": 1280,
+    "fps": 30.0,
+    "frames": 160,
+    "video_duration": 5.3,
+    "capture_duration": 16.687,
+    "offset_A": 0.406,
+    "offset_B": 2.169,
+    "motion_runs": [
+      [
+        0.41,
+        7.47
+      ]
+    ],
+    "moving_frames": 160,
+    "end_reason": "user_stop",
+    "ctl_rows": 199,
+    "spd": 17.0,
+    "bendspd": 15.0
+  },
+  {
+    "tag": "03_161233_右转弯_出弯略刮蹭",
+    "capture": "v2_1012_161233_1130140000000",
+    "video": "v2_1012_161233_1130140000000_右转弯,出弯时略微刮蹭赛道边界,出弯仍旧不能完整过去.mp4",
+    "w": 720,
+    "h": 1280,
+    "fps": 30.0,
+    "frames": 156,
+    "video_duration": 5.167,
+    "capture_duration": 16.282,
+    "offset_A": 0.407,
+    "offset_B": 2.912,
+    "motion_runs": [
+      [
+        0.41,
+        8.08
+      ]
+    ],
+    "moving_frames": 156,
+    "end_reason": "user_stop",
+    "ctl_rows": 194,
+    "spd": 17.0,
+    "bendspd": 15.0
+  },
+  {
+    "tag": "04_161426_左转弯_贴外侧不明显",
+    "capture": "v2_1012_161426_1243328000000",
+    "video": "v2_1012_161426_1243328000000_左转弯_入弯时贴向外侧不明显.mp4",
+    "w": 720,
+    "h": 1280,
+    "fps": 30.0,
+    "frames": 174,
+    "video_duration": 5.767,
+    "capture_duration": 16.984,
+    "offset_A": 0.422,
+    "offset_B": 2.889,
+    "motion_runs": [
+      [
+        0.42,
+        8.66
+      ]
+    ],
+    "moving_frames": 174,
+    "end_reason": "user_stop",
+    "ctl_rows": 203,
+    "spd": 17.0,
+    "bendspd": 15.0
+  },
+  {
+    "tag": "05_161746_左转弯_入弯不贴外侧致出弯碰撞",
+    "capture": "v2_1012_161746_1443265000000",
+    "video": "v2_1012_161746_1443265000000_左转弯,入弯时不太能贴向赛道外侧导致出弯时碰撞.mp4",
+    "w": 720,
+    "h": 1280,
+    "fps": 30.0,
+    "frames": 148,
+    "video_duration": 4.9,
+    "capture_duration": 16.156,
+    "offset_A": 0.391,
+    "offset_B": 2.678,
+    "motion_runs": [
+      [
+        0.39,
+        6.56
+      ],
+      [
+        6.97,
+        7.58
+      ]
+    ],
+    "moving_frames": 148,
+    "end_reason": "user_stop",
+    "ctl_rows": 195,
+    "spd": 17.0,
+    "bendspd": 15.0
+  },
+  {
+    "tag": "06_162029_左转弯_入弯后才贴外侧",
+    "capture": "v2_1012_162029_1606890000000",
+    "video": "v2_1012_162029_1606890000000_左转弯,表现不如右转弯,入弯后才贴向外侧,实际应该入弯前贴向外侧然后正常转大弯就能过去mp4.mp4",
+    "w": 720,
+    "h": 1280,
+    "fps": 30.0,
+    "frames": 153,
+    "video_duration": 5.067,
+    "capture_duration": 17.282,
+    "offset_A": 0.75,
+    "offset_B": 1.48,
+    "motion_runs": [
+      [
+        0.75,
+        6.55
+      ]
+    ],
+    "moving_frames": 153,
+    "end_reason": "user_stop",
+    "ctl_rows": 203,
+    "spd": 17.0,
+    "bendspd": 15.0
+  },
+  {
+    "tag": "DEMO_左转弯_人工推车成功过弯",
+    "capture": null,
+    "video": "人工推车_成功过弯_左转弯.mp4",
+    "w": 720,
+    "h": 1280,
+    "fps": 30.0,
+    "frames": 237,
+    "video_duration": 7.867,
+    "capture_duration": null,
+    "offset_A": null,
+    "offset_B": null,
+    "motion_runs": [],
+    "moving_frames": 0,
+    "end_reason": null,
+    "ctl_rows": 0,
+    "spd": null,
+    "bendspd": null
+  },
+  {
+    "tag": "DEMO_右转弯_人工推车成功过弯",
+    "capture": null,
+    "video": "人工推车_成功过弯_右转弯.mp4",
+    "w": 720,
+    "h": 1280,
+    "fps": 30.0,
+    "frames": 177,
+    "video_duration": 5.867,
+    "capture_duration": null,
+    "offset_A": null,
+    "offset_B": null,
+    "motion_runs": [],
+    "moving_frames": 0,
+    "end_reason": null,
+    "ctl_rows": 0,
+    "spd": null,
+    "bendspd": null
+  }
+]

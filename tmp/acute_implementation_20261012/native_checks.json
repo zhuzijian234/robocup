@@ -1,0 +1,30 @@
+[
+  {
+    "check": "check_acute_path.py",
+    "exit": 0
+  },
+  {
+    "check": "check_acute_stages.py",
+    "exit": 0
+  },
+  {
+    "check": "check_path_preservation.py",
+    "exit": 0
+  },
+  {
+    "check": "check_s_continuity.py",
+    "exit": 0
+  },
+  {
+    "check": "check_path_integration.py",
+    "exit": 0
+  },
+  {
+    "check": "check_race_path.py",
+    "exit": 0
+  },
+  {
+    "check": "check_path_replay.py",
+    "exit": 0
+  }
+]

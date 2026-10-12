@@ -15,7 +15,6 @@ int main(void)
                                   {{50,350},{200,450}}};
     PathPoint obstacle = {400,400};
     uint16_t n[2] = {4,2};
-    unsigned i;
     CHECK(separate_boundaries(samples,n)==2 && n[0]==4 && n[1]==0);
     /* 25854/25855的记录拟合值：相同向墙错误从LEFT变成RIGHT。
      * 本例只回放拟合字段，空占用不冒充当时未保存的原始点云。 */
@@ -39,29 +38,6 @@ int main(void)
     restore_wall_identity(&g,0,0,&p);
     CHECK(!p.identity_corrected);
 
-    memset(&g,0,sizeof g);memset(&p,0,sizeof p);
-    p.valid=p.far_valid=1;p.heading_rad=.2f;p.preview_heading_rad=.8f;
-    p.target_x=200;p.ref_y=700;
-    p.far_fit[0].valid=1;p.far_fit[0].a=1;p.far_fit[0].b=-850;
-    p.far_fit[0].min_y=550;p.far_fit[0].max_y=1000;
-    for(i=0;i<6;i++) {
-        p.target_x=200;p.ref_y=700;p.outer_offset=0;
-        acute_entry(&g,0,0,&p);
-        CHECK(p.outer_offset>=-25 && p.outer_offset<=0);
-    }
-    CHECK(p.outer_offset==-25 && p.target_x<200 && p.ref_y>700);
-    p.s_preview=1;acute_entry(&g,0,0,&p);
-    CHECK(g.outer_offset==0 && g.acute_frames==0);
-    p.s_preview=0;p.preview_heading_rad=.25f;
-    for(i=0;i<4;i++)acute_entry(&g,0,0,&p);
-    CHECK(g.outer_offset==0); /* 长缓弯没有外移。 */
-    p.preview_heading_rad=.8f;p.avoid_state=AVOID_ACTIVE;
-    for(i=0;i<4;i++)acute_entry(&g,0,0,&p);
-    CHECK(g.outer_offset==0); /* 锥桶拥有通行余量，偏置不能叠加。 */
-    p.avoid_state=AVOID_CLEAR;p.target_x=200;p.ref_y=700;p.far_fit[0].b=-600;
-    for(i=0;i<4;i++)acute_entry(&g,0,0,&p);
-    CHECK(g.outer_offset==0); /* 外侧间距小于轮外沿+侧隙。 */
-
     memset(&p,0,sizeof p);
     p.valid=1;p.source=PATH_LEFT;p.near_a=1.2f;p.ref_y=700;p.target_x=950;
     Path_Control(&c,&p,&gains,1,100000,1445,&o);
@@ -79,7 +55,7 @@ int main(void)
     Path_Control(&c,&p,&gains,1,420000,o.pwm,&o);
     CHECK(o.applied && o.pwm>1445 && o.reason==PATH_REVERSE && !o.transition_limited);
     Path_ClearHistory(&g);
-    CHECK(!g.history && !g.acute_frames && g.outer_offset==0);
+    CHECK(!g.history && !g.acute_frames && g.baseline_offset==0);
     printf("PASS %u acute boundary/identity/clearance/transition checks\n",checks);
     return 0;
 }

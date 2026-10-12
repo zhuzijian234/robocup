@@ -1,0 +1,518 @@
+{
+  "v2_1012_160711_808515000000": {
+    "turn_distance_mm": {
+      "min": 437.6072082519531,
+      "median": 700.0,
+      "max": 886.1817626953125,
+      "n": 31,
+      "nonzero": 31
+    },
+    "bend_rad": {
+      "min": 0.0,
+      "median": 0.3667946755886078,
+      "max": 1.1709909439086914,
+      "n": 31,
+      "nonzero": 26
+    },
+    "support_mm": {
+      "min": 437.6072082519531,
+      "median": 700.0,
+      "max": 886.1817626953125,
+      "n": 31,
+      "nonzero": 31
+    },
+    "outer_clearance": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 254.59669494628906,
+      "n": 31,
+      "nonzero": 10
+    },
+    "outer_offset": {
+      "min": -25.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 31,
+      "nonzero": 10
+    },
+    "speed_limit": {
+      "min": 15.0,
+      "median": 15.0,
+      "max": 17.0,
+      "n": 31,
+      "nonzero": 31
+    },
+    "effective_target": {
+      "min": 15.0,
+      "median": 15.0,
+      "max": 17.0,
+      "n": 31,
+      "nonzero": 31
+    },
+    "speed_reason": {
+      "min": 0.0,
+      "median": 1.0,
+      "max": 2.0,
+      "n": 31,
+      "nonzero": 30
+    },
+    "s_preview": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 31,
+      "nonzero": 0
+    },
+    "curve_rejected": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 31,
+      "nonzero": 0
+    },
+    "heading_rad": {
+      "min": -0.07052870839834213,
+      "median": 0.5029028058052063,
+      "max": 1.0023391246795654,
+      "n": 31,
+      "nonzero": 31
+    },
+    "preview_heading_rad": {
+      "min": -0.056749653071165085,
+      "median": 0.6719486713409424,
+      "max": 1.3370726108551025,
+      "n": 31,
+      "nonzero": 31
+    }
+  },
+  "v2_1012_161100_1037562000000": {
+    "turn_distance_mm": {
+      "min": 0.0,
+      "median": 594.7107543945312,
+      "max": 900.0,
+      "n": 32,
+      "nonzero": 17
+    },
+    "bend_rad": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 1.4551435708999634,
+      "n": 32,
+      "nonzero": 14
+    },
+    "support_mm": {
+      "min": 0.0,
+      "median": 594.7107543945312,
+      "max": 900.0,
+      "n": 32,
+      "nonzero": 17
+    },
+    "outer_clearance": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 301.1645812988281,
+      "n": 32,
+      "nonzero": 1
+    },
+    "outer_offset": {
+      "min": -25.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 32,
+      "nonzero": 1
+    },
+    "speed_limit": {
+      "min": 15.0,
+      "median": 15.0,
+      "max": 17.0,
+      "n": 32,
+      "nonzero": 32
+    },
+    "effective_target": {
+      "min": 15.0,
+      "median": 15.0,
+      "max": 17.0,
+      "n": 32,
+      "nonzero": 32
+    },
+    "speed_reason": {
+      "min": 0.0,
+      "median": 2.0,
+      "max": 3.0,
+      "n": 32,
+      "nonzero": 31
+    },
+    "s_preview": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 32,
+      "nonzero": 0
+    },
+    "curve_rejected": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 1.0,
+      "n": 32,
+      "nonzero": 15
+    },
+    "heading_rad": {
+      "min": -0.06495284289121628,
+      "median": 0.0,
+      "max": 0.7377833724021912,
+      "n": 32,
+      "nonzero": 17
+    },
+    "preview_heading_rad": {
+      "min": -0.022316891700029373,
+      "median": 0.0,
+      "max": 0.9738541841506958,
+      "n": 32,
+      "nonzero": 17
+    }
+  },
+  "v2_1012_161233_1130140000000": {
+    "turn_distance_mm": {
+      "min": 0.0,
+      "median": 700.0,
+      "max": 900.0,
+      "n": 30,
+      "nonzero": 29
+    },
+    "bend_rad": {
+      "min": 0.0,
+      "median": 0.013105764985084534,
+      "max": 0.3253081440925598,
+      "n": 30,
+      "nonzero": 26
+    },
+    "support_mm": {
+      "min": 0.0,
+      "median": 700.0,
+      "max": 900.0,
+      "n": 30,
+      "nonzero": 29
+    },
+    "outer_clearance": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 30,
+      "nonzero": 0
+    },
+    "outer_offset": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 30,
+      "nonzero": 0
+    },
+    "speed_limit": {
+      "min": 15.0,
+      "median": 17.0,
+      "max": 17.0,
+      "n": 30,
+      "nonzero": 30
+    },
+    "effective_target": {
+      "min": 15.0,
+      "median": 17.0,
+      "max": 17.0,
+      "n": 30,
+      "nonzero": 30
+    },
+    "speed_reason": {
+      "min": 0.0,
+      "median": 2.0,
+      "max": 3.0,
+      "n": 30,
+      "nonzero": 27
+    },
+    "s_preview": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 30,
+      "nonzero": 0
+    },
+    "curve_rejected": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 1.0,
+      "n": 30,
+      "nonzero": 1
+    },
+    "heading_rad": {
+      "min": -0.07811358571052551,
+      "median": 0.12952452898025513,
+      "max": 0.7852807641029358,
+      "n": 30,
+      "nonzero": 29
+    },
+    "preview_heading_rad": {
+      "min": -0.05859939008951187,
+      "median": 0.1235906183719635,
+      "max": 0.7852807641029358,
+      "n": 30,
+      "nonzero": 29
+    }
+  },
+  "v2_1012_161426_1243328000000": {
+    "turn_distance_mm": {
+      "min": 0.0,
+      "median": 700.0,
+      "max": 900.0,
+      "n": 29,
+      "nonzero": 26
+    },
+    "bend_rad": {
+      "min": 0.0,
+      "median": 0.005783388391137123,
+      "max": 0.1494324952363968,
+      "n": 29,
+      "nonzero": 18
+    },
+    "support_mm": {
+      "min": 0.0,
+      "median": 700.0,
+      "max": 900.0,
+      "n": 29,
+      "nonzero": 26
+    },
+    "outer_clearance": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 29,
+      "nonzero": 0
+    },
+    "outer_offset": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 29,
+      "nonzero": 0
+    },
+    "speed_limit": {
+      "min": 15.0,
+      "median": 15.0,
+      "max": 17.0,
+      "n": 29,
+      "nonzero": 29
+    },
+    "effective_target": {
+      "min": 15.0,
+      "median": 15.160003662109375,
+      "max": 17.0,
+      "n": 29,
+      "nonzero": 29
+    },
+    "speed_reason": {
+      "min": 0.0,
+      "median": 1.0,
+      "max": 3.0,
+      "n": 29,
+      "nonzero": 23
+    },
+    "s_preview": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 29,
+      "nonzero": 0
+    },
+    "curve_rejected": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 1.0,
+      "n": 29,
+      "nonzero": 3
+    },
+    "heading_rad": {
+      "min": -0.8847621083259583,
+      "median": -0.05821048095822334,
+      "max": 0.11593005061149597,
+      "n": 29,
+      "nonzero": 26
+    },
+    "preview_heading_rad": {
+      "min": -0.8818389177322388,
+      "median": -0.07545975595712662,
+      "max": 0.08826380968093872,
+      "n": 29,
+      "nonzero": 26
+    }
+  },
+  "v2_1012_161746_1443265000000": {
+    "turn_distance_mm": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 900.0,
+      "n": 24,
+      "nonzero": 8
+    },
+    "bend_rad": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 1.6226410865783691,
+      "n": 24,
+      "nonzero": 5
+    },
+    "support_mm": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 900.0,
+      "n": 24,
+      "nonzero": 8
+    },
+    "outer_clearance": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 24,
+      "nonzero": 0
+    },
+    "outer_offset": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 24,
+      "nonzero": 0
+    },
+    "speed_limit": {
+      "min": 15.0,
+      "median": 15.0,
+      "max": 17.0,
+      "n": 24,
+      "nonzero": 24
+    },
+    "effective_target": {
+      "min": 15.0,
+      "median": 15.0,
+      "max": 17.0,
+      "n": 24,
+      "nonzero": 24
+    },
+    "speed_reason": {
+      "min": 1.0,
+      "median": 3.0,
+      "max": 3.0,
+      "n": 24,
+      "nonzero": 24
+    },
+    "s_preview": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 24,
+      "nonzero": 0
+    },
+    "curve_rejected": {
+      "min": 0.0,
+      "median": 1.0,
+      "max": 1.0,
+      "n": 24,
+      "nonzero": 16
+    },
+    "heading_rad": {
+      "min": -1.0505032539367676,
+      "median": 0.0,
+      "max": 0.0048825484700500965,
+      "n": 24,
+      "nonzero": 8
+    },
+    "preview_heading_rad": {
+      "min": -1.4270750284194946,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 24,
+      "nonzero": 8
+    }
+  },
+  "v2_1012_162029_1606890000000": {
+    "turn_distance_mm": {
+      "min": 0.0,
+      "median": 519.2089233398438,
+      "max": 900.0,
+      "n": 30,
+      "nonzero": 16
+    },
+    "bend_rad": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 1.4220913648605347,
+      "n": 30,
+      "nonzero": 10
+    },
+    "support_mm": {
+      "min": 0.0,
+      "median": 519.2089233398438,
+      "max": 900.0,
+      "n": 30,
+      "nonzero": 16
+    },
+    "outer_clearance": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 30,
+      "nonzero": 0
+    },
+    "outer_offset": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 30,
+      "nonzero": 0
+    },
+    "speed_limit": {
+      "min": 15.0,
+      "median": 15.0,
+      "max": 17.0,
+      "n": 30,
+      "nonzero": 30
+    },
+    "effective_target": {
+      "min": 15.0,
+      "median": 15.0,
+      "max": 17.0,
+      "n": 30,
+      "nonzero": 30
+    },
+    "speed_reason": {
+      "min": 0.0,
+      "median": 2.0,
+      "max": 3.0,
+      "n": 30,
+      "nonzero": 27
+    },
+    "s_preview": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 0.0,
+      "n": 30,
+      "nonzero": 0
+    },
+    "curve_rejected": {
+      "min": 0.0,
+      "median": 0.0,
+      "max": 1.0,
+      "n": 30,
+      "nonzero": 14
+    },
+    "heading_rad": {
+      "min": -0.971518874168396,
+      "median": 0.0,
+      "max": 0.8982080817222595,
+      "n": 30,
+      "nonzero": 16
+    },
+    "preview_heading_rad": {
+      "min": -1.3962631225585938,
+      "median": 0.0,
+      "max": 0.8982080817222595,
+      "n": 30,
+      "nonzero": 16
+    }
+  }
+}

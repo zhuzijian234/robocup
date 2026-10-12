@@ -1,0 +1,5746 @@
+[
+  {
+    "tag": "160711",
+    "file": "D:\\OneDrive\\Desktop\\robocup\\robocup-新建文件夹队\\robocup-新建文件夹\\上位机\\log\\v2_1012_160711_808515000000.bin",
+    "sha256": "8f77a6e0c3e730f39e0f1705461e4c5129916d0003f29486ed470174605afc2e",
+    "meta": {
+      "run_uuid": "bf95c18a-e28f-4cdf-b9ff-41e023c771ce",
+      "started_utc": "2026-10-12T08:07:11.536809+00:00",
+      "host_version": "v2.1",
+      "host_sha256": "f8c7ddea45db478aa9125b14b43eeb41d050b25d28aedeef3c7a0549be5b5934",
+      "protocol": 2,
+      "port": "COM4",
+      "baud": 115200,
+      "requested_rate": 1,
+      "pre_roll_s": 1.5629999999999882,
+      "session": 41667766,
+      "info": "INFO proto=1,2 layout=rc26-mask31-v2.1 fw=sha256-fa5446679f6de4a7 lidar=3 algorithm=4 input=1 atomic=0 detail=2 motor=1 extra=1 cloud=2 race=2",
+      "formal_end_s": 5.75,
+      "cloud_dump": "sent_check_csv_completeness",
+      "version": 1,
+      "clock": "host_monotonic",
+      "duration_s": 17.562999999999988,
+      "bytes": 178990,
+      "sha256": "8f77a6e0c3e730f39e0f1705461e4c5129916d0003f29486ed470174605afc2e",
+      "ended_utc": "2026-10-12T08:07:29.104850+00:00",
+      "end_reason": "user_stop",
+      "error": null,
+      "commands": [
+        {
+          "t": 0.0,
+          "command": "info"
+        },
+        {
+          "t": 0.10999999999989996,
+          "command": "session 41667766"
+        },
+        {
+          "t": 0.2039999999999509,
+          "command": "tele 3"
+        },
+        {
+          "t": 0.75,
+          "command": "rate 1"
+        },
+        {
+          "t": 1.1569999999999254,
+          "command": "getcfg"
+        },
+        {
+          "t": 5.75,
+          "command": "cloud freeze"
+        },
+        {
+          "t": 6.140999999999963,
+          "command": "cloud dump"
+        },
+        {
+          "t": 6.937999999999988,
+          "command": "cloud status"
+        },
+        {
+          "t": 8.2349999999999,
+          "command": "cloud status"
+        },
+        {
+          "t": 9.32899999999995,
+          "command": "cloud status"
+        },
+        {
+          "t": 10.468999999999937,
+          "command": "cloud status"
+        },
+        {
+          "t": 11.640999999999963,
+          "command": "cloud status"
+        },
+        {
+          "t": 12.781999999999925,
+          "command": "cloud status"
+        },
+        {
+          "t": 13.937999999999988,
+          "command": "cloud status"
+        },
+        {
+          "t": 15.046999999999912,
+          "command": "cloud status"
+        },
+        {
+          "t": 16.375,
+          "command": "cloud status"
+        }
+      ],
+      "configs": {
+        "41667766:1": {
+          "layout": "rc26-mask31-v2.1",
+          "build": "sha256-fa5446679f6de4a7",
+          "lidar": 3,
+          "algorithm": 4,
+          "input_kind": 1,
+          "baud": 115200,
+          "rate": 1,
+          "timeout_ms": 0,
+          "health_ms": 1000,
+          "units": "mm;CCR;encoder_units;x=a*y+b;PD=ref700-cap1.5-Dcap150;exit=confirm-reduce;spd=curve-plan;max=108;bend=123;acc=124;dec=125",
+          "dma_bytes": 1024,
+          "point_capacity": 800,
+          "geometry": "path=local+contour;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121;acute=entry25+identity",
+          "lidar_config": "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720",
+          "kp": 0.03500000014901161,
+          "kp2": 0.03999999910593033,
+          "kp3": 0.039500001817941666,
+          "kd": 0.03500000014901161,
+          "kd2": 0.02199999988079071,
+          "kd3": 0.019999999552965164,
+          "sp_kp": 8.5,
+          "sp_ki": 0.5049999952316284,
+          "spd": 17.0,
+          "angle": 90.0,
+          "cx": 10.0,
+          "eclamp": 200.0,
+          "dy": 200.0,
+          "preview": 700.0,
+          "width": 500.0,
+          "bendspd": 15.0,
+          "accel": 2.0,
+          "decel": 12.0
+        }
+      }
+    },
+    "first_control_ms": 182767,
+    "all_frames": 207,
+    "formal_frames": 55,
+    "bad_frames": 0,
+    "tx_gaps": 0,
+    "sessions": {
+      "41667766": 207
+    },
+    "formal_actions": {
+      "1": 53,
+      "5": 2
+    },
+    "formal_gate": {
+      "0": 50,
+      "null": 3,
+      "2": 1,
+      "4": 1
+    },
+    "formal_geom": {
+      "0": 50,
+      "null": 3,
+      "3": 2
+    },
+    "formal_models": {
+      "null": 46,
+      "0": 7,
+      "2": 2
+    },
+    "formal_source": {
+      "0": 18,
+      "null": 2,
+      "1": 30,
+      "2": 5
+    },
+    "formal_detail_missing": 2,
+    "formal_extra_missing": 3,
+    "formal_pwm_range": [
+      1170.0,
+      1451.0
+    ],
+    "motor_count": 456,
+    "motor_speed_range": [
+      13.963637351989746,
+      18.18181800842285
+    ],
+    "motor_target_values": [
+      15.0,
+      15.02,
+      15.04,
+      15.06,
+      15.08,
+      15.1,
+      15.12,
+      15.14,
+      15.16,
+      15.18,
+      15.2,
+      15.22,
+      15.24,
+      15.26,
+      15.28,
+      15.3,
+      15.32,
+      15.34,
+      15.36,
+      15.38,
+      15.4,
+      15.42,
+      15.44,
+      15.46,
+      15.48,
+      15.5,
+      15.52,
+      15.54,
+      15.56,
+      15.58,
+      15.6,
+      15.62,
+      15.64,
+      15.66,
+      15.68,
+      15.7,
+      15.72,
+      15.74,
+      15.76,
+      15.78,
+      15.8,
+      15.82,
+      15.84,
+      15.86,
+      15.88,
+      15.9,
+      15.92,
+      15.94,
+      15.96,
+      15.98,
+      16.0,
+      16.02,
+      16.04,
+      16.06,
+      16.08,
+      16.1,
+      16.12,
+      16.14,
+      16.16,
+      16.18,
+      16.2,
+      16.22,
+      16.24,
+      16.26,
+      16.28,
+      16.3,
+      16.32,
+      16.34,
+      16.36,
+      16.38,
+      16.4,
+      16.52,
+      16.64,
+      16.76,
+      16.88,
+      17.0
+    ],
+    "health": [
+      {
+        "type": 2,
+        "tx_seq": 0,
+        "session": 41667766,
+        "host_t": 0.75,
+        "uptime_ms": 182692,
+        "input_age_ms": 19,
+        "valid_age_ms": 14,
+        "input_seq": 2156,
+        "control_seq": 2156,
+        "uart_errors": 1,
+        "dma_errors": 0,
+        "rx_overflow": 0,
+        "scan_overflow": 0,
+        "input_drop": 0,
+        "tx_drop": 0,
+        "process_max_us": 8175,
+        "rx_peak": 512,
+        "param_revision": 0,
+        "status_flags": 240,
+        "unsupported_mask": 0
+      },
+      {
+        "type": 2,
+        "tx_seq": 524,
+        "session": 41667766,
+        "host_t": 9.32899999999995,
+        "uptime_ms": 191696,
+        "input_age_ms": 15,
+        "valid_age_ms": 7,
+        "input_seq": 2264,
+        "control_seq": 2264,
+        "uart_errors": 1,
+        "dma_errors": 0,
+        "rx_overflow": 0,
+        "scan_overflow": 0,
+        "input_drop": 0,
+        "tx_drop": 15,
+        "process_max_us": 8529,
+        "rx_peak": 512,
+        "param_revision": 1,
+        "status_flags": 244,
+        "unsupported_mask": 0
+      },
+      {
+        "type": 2,
+        "tx_seq": 872,
+        "session": 41667766,
+        "host_t": 15.640999999999963,
+        "uptime_ms": 197696,
+        "input_age_ms": 18,
+        "valid_age_ms": 10,
+        "input_seq": 2336,
+        "control_seq": 2336,
+        "uart_errors": 1,
+        "dma_errors": 0,
+        "rx_overflow": 0,
+        "scan_overflow": 0,
+        "input_drop": 0,
+        "tx_drop": 21,
+        "process_max_us": 8529,
+        "rx_peak": 512,
+        "param_revision": 1,
+        "status_flags": 244,
+        "unsupported_mask": 0
+      }
+    ],
+    "radar": [
+      {
+        "type": 7,
+        "tx_seq": 1,
+        "session": 41667766,
+        "host_t": 0.75,
+        "schema": 1,
+        "packets": 51769,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2156,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16073,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2156,
+        "front_age_us": 107512,
+        "front_bins": 77,
+        "left_bins": 121,
+        "right_bins": 121,
+        "clearance_mm": 2461,
+        "motor_permitted": 1,
+        "effective_target_milli": 17000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 27,
+        "session": 41667766,
+        "host_t": 1.1569999999999254,
+        "schema": 1,
+        "packets": 51914,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2162,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16118,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2162,
+        "front_age_us": 105851,
+        "front_bins": 78,
+        "left_bins": 121,
+        "right_bins": 121,
+        "clearance_mm": 1657,
+        "motor_permitted": 1,
+        "effective_target_milli": 17000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 79,
+        "session": 41667766,
+        "host_t": 1.5629999999999882,
+        "schema": 1,
+        "packets": 52061,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2168,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16164,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2168,
+        "front_age_us": 113121,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 117,
+        "clearance_mm": 799,
+        "motor_permitted": 1,
+        "effective_target_milli": 17000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 110,
+        "session": 41667766,
+        "host_t": 1.9379999999999882,
+        "schema": 1,
+        "packets": 52203,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2174,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16208,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2174,
+        "front_age_us": 109495,
+        "front_bins": 80,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 694,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 137,
+        "session": 41667766,
+        "host_t": 2.3599999999999,
+        "schema": 1,
+        "packets": 52351,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2180,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16254,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2180,
+        "front_age_us": 125017,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 426,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 162,
+        "session": 41667766,
+        "host_t": 3.2189999999999372,
+        "schema": 1,
+        "packets": 52496,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2186,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16299,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2186,
+        "front_age_us": 121442,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 119,
+        "clearance_mm": 307,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 190,
+        "session": 41667766,
+        "host_t": 3.671999999999912,
+        "schema": 1,
+        "packets": 52637,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2192,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16343,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2192,
+        "front_age_us": 117994,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 119,
+        "clearance_mm": 335,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 217,
+        "session": 41667766,
+        "host_t": 4.078999999999951,
+        "schema": 1,
+        "packets": 52782,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2198,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16388,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2198,
+        "front_age_us": 114301,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 249,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 244,
+        "session": 41667766,
+        "host_t": 4.468999999999937,
+        "schema": 1,
+        "packets": 52927,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2204,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16433,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2204,
+        "front_age_us": 121980,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 103,
+        "clearance_mm": 78,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 269,
+        "session": 41667766,
+        "host_t": 4.906999999999925,
+        "schema": 1,
+        "packets": 53069,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2210,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16477,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2210,
+        "front_age_us": 118394,
+        "front_bins": 75,
+        "left_bins": 121,
+        "right_bins": 104,
+        "clearance_mm": 23,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 297,
+        "session": 41667766,
+        "host_t": 5.7349999999999,
+        "schema": 1,
+        "packets": 53214,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2216,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16522,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2216,
+        "front_age_us": 115064,
+        "front_bins": 67,
+        "left_bins": 121,
+        "right_bins": 121,
+        "clearance_mm": 4,
+        "motor_permitted": 1,
+        "effective_target_milli": 15720,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 324,
+        "session": 41667766,
+        "host_t": 6.125,
+        "schema": 1,
+        "packets": 53359,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2222,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16567,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2222,
+        "front_age_us": 122612,
+        "front_bins": 59,
+        "left_bins": 121,
+        "right_bins": 121,
+        "clearance_mm": 3403,
+        "motor_permitted": 1,
+        "effective_target_milli": 16720,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 352,
+        "session": 41667766,
+        "host_t": 6.531999999999925,
+        "schema": 1,
+        "packets": 53504,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2228,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16612,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2228,
+        "front_age_us": 123389,
+        "front_bins": 74,
+        "left_bins": 121,
+        "right_bins": 121,
+        "clearance_mm": 2807,
+        "motor_permitted": 1,
+        "effective_target_milli": 17000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 379,
+        "session": 41667766,
+        "host_t": 6.937999999999988,
+        "schema": 1,
+        "packets": 53646,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2234,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16656,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2234,
+        "front_age_us": 119586,
+        "front_bins": 78,
+        "left_bins": 121,
+        "right_bins": 121,
+        "clearance_mm": 2166,
+        "motor_permitted": 1,
+        "effective_target_milli": 17000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 410,
+        "session": 41667766,
+        "host_t": 7.687999999999988,
+        "schema": 1,
+        "packets": 53791,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2240,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16701,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2240,
+        "front_age_us": 127338,
+        "front_bins": 79,
+        "left_bins": 121,
+        "right_bins": 121,
+        "clearance_mm": 1480,
+        "motor_permitted": 1,
+        "effective_target_milli": 17000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 439,
+        "session": 41667766,
+        "host_t": 8.2349999999999,
+        "schema": 1,
+        "packets": 53936,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2246,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16746,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2246,
+        "front_age_us": 123635,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 689,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 469,
+        "session": 41667766,
+        "host_t": 8.593999999999937,
+        "schema": 1,
+        "packets": 54081,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2252,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16791,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2252,
+        "front_age_us": 125041,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 397,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 497,
+        "session": 41667766,
+        "host_t": 8.968999999999937,
+        "schema": 1,
+        "packets": 54223,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2258,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16835,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2258,
+        "front_age_us": 131847,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 399,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 527,
+        "session": 41667766,
+        "host_t": 9.7349999999999,
+        "schema": 1,
+        "packets": 54368,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2264,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16880,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2264,
+        "front_age_us": 128579,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 400,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 556,
+        "session": 41667766,
+        "host_t": 10.093999999999937,
+        "schema": 1,
+        "packets": 54513,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2270,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16925,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2270,
+        "front_age_us": 125040,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 119,
+        "clearance_mm": 400,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 586,
+        "session": 41667766,
+        "host_t": 10.468999999999937,
+        "schema": 1,
+        "packets": 54658,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2276,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 16970,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2276,
+        "front_age_us": 132809,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 400,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 613,
+        "session": 41667766,
+        "host_t": 10.8599999999999,
+        "schema": 1,
+        "packets": 54800,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2282,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17014,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2282,
+        "front_age_us": 129383,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 398,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 644,
+        "session": 41667766,
+        "host_t": 11.640999999999963,
+        "schema": 1,
+        "packets": 54945,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2288,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17059,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2288,
+        "front_age_us": 125875,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 401,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 673,
+        "session": 41667766,
+        "host_t": 12.046999999999912,
+        "schema": 1,
+        "packets": 55090,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2294,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17104,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2294,
+        "front_age_us": 133618,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 400,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 702,
+        "session": 41667766,
+        "host_t": 12.406999999999925,
+        "schema": 1,
+        "packets": 55232,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2300,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17148,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2300,
+        "front_age_us": 130180,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 119,
+        "clearance_mm": 400,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 729,
+        "session": 41667766,
+        "host_t": 13.171999999999912,
+        "schema": 1,
+        "packets": 55377,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2306,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17193,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2306,
+        "front_age_us": 126576,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 402,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 759,
+        "session": 41667766,
+        "host_t": 13.562999999999988,
+        "schema": 1,
+        "packets": 55522,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2312,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17238,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2312,
+        "front_age_us": 134208,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 401,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 788,
+        "session": 41667766,
+        "host_t": 13.937999999999988,
+        "schema": 1,
+        "packets": 55664,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2318,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17282,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2318,
+        "front_age_us": 130687,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 402,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 817,
+        "session": 41667766,
+        "host_t": 14.687999999999988,
+        "schema": 1,
+        "packets": 55809,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2324,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17327,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2324,
+        "front_age_us": 128054,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 401,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 845,
+        "session": 41667766,
+        "host_t": 15.046999999999912,
+        "schema": 1,
+        "packets": 55954,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2330,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17372,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2330,
+        "front_age_us": 134987,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 400,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 875,
+        "session": 41667766,
+        "host_t": 15.640999999999963,
+        "schema": 1,
+        "packets": 56095,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2336,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17416,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2336,
+        "front_age_us": 131471,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 398,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 904,
+        "session": 41667766,
+        "host_t": 16.0,
+        "schema": 1,
+        "packets": 56240,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2342,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17461,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2342,
+        "front_age_us": 127949,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 402,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 933,
+        "session": 41667766,
+        "host_t": 16.375,
+        "schema": 1,
+        "packets": 56385,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2348,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17506,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2348,
+        "front_age_us": 124351,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 399,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 961,
+        "session": 41667766,
+        "host_t": 17.156999999999925,
+        "schema": 1,
+        "packets": 56527,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2354,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17550,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2354,
+        "front_age_us": 132143,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 403,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      },
+      {
+        "type": 7,
+        "tx_seq": 991,
+        "session": 41667766,
+        "host_t": 17.562999999999988,
+        "schema": 1,
+        "packets": 56672,
+        "bad_length": 0,
+        "bad_tail": 0,
+        "bad_angle": 0,
+        "bad_speed": 0,
+        "invalid_slots": 0,
+        "high_reflect": 0,
+        "discontinuities": 2,
+        "scans": 2360,
+        "rejected": 0,
+        "scan_overflow": 0,
+        "ready_drop": 0,
+        "epoch": 2,
+        "rx_blocks": 17595,
+        "rx_peak": 512,
+        "rx_late": 1,
+        "copy_max_cycles": 1441,
+        "scan_seq": 2360,
+        "front_age_us": 128716,
+        "front_bins": 81,
+        "left_bins": 121,
+        "right_bins": 120,
+        "clearance_mm": 401,
+        "motor_permitted": 1,
+        "effective_target_milli": 15000,
+        "raw_crc_available": false
+      }
+    ],
+    "clouds": [
+      {
+        "key": [
+          41667766,
+          1,
+          0
+        ],
+        "meta": {
+          "type": 9,
+          "tx_seq": 346,
+          "session": 41667766,
+          "host_t": 6.531999999999925,
+          "schema": 3,
+          "snapshot_id": 1,
+          "frame_index": 0,
+          "control_seq": 2184,
+          "param_revision": 1,
+          "input_seq": 2184,
+          "input_us": 185011900,
+          "epoch": 2,
+          "trigger_flags": 0,
+          "total_points": 271,
+          "offset": 0,
+          "count": 40,
+          "points": [
+            [
+              314,
+              102
+            ],
+            [
+              310,
+              106
+            ],
+            [
+              307,
+              107
+            ],
+            [
+              310,
+              110
+            ],
+            [
+              323,
+              117
+            ],
+            [
+              326,
+              124
+            ],
+            [
+              328,
+              126
+            ],
+            [
+              329,
+              131
+            ],
+            [
+              318,
+              128
+            ],
+            [
+              317,
+              134
+            ],
+            [
+              315,
+              136
+            ],
+            [
+              306,
+              135
+            ],
+            [
+              315,
+              142
+            ],
+            [
+              310,
+              143
+            ],
+            [
+              318,
+              149
+            ],
+            [
+              329,
+              157
+            ],
+            [
+              326,
+              161
+            ],
+            [
+              318,
+              161
+            ],
+            [
+              319,
+              163
+            ],
+            [
+              314,
+              165
+            ],
+            [
+              318,
+              170
+            ],
+            [
+              313,
+              171
+            ],
+            [
+              308,
+              171
+            ],
+            [
+              309,
+              175
+            ],
+            [
+              313,
+              181
+            ],
+            [
+              316,
+              187
+            ],
+            [
+              320,
+              194
+            ],
+            [
+              319,
+              198
+            ],
+            [
+              322,
+              204
+            ],
+            [
+              313,
+              199
+            ],
+            [
+              310,
+              202
+            ],
+            [
+              319,
+              211
+            ],
+            [
+              314,
+              211
+            ],
+            [
+              315,
+              217
+            ],
+            [
+              327,
+              229
+            ],
+            [
+              321,
+              232
+            ],
+            [
+              318,
+              234
+            ],
+            [
+              320,
+              237
+            ],
+            [
+              314,
+              240
+            ],
+            [
+              310,
+              241
+            ]
+          ]
+        },
+        "complete": true,
+        "conflict": false
+      },
+      {
+        "key": [
+          41667766,
+          1,
+          1
+        ],
+        "meta": {
+          "type": 9,
+          "tx_seq": 429,
+          "session": 41667766,
+          "host_t": 7.8599999999999,
+          "schema": 3,
+          "snapshot_id": 1,
+          "frame_index": 1,
+          "control_seq": 2185,
+          "param_revision": 1,
+          "input_seq": 2185,
+          "input_us": 185101499,
+          "epoch": 2,
+          "trigger_flags": 0,
+          "total_points": 268,
+          "offset": 0,
+          "count": 40,
+          "points": [
+            [
+              302,
+              101
+            ],
+            [
+              314,
+              110
+            ],
+            [
+              312,
+              112
+            ],
+            [
+              318,
+              117
+            ],
+            [
+              317,
+              121
+            ],
+            [
+              310,
+              121
+            ],
+            [
+              311,
+              124
+            ],
+            [
+              303,
+              125
+            ],
+            [
+              304,
+              127
+            ],
+            [
+              299,
+              128
+            ],
+            [
+              294,
+              130
+            ],
+            [
+              299,
+              135
+            ],
+            [
+              309,
+              143
+            ],
+            [
+              322,
+              150
+            ],
+            [
+              305,
+              148
+            ],
+            [
+              308,
+              151
+            ],
+            [
+              309,
+              156
+            ],
+            [
+              302,
+              155
+            ],
+            [
+              297,
+              157
+            ],
+            [
+              297,
+              158
+            ],
+            [
+              294,
+              159
+            ],
+            [
+              308,
+              172
+            ],
+            [
+              313,
+              178
+            ],
+            [
+              312,
+              180
+            ],
+            [
+              312,
+              186
+            ],
+            [
+              309,
+              188
+            ],
+            [
+              311,
+              193
+            ],
+            [
+              306,
+              191
+            ],
+            [
+              303,
+              194
+            ],
+            [
+              303,
+              197
+            ],
+            [
+              313,
+              207
+            ],
+            [
+              320,
+              219
+            ],
+            [
+              317,
+              219
+            ],
+            [
+              313,
+              221
+            ],
+            [
+              311,
+              225
+            ],
+            [
+              312,
+              229
+            ],
+            [
+              308,
+              230
+            ],
+            [
+              310,
+              235
+            ],
+            [
+              323,
+              251
+            ],
+            [
+              314,
+              246
+            ]
+          ]
+        },
+        "complete": true,
+        "conflict": false
+      },
+      {
+        "key": [
+          41667766,
+          1,
+          2
+        ],
+        "meta": {
+          "type": 9,
+          "tx_seq": 512,
+          "session": 41667766,
+          "host_t": 9.32899999999995,
+          "schema": 3,
+          "snapshot_id": 1,
+          "frame_index": 2,
+          "control_seq": 2186,
+          "param_revision": 1,
+          "input_seq": 2186,
+          "input_us": 185179623,
+          "epoch": 2,
+          "trigger_flags": 64,
+          "total_points": 265,
+          "offset": 0,
+          "count": 40,
+          "points": [
+            [
+              310,
+              102
+            ],
+            [
+              301,
+              102
+            ],
+            [
+              307,
+              107
+            ],
+            [
+              308,
+              111
+            ],
+            [
+              296,
+              108
+            ],
+            [
+              295,
+              111
+            ],
+            [
+              294,
+              113
+            ],
+            [
+              293,
+              116
+            ],
+            [
+              288,
+              119
+            ],
+            [
+              295,
+              123
+            ],
+            [
+              299,
+              127
+            ],
+            [
+              304,
+              132
+            ],
+            [
+              308,
+              139
+            ],
+            [
+              304,
+              140
+            ],
+            [
+              298,
+              141
+            ],
+            [
+              296,
+              142
+            ],
+            [
+              295,
+              146
+            ],
+            [
+              294,
+              146
+            ],
+            [
+              297,
+              152
+            ],
+            [
+              299,
+              156
+            ],
+            [
+              300,
+              159
+            ],
+            [
+              308,
+              168
+            ],
+            [
+              299,
+              166
+            ],
+            [
+              301,
+              170
+            ],
+            [
+              306,
+              177
+            ],
+            [
+              298,
+              176
+            ],
+            [
+              288,
+              176
+            ],
+            [
+              297,
+              184
+            ],
+            [
+              296,
+              185
+            ],
+            [
+              305,
+              194
+            ],
+            [
+              310,
+              204
+            ],
+            [
+              311,
+              208
+            ],
+            [
+              312,
+              214
+            ],
+            [
+              308,
+              213
+            ],
+            [
+              302,
+              212
+            ],
+            [
+              300,
+              217
+            ],
+            [
+              300,
+              221
+            ],
+            [
+              308,
+              228
+            ],
+            [
+              312,
+              235
+            ],
+            [
+              314,
+              242
+            ]
+          ]
+        },
+        "complete": true,
+        "conflict": false
+      },
+      {
+        "key": [
+          41667766,
+          1,
+          3
+        ],
+        "meta": {
+          "type": 9,
+          "tx_seq": 591,
+          "session": 41667766,
+          "host_t": 10.468999999999937,
+          "schema": 3,
+          "snapshot_id": 1,
+          "frame_index": 3,
+          "control_seq": 2187,
+          "param_revision": 1,
+          "input_seq": 2187,
+          "input_us": 185269253,
+          "epoch": 2,
+          "trigger_flags": 0,
+          "total_points": 261,
+          "offset": 0,
+          "count": 40,
+          "points": [
+            [
+              296,
+              103
+            ],
+            [
+              282,
+              101
+            ],
+            [
+              277,
+              101
+            ],
+            [
+              274,
+              104
+            ],
+            [
+              279,
+              108
+            ],
+            [
+              295,
+              116
+            ],
+            [
+              299,
+              122
+            ],
+            [
+              299,
+              126
+            ],
+            [
+              300,
+              129
+            ],
+            [
+              298,
+              132
+            ],
+            [
+              297,
+              133
+            ],
+            [
+              295,
+              135
+            ],
+            [
+              290,
+              135
+            ],
+            [
+              291,
+              139
+            ],
+            [
+              284,
+              139
+            ],
+            [
+              279,
+              141
+            ],
+            [
+              290,
+              149
+            ],
+            [
+              296,
+              154
+            ],
+            [
+              304,
+              164
+            ],
+            [
+              303,
+              167
+            ],
+            [
+              299,
+              167
+            ],
+            [
+              300,
+              173
+            ],
+            [
+              300,
+              174
+            ],
+            [
+              295,
+              176
+            ],
+            [
+              299,
+              179
+            ],
+            [
+              296,
+              182
+            ],
+            [
+              303,
+              190
+            ],
+            [
+              301,
+              191
+            ],
+            [
+              316,
+              208
+            ],
+            [
+              309,
+              207
+            ],
+            [
+              310,
+              209
+            ],
+            [
+              312,
+              215
+            ],
+            [
+              301,
+              211
+            ],
+            [
+              306,
+              218
+            ],
+            [
+              320,
+              234
+            ],
+            [
+              316,
+              234
+            ],
+            [
+              322,
+              243
+            ],
+            [
+              315,
+              244
+            ],
+            [
+              316,
+              247
+            ],
+            [
+              331,
+              263
+            ]
+          ]
+        },
+        "complete": true,
+        "conflict": false
+      },
+      {
+        "key": [
+          41667766,
+          1,
+          4
+        ],
+        "meta": {
+          "type": 9,
+          "tx_seq": 674,
+          "session": 41667766,
+          "host_t": 12.046999999999912,
+          "schema": 3,
+          "snapshot_id": 1,
+          "frame_index": 4,
+          "control_seq": 2219,
+          "param_revision": 1,
+          "input_seq": 2219,
+          "input_us": 187932384,
+          "epoch": 2,
+          "trigger_flags": 32,
+          "total_points": 241,
+          "offset": 0,
+          "count": 40,
+          "points": [
+            [
+              406,
+              101
+            ],
+            [
+              406,
+              106
+            ],
+            [
+              408,
+              110
+            ],
+            [
+              399,
+              111
+            ],
+            [
+              403,
+              119
+            ],
+            [
+              393,
+              119
+            ],
+            [
+              395,
+              121
+            ],
+            [
+              388,
+              125
+            ],
+            [
+              389,
+              129
+            ],
+            [
+              384,
+              130
+            ],
+            [
+              386,
+              136
+            ],
+            [
+              383,
+              138
+            ],
+            [
+              393,
+              145
+            ],
+            [
+              391,
+              146
+            ],
+            [
+              398,
+              153
+            ],
+            [
+              398,
+              159
+            ],
+            [
+              397,
+              162
+            ],
+            [
+              391,
+              165
+            ],
+            [
+              387,
+              165
+            ],
+            [
+              384,
+              167
+            ],
+            [
+              395,
+              177
+            ],
+            [
+              392,
+              181
+            ],
+            [
+              386,
+              180
+            ],
+            [
+              395,
+              192
+            ],
+            [
+              396,
+              196
+            ],
+            [
+              390,
+              196
+            ],
+            [
+              384,
+              199
+            ],
+            [
+              380,
+              201
+            ],
+            [
+              384,
+              207
+            ],
+            [
+              375,
+              207
+            ],
+            [
+              376,
+              210
+            ],
+            [
+              385,
+              218
+            ],
+            [
+              384,
+              224
+            ],
+            [
+              380,
+              227
+            ],
+            [
+              386,
+              235
+            ],
+            [
+              379,
+              233
+            ],
+            [
+              377,
+              239
+            ],
+            [
+              377,
+              244
+            ],
+            [
+              371,
+              241
+            ],
+            [
+              374,
+              247
+            ]
+          ]
+        },
+        "complete": true,
+        "conflict": false
+      },
+      {
+        "key": [
+          41667766,
+          1,
+          5
+        ],
+        "meta": {
+          "type": 9,
+          "tx_seq": 753,
+          "session": 41667766,
+          "host_t": 13.562999999999988,
+          "schema": 3,
+          "snapshot_id": 1,
+          "frame_index": 5,
+          "control_seq": 2220,
+          "param_revision": 1,
+          "input_seq": 2220,
+          "input_us": 188021677,
+          "epoch": 2,
+          "trigger_flags": 32,
+          "total_points": 250,
+          "offset": 0,
+          "count": 40,
+          "points": [
+            [
+              387,
+              103
+            ],
+            [
+              383,
+              105
+            ],
+            [
+              388,
+              109
+            ],
+            [
+              385,
+              111
+            ],
+            [
+              371,
+              112
+            ],
+            [
+              372,
+              114
+            ],
+            [
+              372,
+              117
+            ],
+            [
+              367,
+              120
+            ],
+            [
+              388,
+              132
+            ],
+            [
+              389,
+              137
+            ],
+            [
+              386,
+              137
+            ],
+            [
+              380,
+              138
+            ],
+            [
+              382,
+              142
+            ],
+            [
+              378,
+              147
+            ],
+            [
+              372,
+              148
+            ],
+            [
+              374,
+              151
+            ],
+            [
+              371,
+              155
+            ],
+            [
+              357,
+              152
+            ],
+            [
+              368,
+              163
+            ],
+            [
+              370,
+              167
+            ],
+            [
+              369,
+              168
+            ],
+            [
+              374,
+              178
+            ],
+            [
+              378,
+              181
+            ],
+            [
+              384,
+              188
+            ],
+            [
+              371,
+              185
+            ],
+            [
+              367,
+              190
+            ],
+            [
+              371,
+              193
+            ],
+            [
+              359,
+              192
+            ],
+            [
+              358,
+              197
+            ],
+            [
+              357,
+              200
+            ],
+            [
+              355,
+              202
+            ],
+            [
+              374,
+              219
+            ],
+            [
+              373,
+              220
+            ],
+            [
+              369,
+              221
+            ],
+            [
+              363,
+              223
+            ],
+            [
+              367,
+              232
+            ],
+            [
+              366,
+              233
+            ],
+            [
+              359,
+              237
+            ],
+            [
+              360,
+              241
+            ],
+            [
+              346,
+              237
+            ]
+          ]
+        },
+        "complete": true,
+        "conflict": false
+      },
+      {
+        "key": [
+          41667766,
+          1,
+          6
+        ],
+        "meta": {
+          "type": 9,
+          "tx_seq": 836,
+          "session": 41667766,
+          "host_t": 15.046999999999912,
+          "schema": 3,
+          "snapshot_id": 1,
+          "frame_index": 6,
+          "control_seq": 2221,
+          "param_revision": 1,
+          "input_seq": 2221,
+          "input_us": 188100334,
+          "epoch": 2,
+          "trigger_flags": 32,
+          "total_points": 247,
+          "offset": 0,
+          "count": 40,
+          "points": [
+            [
+              352,
+              104
+            ],
+            [
+              359,
+              107
+            ],
+            [
+              368,
+              113
+            ],
+            [
+              366,
+              117
+            ],
+            [
+              369,
+              121
+            ],
+            [
+              366,
+              123
+            ],
+            [
+              357,
+              126
+            ],
+            [
+              364,
+              131
+            ],
+            [
+              357,
+              132
+            ],
+            [
+              366,
+              140
+            ],
+            [
+              356,
+              139
+            ],
+            [
+              356,
+              142
+            ],
+            [
+              346,
+              141
+            ],
+            [
+              351,
+              148
+            ],
+            [
+              344,
+              146
+            ],
+            [
+              355,
+              156
+            ],
+            [
+              358,
+              160
+            ],
+            [
+              359,
+              164
+            ],
+            [
+              357,
+              167
+            ],
+            [
+              359,
+              174
+            ],
+            [
+              355,
+              176
+            ],
+            [
+              355,
+              178
+            ],
+            [
+              347,
+              180
+            ],
+            [
+              344,
+              182
+            ],
+            [
+              336,
+              181
+            ],
+            [
+              334,
+              181
+            ],
+            [
+              342,
+              191
+            ],
+            [
+              350,
+              200
+            ],
+            [
+              349,
+              202
+            ],
+            [
+              351,
+              210
+            ],
+            [
+              353,
+              215
+            ],
+            [
+              356,
+              218
+            ],
+            [
+              348,
+              221
+            ],
+            [
+              345,
+              223
+            ],
+            [
+              343,
+              225
+            ],
+            [
+              338,
+              224
+            ],
+            [
+              332,
+              225
+            ],
+            [
+              336,
+              234
+            ],
+            [
+              338,
+              237
+            ],
+            [
+              341,
+              245
+            ]
+          ]
+        },
+        "complete": true,
+        "conflict": false
+      },
+      {
+        "key": [
+          41667766,
+          1,
+          7
+        ],
+        "meta": {
+          "type": 9,
+          "tx_seq": 919,
+          "session": 41667766,
+          "host_t": 16.375,
+          "schema": 3,
+          "snapshot_id": 1,
+          "frame_index": 7,
+          "control_seq": 2222,
+          "param_revision": 1,
+          "input_seq": 2222,
+          "input_us": 188189851,
+          "epoch": 2,
+          "trigger_flags": 40,
+          "total_points": 246,
+          "offset": 0,
+          "count": 40,
+          "points": [
+            [
+              346,
+              101
+            ],
+            [
+              347,
+              104
+            ],
+            [
+              345,
+              108
+            ],
+            [
+              354,
+              114
+            ],
+            [
+              345,
+              114
+            ],
+            [
+              346,
+              115
+            ],
+            [
+              349,
+              123
+            ],
+            [
+              345,
+              124
+            ],
+            [
+              333,
+              123
+            ],
+            [
+              338,
+              127
+            ],
+            [
+              334,
+              130
+            ],
+            [
+              332,
+              131
+            ],
+            [
+              341,
+              137
+            ],
+            [
+              345,
+              143
+            ],
+            [
+              344,
+              146
+            ],
+            [
+              343,
+              149
+            ],
+            [
+              348,
+              157
+            ],
+            [
+              350,
+              160
+            ],
+            [
+              346,
+              163
+            ],
+            [
+              348,
+              168
+            ],
+            [
+              338,
+              167
+            ],
+            [
+              337,
+              171
+            ],
+            [
+              333,
+              172
+            ],
+            [
+              341,
+              179
+            ],
+            [
+              324,
+              175
+            ],
+            [
+              333,
+              183
+            ],
+            [
+              326,
+              181
+            ],
+            [
+              333,
+              190
+            ],
+            [
+              333,
+              195
+            ],
+            [
+              339,
+              200
+            ],
+            [
+              336,
+              203
+            ],
+            [
+              340,
+              211
+            ],
+            [
+              335,
+              212
+            ],
+            [
+              334,
+              214
+            ],
+            [
+              332,
+              217
+            ],
+            [
+              336,
+              223
+            ],
+            [
+              335,
+              226
+            ],
+            [
+              336,
+              234
+            ],
+            [
+              338,
+              239
+            ],
+            [
+              337,
+              240
+            ]
+          ]
+        },
+        "complete": true,
+        "conflict": false
+      }
+    ],
+    "changes": [
+      {
+        "seq": [
+          2183,
+          2184
+        ],
+        "t": [
+          2.175,
+          2.25
+        ],
+        "pwm": [
+          1337.0,
+          1373.0
+        ],
+        "formal": true,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          0
+        ],
+        "ref": [
+          651.1144409179688,
+          430.0445861816406
+        ],
+        "target": [
+          257.31610107421875,
+          128.37017822265625
+        ],
+        "near": [
+          0.3483702540397644,
+          0.25539934635162354
+        ],
+        "far": [
+          0.5706652998924255,
+          0.0
+        ],
+        "p": [
+          -107.35997772216797,
+          -71.02210235595703
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2184,
+          2185
+        ],
+        "t": [
+          2.25,
+          2.342
+        ],
+        "pwm": [
+          1373.0,
+          1308.0
+        ],
+        "formal": true,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          0,
+          1
+        ],
+        "ref": [
+          430.0445861816406,
+          624.7093505859375
+        ],
+        "target": [
+          128.37017822265625,
+          292.618408203125
+        ],
+        "near": [
+          0.25539934635162354,
+          0.34146836400032043
+        ],
+        "far": [
+          0.0,
+          1.0018763542175293
+        ],
+        "p": [
+          -71.02210235595703,
+          -136.7657928466797
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2185,
+          2186
+        ],
+        "t": [
+          2.342,
+          2.42
+        ],
+        "pwm": [
+          1308.0,
+          1231.0
+        ],
+        "formal": true,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          624.7093505859375,
+          714.6019287109375
+        ],
+        "target": [
+          292.618408203125,
+          441.6427001953125
+        ],
+        "near": [
+          0.34146836400032043,
+          0.42769524455070496
+        ],
+        "far": [
+          1.0018763542175293,
+          1.0684165954589844
+        ],
+        "p": [
+          -136.7657928466797,
+          -213.856689453125
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2186,
+          2187
+        ],
+        "t": [
+          2.42,
+          2.51
+        ],
+        "pwm": [
+          1231.0,
+          1170.0
+        ],
+        "formal": true,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          714.6019287109375,
+          720.1100463867188
+        ],
+        "target": [
+          441.6427001953125,
+          550.1181030273438
+        ],
+        "near": [
+          0.42769524455070496,
+          0.5034599900245667
+        ],
+        "far": [
+          1.0684165954589844,
+          1.3540209531784058
+        ],
+        "p": [
+          -213.856689453125,
+          -266.6250305175781
+        ],
+        "d": [
+          0.0,
+          -17.551774978637695
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2187,
+          2188
+        ],
+        "t": [
+          2.51,
+          2.586
+        ],
+        "pwm": [
+          1170.0,
+          1254.0
+        ],
+        "formal": true,
+        "models": [
+          null,
+          0
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          720.1100463867188,
+          700.0
+        ],
+        "target": [
+          550.1181030273438,
+          409.6209716796875
+        ],
+        "near": [
+          0.5034599900245667,
+          0.5792251825332642
+        ],
+        "far": [
+          1.3540209531784058,
+          0.0
+        ],
+        "p": [
+          -266.6250305175781,
+          -190.9150848388672
+        ],
+        "d": [
+          -17.551774978637695,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2188,
+          2189
+        ],
+        "t": [
+          2.586,
+          2.675
+        ],
+        "pwm": [
+          1254.0,
+          1223.0
+        ],
+        "formal": true,
+        "models": [
+          0,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          409.6209716796875,
+          441.36322021484375
+        ],
+        "near": [
+          0.5792251825332642,
+          0.6518453359603882
+        ],
+        "far": [
+          0.0,
+          0.0
+        ],
+        "p": [
+          -190.9150848388672,
+          -213.6515655517578
+        ],
+        "d": [
+          0.0,
+          -8.147212028503418
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2210,
+          2211
+        ],
+        "t": [
+          4.421,
+          4.51
+        ],
+        "pwm": [
+          1202.0,
+          1245.0
+        ],
+        "formal": true,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          2,
+          2
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          487.5849609375,
+          439.49029541015625
+        ],
+        "near": [
+          0.4288143515586853,
+          0.3373316824436188
+        ],
+        "far": [
+          0.37824875116348267,
+          0.2950584888458252
+        ],
+        "p": [
+          -248.75225830078125,
+          -212.27906799316406
+        ],
+        "d": [
+          6.599577903747559,
+          12.366292953491211
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2211,
+          2212
+        ],
+        "t": [
+          4.51,
+          4.589
+        ],
+        "pwm": [
+          1245.0,
+          1289.0
+        ],
+        "formal": true,
+        "models": [
+          null,
+          0
+        ],
+        "source": [
+          2,
+          2
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          439.49029541015625,
+          382.4803466796875
+        ],
+        "near": [
+          0.3373316824436188,
+          0.24632379412651062
+        ],
+        "far": [
+          0.2950584888458252,
+          0.2219192385673523
+        ],
+        "p": [
+          -212.27906799316406,
+          -172.35845947265625
+        ],
+        "d": [
+          12.366292953491211,
+          16.70908546447754
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2212,
+          2213
+        ],
+        "t": [
+          4.589,
+          4.678
+        ],
+        "pwm": [
+          1289.0,
+          1336.0
+        ],
+        "formal": true,
+        "models": [
+          0,
+          null
+        ],
+        "source": [
+          2,
+          2
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          382.4803466796875,
+          310.9136047363281
+        ],
+        "near": [
+          0.24632379412651062,
+          0.1501164436340332
+        ],
+        "far": [
+          0.2219192385673523,
+          0.12302330881357193
+        ],
+        "p": [
+          -172.35845947265625,
+          -127.33316802978516
+        ],
+        "d": [
+          16.70908546447754,
+          18.345741271972656
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2214,
+          2215
+        ],
+        "t": [
+          4.756,
+          4.835
+        ],
+        "pwm": [
+          1351.0,
+          1392.0
+        ],
+        "formal": true,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          0,
+          0
+        ],
+        "ref": [
+          845.45458984375,
+          848.3636474609375
+        ],
+        "target": [
+          243.58413696289062,
+          158.67227172851562
+        ],
+        "near": [
+          0.09227650612592697,
+          -0.02828552946448326
+        ],
+        "far": [
+          0.06570500880479813,
+          0.0005722753703594208
+        ],
+        "p": [
+          -93.43364715576172,
+          -52.03529357910156
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          2,
+          4
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2215,
+          2216
+        ],
+        "t": [
+          4.835,
+          4.925
+        ],
+        "pwm": [
+          1392.0,
+          1426.0
+        ],
+        "formal": true,
+        "models": [
+          null,
+          0
+        ],
+        "source": [
+          0,
+          0
+        ],
+        "ref": [
+          848.3636474609375,
+          816.3636474609375
+        ],
+        "target": [
+          158.67227172851562,
+          116.83740234375
+        ],
+        "near": [
+          -0.02828552946448326,
+          -0.04417473077774048
+        ],
+        "far": [
+          0.0005722753703594208,
+          -0.03219021484255791
+        ],
+        "p": [
+          -52.03529357910156,
+          -37.393089294433594
+        ],
+        "d": [
+          0.0,
+          18.771846771240234
+        ],
+        "gate": [
+          4,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2244,
+          2245
+        ],
+        "t": [
+          7.252,
+          7.342
+        ],
+        "pwm": [
+          1418.0,
+          1389.0
+        ],
+        "formal": false,
+        "models": [
+          0,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          53.57232666015625,
+          111.66464233398438
+        ],
+        "near": [
+          0.11599055677652359,
+          0.23971062898635864
+        ],
+        "far": [
+          0.52349853515625,
+          0.6946064233779907
+        ],
+        "p": [
+          -17.211069107055664,
+          -40.157535552978516
+        ],
+        "d": [
+          -9.028960227966309,
+          -14.879706382751465
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2245,
+          2246
+        ],
+        "t": [
+          7.342,
+          7.423
+        ],
+        "pwm": [
+          1389.0,
+          1353.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          706.8901977539062
+        ],
+        "target": [
+          111.66464233398438,
+          186.83413696289062
+        ],
+        "near": [
+          0.23971062898635864,
+          0.31531041860580444
+        ],
+        "far": [
+          0.6946064233779907,
+          0.9507081508636475
+        ],
+        "p": [
+          -40.157535552978516,
+          -69.8494873046875
+        ],
+        "d": [
+          -14.879706382751465,
+          -21.224933624267578
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2246,
+          2247
+        ],
+        "t": [
+          7.423,
+          7.509
+        ],
+        "pwm": [
+          1353.0,
+          1415.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          0
+        ],
+        "ref": [
+          706.8901977539062,
+          425.34259033203125
+        ],
+        "target": [
+          186.83413696289062,
+          59.05369567871094
+        ],
+        "near": [
+          0.31531041860580444,
+          0.23961585760116577
+        ],
+        "far": [
+          0.9507081508636475,
+          0.0
+        ],
+        "p": [
+          -69.8494873046875,
+          -29.432214736938477
+        ],
+        "d": [
+          -21.224933624267578,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2247,
+          2248
+        ],
+        "t": [
+          7.509,
+          7.587
+        ],
+        "pwm": [
+          1415.0,
+          1378.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          0
+        ],
+        "source": [
+          0,
+          0
+        ],
+        "ref": [
+          425.34259033203125,
+          437.6072082519531
+        ],
+        "target": [
+          59.05369567871094,
+          93.00473022460938
+        ],
+        "near": [
+          0.23961585760116577,
+          0.326742947101593
+        ],
+        "far": [
+          0.0,
+          0.0
+        ],
+        "p": [
+          -29.432214736938477,
+          -49.802833557128906
+        ],
+        "d": [
+          0.0,
+          -16.512556076049805
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2248,
+          2249
+        ],
+        "t": [
+          7.587,
+          7.68
+        ],
+        "pwm": [
+          1378.0,
+          1252.0
+        ],
+        "formal": false,
+        "models": [
+          0,
+          null
+        ],
+        "source": [
+          0,
+          1
+        ],
+        "ref": [
+          437.6072082519531,
+          700.0
+        ],
+        "target": [
+          93.00473022460938,
+          411.64569091796875
+        ],
+        "near": [
+          0.326742947101593,
+          0.46977105736732483
+        ],
+        "far": [
+          0.0,
+          1.4356093406677246
+        ],
+        "p": [
+          -49.802833557128906,
+          -192.33209228515625
+        ],
+        "d": [
+          -16.512556076049805,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2249,
+          2250
+        ],
+        "t": [
+          7.68,
+          7.758
+        ],
+        "pwm": [
+          1252.0,
+          1192.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          716.9201049804688
+        ],
+        "target": [
+          411.64569091796875,
+          469.81292724609375
+        ],
+        "near": [
+          0.46977105736732483,
+          0.5172885060310364
+        ],
+        "far": [
+          1.4356093406677246,
+          1.5867340564727783
+        ],
+        "p": [
+          -192.33209228515625,
+          -234.97662353515625
+        ],
+        "d": [
+          0.0,
+          -17.03959083557129
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2258,
+          2259
+        ],
+        "t": [
+          8.429,
+          8.505
+        ],
+        "pwm": [
+          1189.0,
+          1308.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          720.072021484375,
+          700.0
+        ],
+        "target": [
+          493.3830261230469,
+          326.8573913574219
+        ],
+        "near": [
+          0.5503889322280884,
+          0.55738365650177
+        ],
+        "far": [
+          1.3467955589294434,
+          0.0
+        ],
+        "p": [
+          -253.32211303710938,
+          -136.8735809326172
+        ],
+        "d": [
+          -2.1645381450653076,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2259,
+          2260
+        ],
+        "t": [
+          8.505,
+          8.597
+        ],
+        "pwm": [
+          1308.0,
+          1178.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          0
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          326.8573913574219,
+          577.9844970703125
+        ],
+        "near": [
+          0.55738365650177,
+          0.553984522819519
+        ],
+        "far": [
+          0.0,
+          1.6501164436340332
+        ],
+        "p": [
+          -136.8735809326172,
+          -266.6250305175781
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2266,
+          2267
+        ],
+        "t": [
+          9.09,
+          9.176
+        ],
+        "pwm": [
+          1197.0,
+          1309.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          719.966552734375,
+          700.0
+        ],
+        "target": [
+          487.9900817871094,
+          324.5943603515625
+        ],
+        "near": [
+          0.549410879611969,
+          0.5527603626251221
+        ],
+        "far": [
+          1.327171802520752,
+          0.0
+        ],
+        "p": [
+          -249.07037353515625,
+          -135.50230407714844
+        ],
+        "d": [
+          1.650254249572754,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2267,
+          2268
+        ],
+        "t": [
+          9.176,
+          9.257
+        ],
+        "pwm": [
+          1309.0,
+          1178.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          0
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          324.5943603515625,
+          576.1263427734375
+        ],
+        "near": [
+          0.5527603626251221,
+          0.5475139021873474
+        ],
+        "far": [
+          0.0,
+          1.6443394422531128
+        ],
+        "p": [
+          -135.50230407714844,
+          -266.6250305175781
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2273,
+          2274
+        ],
+        "t": [
+          9.671,
+          9.76
+        ],
+        "pwm": [
+          1198.0,
+          1172.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          719.9453735351562,
+          721.3512573242188
+        ],
+        "target": [
+          485.646240234375,
+          561.7142333984375
+        ],
+        "near": [
+          0.5517482757568359,
+          0.5498802661895752
+        ],
+        "far": [
+          1.3232895135879517,
+          1.6418026685714722
+        ],
+        "p": [
+          -247.23252868652344,
+          -266.6250305175781
+        ],
+        "d": [
+          0.6851975917816162,
+          -6.263476371765137
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2274,
+          2275
+        ],
+        "t": [
+          9.76,
+          9.839
+        ],
+        "pwm": [
+          1172.0,
+          1197.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          721.3512573242188,
+          720.0781860351562
+        ],
+        "target": [
+          561.7142333984375,
+          492.55755615234375
+        ],
+        "near": [
+          0.5498802661895752,
+          0.5564588904380798
+        ],
+        "far": [
+          1.6418026685714722,
+          1.3479608297348022
+        ],
+        "p": [
+          -266.6250305175781,
+          -252.66925048828125
+        ],
+        "d": [
+          -6.263476371765137,
+          5.108181953430176
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2279,
+          2280
+        ],
+        "t": [
+          10.175,
+          10.25
+        ],
+        "pwm": [
+          1196.0,
+          1310.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          720.040283203125,
+          700.0
+        ],
+        "target": [
+          492.5589904785156,
+          322.58544921875
+        ],
+        "near": [
+          0.5545382499694824,
+          0.5480878353118896
+        ],
+        "far": [
+          1.3408323526382446,
+          0.0
+        ],
+        "p": [
+          -252.67037963867188,
+          -134.28976440429688
+        ],
+        "d": [
+          4.387915134429932,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2280,
+          2281
+        ],
+        "t": [
+          10.25,
+          10.343
+        ],
+        "pwm": [
+          1310.0,
+          1178.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          322.58544921875,
+          577.6950073242188
+        ],
+        "near": [
+          0.5480878353118896,
+          0.5505980253219604
+        ],
+        "far": [
+          0.0,
+          1.6450231075286865
+        ],
+        "p": [
+          -134.28976440429688,
+          -266.6250305175781
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2283,
+          2284
+        ],
+        "t": [
+          10.51,
+          10.586
+        ],
+        "pwm": [
+          1175.0,
+          1309.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          0
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          717.1229858398438,
+          700.0
+        ],
+        "target": [
+          569.5361938476562,
+          323.9952087402344
+        ],
+        "near": [
+          0.546796441078186,
+          0.5517549514770508
+        ],
+        "far": [
+          1.6568758487701416,
+          0.0
+        ],
+        "p": [
+          -266.6250305175781,
+          -135.14019775390625
+        ],
+        "d": [
+          -3.009551763534546,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2285,
+          2286
+        ],
+        "t": [
+          10.675,
+          10.756
+        ],
+        "pwm": [
+          1308.0,
+          1178.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          325.5123291015625,
+          578.3154296875
+        ],
+        "near": [
+          0.5545997619628906,
+          0.5599588751792908
+        ],
+        "far": [
+          0.0,
+          1.636849284172058
+        ],
+        "p": [
+          -136.05784606933594,
+          -266.6250305175781
+        ],
+        "d": [
+          -0.3894914984703064,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2289,
+          2290
+        ],
+        "t": [
+          11.003,
+          11.089
+        ],
+        "pwm": [
+          1178.0,
+          1309.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          721.4119262695312,
+          700.0
+        ],
+        "target": [
+          564.909423828125,
+          323.9893493652344
+        ],
+        "near": [
+          0.5521639585494995,
+          0.5513724088668823
+        ],
+        "far": [
+          1.6592427492141724,
+          0.0
+        ],
+        "p": [
+          -266.6250305175781,
+          -135.13665771484375
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2290,
+          2291
+        ],
+        "t": [
+          11.089,
+          11.17
+        ],
+        "pwm": [
+          1309.0,
+          1183.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          323.9893493652344,
+          503.4795837402344
+        ],
+        "near": [
+          0.5513724088668823,
+          0.5508787631988525
+        ],
+        "far": [
+          0.0,
+          1.3291754722595215
+        ],
+        "p": [
+          -135.13665771484375,
+          -261.36859130859375
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2297,
+          2298
+        ],
+        "t": [
+          11.674,
+          11.751
+        ],
+        "pwm": [
+          1174.0,
+          1203.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          721.349365234375,
+          719.99560546875
+        ],
+        "target": [
+          562.7152709960938,
+          487.41204833984375
+        ],
+        "near": [
+          0.5472755432128906,
+          0.5488358736038208
+        ],
+        "far": [
+          1.6412615776062012,
+          1.3325246572494507
+        ],
+        "p": [
+          -266.6250305175781,
+          -248.61656188964844
+        ],
+        "d": [
+          -4.210939884185791,
+          6.71617317199707
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2298,
+          2299
+        ],
+        "t": [
+          11.751,
+          11.842
+        ],
+        "pwm": [
+          1203.0,
+          1172.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          719.99560546875,
+          721.3861083984375
+        ],
+        "target": [
+          487.41204833984375,
+          565.095947265625
+        ],
+        "near": [
+          0.5488358736038208,
+          0.5559172034263611
+        ],
+        "far": [
+          1.3325246572494507,
+          1.651774287223816
+        ],
+        "p": [
+          -248.61656188964844,
+          -266.6250305175781
+        ],
+        "d": [
+          6.71617317199707,
+          -5.758017063140869
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2299,
+          2300
+        ],
+        "t": [
+          11.842,
+          11.92
+        ],
+        "pwm": [
+          1172.0,
+          1203.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          721.3861083984375,
+          719.9329223632812
+        ],
+        "target": [
+          565.095947265625,
+          486.9013977050781
+        ],
+        "near": [
+          0.5559172034263611,
+          0.5530379414558411
+        ],
+        "far": [
+          1.651774287223816,
+          1.3210214376449585
+        ],
+        "p": [
+          -266.6250305175781,
+          -248.21597290039062
+        ],
+        "d": [
+          -5.758017063140869,
+          6.791361331939697
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2305,
+          2306
+        ],
+        "t": [
+          12.334,
+          12.421
+        ],
+        "pwm": [
+          1178.0,
+          1309.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          721.3267211914062,
+          700.0
+        ],
+        "target": [
+          563.0244750976562,
+          324.70068359375
+        ],
+        "near": [
+          0.5522599816322327,
+          0.5522293448448181
+        ],
+        "far": [
+          1.6348628997802734,
+          0.0
+        ],
+        "p": [
+          -266.6250305175781,
+          -135.5666046142578
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2306,
+          2307
+        ],
+        "t": [
+          12.421,
+          12.501
+        ],
+        "pwm": [
+          1309.0,
+          1180.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          324.70068359375,
+          507.9462890625
+        ],
+        "near": [
+          0.5522293448448181,
+          0.5517879724502563
+        ],
+        "far": [
+          0.0,
+          1.3556337356567383
+        ],
+        "p": [
+          -135.5666046142578,
+          -264.96435546875
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2307,
+          2308
+        ],
+        "t": [
+          12.501,
+          12.589
+        ],
+        "pwm": [
+          1180.0,
+          1309.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          507.9462890625,
+          324.029296875
+        ],
+        "near": [
+          0.5517879724502563,
+          0.5511190891265869
+        ],
+        "far": [
+          1.3556337356567383,
+          0.0
+        ],
+        "p": [
+          -264.96435546875,
+          -135.16078186035156
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2308,
+          2309
+        ],
+        "t": [
+          12.589,
+          12.669
+        ],
+        "pwm": [
+          1309.0,
+          1178.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          324.029296875,
+          576.3864135742188
+        ],
+        "near": [
+          0.5511190891265869,
+          0.5496405363082886
+        ],
+        "far": [
+          0.0,
+          1.6489893198013306
+        ],
+        "p": [
+          -135.16078186035156,
+          -266.6250305175781
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2313,
+          2314
+        ],
+        "t": [
+          13.005,
+          13.092
+        ],
+        "pwm": [
+          1178.0,
+          1308.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          721.33935546875,
+          700.0
+        ],
+        "target": [
+          561.2792358398438,
+          326.3767395019531
+        ],
+        "near": [
+          0.5547317862510681,
+          0.5571388006210327
+        ],
+        "far": [
+          1.6384236812591553,
+          0.0
+        ],
+        "p": [
+          -266.6250305175781,
+          -136.58184814453125
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2314,
+          2315
+        ],
+        "t": [
+          13.092,
+          13.173
+        ],
+        "pwm": [
+          1308.0,
+          1180.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          326.3767395019531,
+          507.45843505859375
+        ],
+        "near": [
+          0.5571388006210327,
+          0.5553432106971741
+        ],
+        "far": [
+          0.0,
+          1.3477481603622437
+        ],
+        "p": [
+          -136.58184814453125,
+          -264.5705261230469
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2319,
+          2320
+        ],
+        "t": [
+          13.509,
+          13.587
+        ],
+        "pwm": [
+          1197.0,
+          1172.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          720.0781860351562,
+          721.411376953125
+        ],
+        "target": [
+          491.6031188964844,
+          568.9432373046875
+        ],
+        "near": [
+          0.549243688583374,
+          0.5519726276397705
+        ],
+        "far": [
+          1.347966194152832,
+          1.6590920686721802
+        ],
+        "p": [
+          -251.915283203125,
+          -266.6250305175781
+        ],
+        "d": [
+          4.711685657501221,
+          -5.428757667541504
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2322,
+          2323
+        ],
+        "t": [
+          13.754,
+          13.842
+        ],
+        "pwm": [
+          1193.0,
+          1311.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          720.1058349609375,
+          700.0
+        ],
+        "target": [
+          495.99200439453125,
+          321.9883117675781
+        ],
+        "near": [
+          0.5512991547584534,
+          0.5493873357772827
+        ],
+        "far": [
+          1.3532159328460693,
+          0.0
+        ],
+        "p": [
+          -255.39056396484375,
+          -133.93019104003906
+        ],
+        "d": [
+          4.135918140411377,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2323,
+          2324
+        ],
+        "t": [
+          13.842,
+          13.923
+        ],
+        "pwm": [
+          1311.0,
+          1178.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          321.9883117675781,
+          510.4561462402344
+        ],
+        "near": [
+          0.5493873357772827,
+          0.549010157585144
+        ],
+        "far": [
+          0.0,
+          1.365527868270874
+        ],
+        "p": [
+          -133.93019104003906,
+          -266.6250305175781
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2329,
+          2330
+        ],
+        "t": [
+          14.337,
+          14.424
+        ],
+        "pwm": [
+          1187.0,
+          1308.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          720.2002563476562,
+          700.0
+        ],
+        "target": [
+          497.8074035644531,
+          325.9420166015625
+        ],
+        "near": [
+          0.5441729426383972,
+          0.5533881187438965
+        ],
+        "far": [
+          1.3714410066604614,
+          0.0
+        ],
+        "p": [
+          -256.8342590332031,
+          -136.31822204589844
+        ],
+        "d": [
+          -0.32196009159088135,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2330,
+          2331
+        ],
+        "t": [
+          14.424,
+          14.505
+        ],
+        "pwm": [
+          1308.0,
+          1178.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          325.9420166015625,
+          578.230712890625
+        ],
+        "near": [
+          0.5533881187438965,
+          0.5469305515289307
+        ],
+        "far": [
+          0.0,
+          1.6499377489089966
+        ],
+        "p": [
+          -136.31822204589844,
+          -266.6250305175781
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2335,
+          2336
+        ],
+        "t": [
+          14.84,
+          14.919
+        ],
+        "pwm": [
+          1172.0,
+          1197.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          721.372314453125,
+          720.0559692382812
+        ],
+        "target": [
+          565.3550415039062,
+          492.6692199707031
+        ],
+        "near": [
+          0.5530204772949219,
+          0.5492498278617859
+        ],
+        "far": [
+          1.6478030681610107,
+          1.3437762260437012
+        ],
+        "p": [
+          -266.6250305175781,
+          -252.75750732421875
+        ],
+        "d": [
+          -5.733476638793945,
+          5.060274124145508
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2337,
+          2338
+        ],
+        "t": [
+          15.008,
+          15.084
+        ],
+        "pwm": [
+          1197.0,
+          1308.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          719.9539794921875,
+          700.0
+        ],
+        "target": [
+          488.0968322753906,
+          326.01416015625
+        ],
+        "near": [
+          0.5476827025413513,
+          0.5545405149459839
+        ],
+        "far": [
+          1.3248658180236816,
+          0.0
+        ],
+        "p": [
+          -249.15423583984375,
+          -136.36196899414062
+        ],
+        "d": [
+          1.1781598329544067,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2338,
+          2339
+        ],
+        "t": [
+          15.084,
+          15.175
+        ],
+        "pwm": [
+          1308.0,
+          1178.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          326.01416015625,
+          577.363037109375
+        ],
+        "near": [
+          0.5545405149459839,
+          0.5560253262519836
+        ],
+        "far": [
+          0.0,
+          1.6445552110671997
+        ],
+        "p": [
+          -136.36196899414062,
+          -266.6250305175781
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2339,
+          2340
+        ],
+        "t": [
+          15.175,
+          15.251
+        ],
+        "pwm": [
+          1178.0,
+          1308.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          0
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          577.363037109375,
+          325.90362548828125
+        ],
+        "near": [
+          0.5560253262519836,
+          0.5537739396095276
+        ],
+        "far": [
+          1.6445552110671997,
+          0.0
+        ],
+        "p": [
+          -266.6250305175781,
+          -136.2949676513672
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2340,
+          2341
+        ],
+        "t": [
+          15.251,
+          15.344
+        ],
+        "pwm": [
+          1308.0,
+          1178.0
+        ],
+        "formal": false,
+        "models": [
+          0,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          325.90362548828125,
+          577.362060546875
+        ],
+        "near": [
+          0.5537739396095276,
+          0.5436205267906189
+        ],
+        "far": [
+          0.0,
+          1.6228629350662231
+        ],
+        "p": [
+          -136.2949676513672,
+          -266.6250305175781
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2358,
+          2359
+        ],
+        "t": [
+          16.751,
+          16.84
+        ],
+        "pwm": [
+          1171.0,
+          1307.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          null
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          721.380615234375,
+          700.0
+        ],
+        "target": [
+          564.284912109375,
+          327.39080810546875
+        ],
+        "near": [
+          0.549032986164093,
+          0.5572363138198853
+        ],
+        "far": [
+          1.6501972675323486,
+          0.0
+        ],
+        "p": [
+          -266.6250305175781,
+          -137.19761657714844
+        ],
+        "d": [
+          -6.4460320472717285,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      },
+      {
+        "seq": [
+          2359,
+          2360
+        ],
+        "t": [
+          16.84,
+          16.919
+        ],
+        "pwm": [
+          1307.0,
+          1180.0
+        ],
+        "formal": false,
+        "models": [
+          null,
+          0
+        ],
+        "source": [
+          1,
+          1
+        ],
+        "ref": [
+          700.0,
+          700.0
+        ],
+        "target": [
+          327.39080810546875,
+          507.70965576171875
+        ],
+        "near": [
+          0.5572363138198853,
+          0.5515362620353699
+        ],
+        "far": [
+          0.0,
+          1.35923433303833
+        ],
+        "p": [
+          -137.19761657714844,
+          -264.7733154296875
+        ],
+        "d": [
+          0.0,
+          0.0
+        ],
+        "gate": [
+          0,
+          0
+        ],
+        "geom": [
+          0,
+          0
+        ]
+      }
+    ]
+  }
+]

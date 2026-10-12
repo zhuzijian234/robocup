@@ -1,0 +1,86 @@
+{
+  "01_160711 右转弯": {
+    "control_rows": 207,
+    "race_rows": 31,
+    "turnin": {
+      "t": 2.7819999999999254,
+      "pwm": 1231.0,
+      "speed": 15.1,
+      "turn_distance_mm": 700.0,
+      "bend_rad": 0.2239491045475006,
+      "heading_rad": 0.21831661462783813,
+      "speed_limit": 15.0
+    },
+    "curve_rejected_first": null
+  },
+  "02_161100 右转弯": {
+    "control_rows": 199,
+    "race_rows": 32,
+    "turnin": {
+      "t": 2.9370000000001255,
+      "pwm": 1287.0,
+      "speed": 15.2,
+      "turn_distance_mm": 700.0,
+      "bend_rad": 0.4101915955543518,
+      "heading_rad": 0.39080923795700073,
+      "speed_limit": 15.0
+    },
+    "curve_rejected_first": 9.0
+  },
+  "03_161233 右转弯": {
+    "control_rows": 194,
+    "race_rows": 30,
+    "turnin": {
+      "t": 2.765999999999849,
+      "pwm": 1244.0,
+      "speed": 14.8,
+      "turn_distance_mm": 419.4082946777344,
+      "bend_rad": 0.0,
+      "heading_rad": 0.23190730810165405,
+      "speed_limit": 15.0
+    },
+    "curve_rejected_first": 4.0629999999998745
+  },
+  "04_161426 左转弯": {
+    "control_rows": 203,
+    "race_rows": 29,
+    "turnin": {
+      "t": 2.5160000000000764,
+      "pwm": 1628.0,
+      "speed": 14.7,
+      "turn_distance_mm": 437.2510070800781,
+      "bend_rad": 0.0,
+      "heading_rad": -0.33568471670150757,
+      "speed_limit": 15.0
+    },
+    "curve_rejected_first": 9.781000000000176
+  },
+  "05_161746 左转弯": {
+    "control_rows": 195,
+    "race_rows": 24,
+    "turnin": {
+      "t": 2.469000000000051,
+      "pwm": 1679.0,
+      "speed": 14.7,
+      "turn_distance_mm": 700.0,
+      "bend_rad": 0.0,
+      "heading_rad": -0.5083470344543457,
+      "speed_limit": 15.0
+    },
+    "curve_rejected_first": 4.594000000000051
+  },
+  "06_162029 左转弯": {
+    "control_rows": 203,
+    "race_rows": 30,
+    "turnin": {
+      "t": 2.375,
+      "pwm": 1641.0,
+      "speed": 14.8,
+      "turn_distance_mm": 401.7979431152344,
+      "bend_rad": 0.0,
+      "heading_rad": -0.35234788060188293,
+      "speed_limit": 15.0
+    },
+    "curve_rejected_first": 3.640999999999849
+  }
+}

@@ -56,7 +56,7 @@ for case in cases:
     source += ['{PathPoint p[]={'+pts+'};', init,
                f'Path_Build(&g,p,{len(case["points"])},500,900,10,&a);',
                f'printf("{case["tag"]}:{case["seq"]} valid=%u model=%u duplicates=%u curve_checks=%lu\\n",a.valid,a.model,a.duplicate_samples,(unsigned long)a.curve_checks);',
-               'if(a.valid && (!isfinite(a.target_x)||!isfinite(a.ref_y)||fabsf(a.outer_offset)>25))return 1;']
+               'if(a.valid && (!isfinite(a.target_x)||!isfinite(a.ref_y)||fabsf(a.outer_offset)>40))return 1;']
     if case['tag'] == '200137':
         source += [f'if(!a.valid || a.source!=PATH_DUAL || fabsf(a.target_x-({case["recorded_target"]:.9f}f))>2)return 2;']
     if case['tag'] == '195850' and case['seq'] == 17779:

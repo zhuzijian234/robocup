@@ -1,0 +1,7 @@
+side=-1 step=0 valid=1 phase=1 why=1 feature=929.0 goal=40.0 target=-12.1 ref=700.0
+side=-1 step=1 valid=1 phase=2 why=2 feature=929.0 goal=40.0 target=44.8 ref=471.0
+side=1 step=0 valid=1 phase=1 why=1 feature=929.0 goal=40.0 target=12.1 ref=700.0
+side=1 step=1 valid=1 phase=2 why=2 feature=929.0 goal=40.0 target=-26.5 ref=471.0
+FAIL 78: g.acute_phase==ACUTE_OFF && p.acute_phase==ACUTE_OFF
+FAIL 229: interruption_checks()==0
+

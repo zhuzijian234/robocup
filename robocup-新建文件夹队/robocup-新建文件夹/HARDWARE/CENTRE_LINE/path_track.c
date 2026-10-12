@@ -19,14 +19,25 @@
 #define CONE_BASE_ENVELOPE_MM 170.0f
 #define VEHICLE_HALF_CLEAR_MM 150.0f
 #define CONE_JOIN_MM 75.0f
-#define ACUTE_OUTER_MM 25.0f /* 仅急弯入口的法向外移；全局cx和缓弯路径不变。 */
+#define ACUTE_OUTER_MM 40.0f /* 入口局部位置目标上限，不是远端目标减40mm。 */
+#define ACUTE_TAKEOVER_MM 700.0f /* 可见偏离位置到此范围便交还主弯，未标定真实转弯半径。 */
+#define ACUTE_FULL_PREP_MM 950.0f
+
+static void acute_clear(PathGeometry *state)
+{
+    state->acute_frames = state->acute_exit_frames = 0;
+    state->acute_direction = 0;
+    state->acute_phase = ACUTE_OFF;
+}
 
 void Path_ClearHistory(PathGeometry *state)
 {
-    state->history = state->history_misses = state->acute_frames = 0;
+    state->history = state->history_misses = 0;
     state->history_model = 0;
-    state->acute_direction = 0;
-    state->outer_offset = 0;
+    acute_clear(state);
+    state->baseline_offset = 0;
+    state->baseline_frames = 0;
+    state->baseline_direction = 0;
 }
 
 static float bounded(float value, float low, float high)
@@ -909,9 +920,276 @@ static uint8_t recover_local(const PathPoint *points, uint16_t count, PathObserv
     return 1;
 }
 
-/* 入口布位与全局cx分开：仅连续同向急弯可向外准备，最大25mm。
- * 以实际外墙余量、全部可见占用共同约束；锥桶和S弯优先接管，不能偏移叠加。 */
-static void acute_entry(PathGeometry *state, const PathPoint *points, uint16_t count,
+/* 急弯识别使用同一连续回波簇，允许外墙跨越x=0。只保存24个50mm分区，
+ * 每簇/每分区有固定上限；不复制整圈、不排序、不分配堆内存。
+ * 近切线只看100~400mm，避免把弯内远点混成“当前车身横移”。 */
+#define ACUTE_BINS 24
+typedef struct
+{
+    float a, b, yaw, distance;
+    uint16_t begin, end;
+    uint8_t valid;
+} AcuteWall;
+
+static AcuteWall acute_wall(const PathPoint *points, uint16_t count, int side)
+{
+    AcuteWall out = {0};
+    PathPoint bins[ACUTE_BINS] = {{0, 0}};
+    uint16_t sizes[ACUTE_BINS] = {0};
+    uint16_t begin = 0, end, i, seed, best = 0, n = 0;
+    float sx = 0, sy = 0, xy = 0, yy = 0, residual = 0, normal, first = 0, last = 0;
+    float departure = 0, peak_turn = 0;
+    unsigned streak = 0;
+    while (begin < count)
+    {
+        end = begin + 1;
+        while (end < count && point_distance(points[end - 1], points[end]) < 100)
+            ++end;
+        seed = 0;
+        for (i = begin; i < end; ++i)
+            if (points[i].y >= 100 && points[i].y < 400 && side * points[i].x > 60)
+                ++seed;
+        if (seed > best)
+        {
+            best = seed;
+            out.begin = begin;
+            out.end = end;
+        }
+        begin = end;
+    }
+    if (best < 8) return out;
+    for (i = out.begin; i < out.end; ++i)
+    {
+        int bin;
+        if (points[i].y < 100 || points[i].y >= 1300) continue;
+        bin = (int)((points[i].y - 100) / 50);
+        bins[bin].x += points[i].x;
+        bins[bin].y += points[i].y;
+        ++sizes[bin];
+    }
+    for (i = 0; i < ACUTE_BINS; ++i)
+    {
+        if (sizes[i] < 2) continue;
+        bins[i].x /= sizes[i]; bins[i].y /= sizes[i];
+        if (i >= 6) continue;
+        if (!n) first = bins[i].y;
+        last = bins[i].y;
+        sx += bins[i].x; sy += bins[i].y;
+        xy += bins[i].x * bins[i].y; yy += bins[i].y * bins[i].y;
+        ++n;
+    }
+    if (n < 5 || first > 180 || last < 325 || last - first < 200) return out;
+    yy -= sy * sy / n;
+    if (yy < 1) return out;
+    out.a = (xy - sx * sy / n) / yy;
+    out.b = (sx - out.a * sy) / n;
+    normal = sqrtf(1 + out.a * out.a);
+    for (i = 0; i < 6; ++i)
+        if (sizes[i] >= 2)
+        {
+            float e = (bins[i].x - out.a * bins[i].y - out.b) / normal;
+            residual += e * e;
+        }
+    if (sqrtf(residual / n) > 12) return out;
+    out.valid = 1;
+    out.yaw = atanf(out.a);
+    /* 三个连续分区向弯内偏离至少40mm，且后续200mm切线转过至少0.60rad。
+     * 这是有限距离内的持续弯折，不能用远斜率大或两直线交点代替。
+     * 可见尾部出现反向折返时拒绝独立急弯，交给已有S弯分支。 */
+    for (i = 6; i < ACUTE_BINS; ++i)
+    {
+        float deviation, turn;
+        uint16_t j;
+        if (sizes[i] < 2) { streak = 0; continue; }
+        deviation = -side * (bins[i].x - out.a * bins[i].y - out.b) / normal;
+        if (deviation >= 40)
+        {
+            if (!streak) departure = bins[i].y;
+            if (++streak == 3 && !out.distance) out.distance = departure;
+        }
+        else streak = 0;
+        if (i < 10 || sizes[i - 4] < 2) continue;
+        for (j = i - 4; j <= i && sizes[j] >= 2; ++j) {}
+        if (j <= i) continue; /* 不跨缺失分区凑出200mm转角证据。 */
+        turn = -side * (atan2f(bins[i].x - bins[i - 4].x,
+                              bins[i].y - bins[i - 4].y) - out.yaw);
+        if (turn < -.20f || (peak_turn >= .60f && turn < peak_turn - .35f))
+        { out.distance = 0; return out; }
+        peak_turn = fmaxf(peak_turn, turn);
+        if (out.distance && turn >= .60f && bins[i].y - out.distance <= 400)
+            out.valid = 2;
+    }
+    if (out.valid != 2) out.distance = 0;
+    return out;
+}
+
+/* 入口准备只修改有实测近墙支持的局部目标，弯向仍来自原道路目标。
+ * 主弯接管优先于达到40mm；进入TURN后不允许重新退到PREPARE追偏移。
+ * 没有实际舵角/毫米速度标定，700/950只是保守试验窗口，不声称最优距离。 */
+static void acute_prepare(PathGeometry *state, const PathPoint *points, uint16_t count,
+                        float cx, PathObservation *out)
+{
+    AcuteWall wall[2];
+    float yaw, a, b, normal, width, available, goal, weight, local_y;
+    int direction = 0, side;
+    PathPoint entry = {0, 100}, target;
+    out->road_target_x = out->target_x;
+    out->outer_offset = 0;
+    out->acute_phase = ACUTE_OFF;
+    out->acute_reason = ACUTE_NO_EVIDENCE;
+    if (out->s_preview || out->avoid_state != AVOID_CLEAR || out->avoid_offset)
+    {
+        acute_clear(state);
+        out->acute_reason = ACUTE_PRIORITY;
+        return;
+    }
+    /* 近远同向的整条新路径也可能已反向，不一定带s_preview标志。
+     * 必须先撤销旧入口，再判断模型/航向接管，不能多保留一帧旧弯方向。 */
+    if (state->acute_phase != ACUTE_OFF &&
+        (out->near_a * state->acute_direction < -.10f ||
+         (out->far_valid && out->far_a * state->acute_direction < -.14f)))
+    {
+        acute_clear(state);
+        out->acute_reason = ACUTE_PRIORITY;
+        return;
+    }
+    /* 已进入主弯时只观察出口；原有循迹负责减舵，不增加定时锁舵。
+     * 近远反向、真实新弯或感知失效立即取消附加阶段。 */
+    if (state->acute_phase == ACUTE_TURN || state->acute_phase == ACUTE_EXIT)
+    {
+        if (out->straight)
+        {
+            if (++state->acute_exit_frames >= 2)
+                acute_clear(state);
+            else state->acute_phase = ACUTE_EXIT;
+            out->acute_reason = ACUTE_EXIT_SEEN;
+        }
+        else
+        {
+            state->acute_exit_frames = 0;
+            state->acute_phase = ACUTE_TURN;
+            out->acute_reason = ACUTE_NEAR_TURN;
+        }
+        out->acute_phase = state->acute_phase;
+        out->acute_direction = state->acute_direction;
+        return;
+    }
+    /* 只有经历本轮入口确认的弯才拥有新增主弯保护。仅靠近远同号、
+     * 远角度大就冷启动TURN会误伤S弯（连续快照已复现），因此禁止。 */
+    if (state->acute_phase == ACUTE_PREPARE &&
+        (out->model || fabsf(out->heading_rad) > .50f))
+    {
+        if (out->near_a * state->acute_direction > .10f)
+        {
+            state->acute_phase = ACUTE_TURN;
+            out->acute_phase = ACUTE_TURN;
+            out->acute_direction = state->acute_direction;
+            out->acute_reason = ACUTE_NEAR_TURN;
+        }
+        else
+        {
+            acute_clear(state);
+            out->acute_reason = ACUTE_LOST;
+        }
+        return;
+    }
+    /* 普通直道/缓弯没有远处急弯线索，省去分区扫描；门槛只影响新分支。 */
+    if (out->model || (!state->acute_phase &&
+        !((out->far_fit[0].valid && fabsf(out->far_fit[0].a) > .30f) ||
+          (out->far_fit[1].valid && fabsf(out->far_fit[1].a) > .30f))))
+    {
+        acute_clear(state);
+        return;
+    }
+    wall[0] = acute_wall(points, count, -1);
+    wall[1] = acute_wall(points, count, 1);
+    if (!wall[0].valid || !wall[1].valid || wall[0].begin == wall[1].begin ||
+        fabsf(wall[0].yaw - wall[1].yaw) > .12f)
+    {
+        acute_clear(state);
+        out->acute_reason = ACUTE_LOST;
+        return;
+    }
+    if (wall[0].distance && !wall[1].distance) direction = 1;
+    if (wall[1].distance && !wall[0].distance) direction = -1;
+    if (!direction)
+    {
+        acute_clear(state);
+        return;
+    }
+    side = direction > 0 ? 0 : 1;
+    a = .5f * (wall[0].a + wall[1].a);
+    b = .5f * (wall[0].b + wall[1].b);
+    yaw = atanf(a); normal = sqrtf(1 + a * a);
+    width = ((wall[1].a - wall[0].a) * 100 + wall[1].b - wall[0].b) / normal;
+    out->acute_position = direction * (a * 100 + b) / normal;
+    out->acute_heading = yaw;
+    out->acute_distance = wall[side].distance;
+    out->acute_direction = (int8_t)direction;
+    /* 宽度越界是入口证据失效，不是主弯到来；不能赋予短时保舵权限。 */
+    if (width < 390 || width > 650 || yaw * direction < -.22f)
+    {
+        acute_clear(state);
+        out->acute_reason = width < 390 ? ACUTE_NO_ROOM : ACUTE_LOST;
+        return;
+    }
+    if (yaw * direction > .22f || out->acute_distance <= ACUTE_TAKEOVER_MM)
+    {
+        if (state->acute_phase == ACUTE_PREPARE && state->acute_direction == direction)
+        {
+            state->acute_phase = ACUTE_TURN;
+            out->acute_phase = ACUTE_TURN;
+        }
+        else acute_clear(state);
+        out->acute_reason = ACUTE_NEAR_TURN;
+        return;
+    }
+    /* position的参考在前轴：前轴到后轮外廓305+40=345mm，而非车长的一半。
+     * 使用385x260mm轮廓在当前姿态的保守横向投影，再留40mm余量。
+     * 这里只约束入口局部平行走廊，不代表未知后方和转向轮扫掠已经验证。 */
+    available = width * .5f - 130 * cosf(yaw) - 345 * fabsf(sinf(yaw)) - 40;
+    goal = fminf(ACUTE_OUTER_MM, available);
+    if (goal < 10)
+    {
+        acute_clear(state);
+        out->acute_reason = ACUTE_NO_ROOM;
+        return;
+    }
+    if (state->acute_direction != direction)
+        acute_clear(state);
+    state->acute_direction = (int8_t)direction;
+    if (state->acute_frames < 2) ++state->acute_frames;
+    state->acute_phase = state->acute_frames < 2 ? ACUTE_CONFIRM : ACUTE_PREPARE;
+    out->acute_phase = state->acute_phase;
+    out->acute_goal = goal;
+    out->acute_reason = state->acute_frames < 2 ? ACUTE_CONFIRMING : ACUTE_POSITIONING;
+    if (state->acute_frames < 2) return;
+    /* 目标是绝对局部位置，已在外侧不会再累计40mm。沿近切线追踪也会消除
+     * 向外的航向误差，不能只有横移而一直朝外墙。cx仍用于普通循迹；这里
+     * 显式抵消其数值，保证goal=40表示相对于实际局部中线的40mm。 */
+    weight = bounded((out->acute_distance - ACUTE_TAKEOVER_MM) /
+                     (ACUTE_FULL_PREP_MM - ACUTE_TAKEOVER_MM), 0, 1);
+    local_y = 450;
+    target.x = (1 - weight) * out->target_x +
+               weight * (a * local_y + b - direction * goal * normal + cx);
+    target.y = (1 - weight) * out->ref_y + weight * local_y;
+    if (!corridor_clear(points, count, entry, target))
+    {
+        acute_clear(state);
+        out->acute_phase = ACUTE_OFF;
+        out->acute_reason = ACUTE_NO_ROOM;
+        return;
+    }
+    out->outer_offset = -direction * goal * weight;
+    out->outer_clearance = width * .5f - goal;
+    out->target_x = target.x;
+    out->ref_y = target.y;
+}
+
+
+/* 已有实车基线的远目标25mm微调，仅在新入口分支未接管时使用。
+ * 它不是车身位置控制；保留它是为了让未确认独立急弯的S弯/普通弯逐帧不变。 */
+static void baseline_curve_offset(PathGeometry *state, const PathPoint *points, uint16_t count,
                         PathObservation *out)
 {
     float near_yaw = out->heading_rad, far_yaw = out->preview_heading_rad;
@@ -922,36 +1200,36 @@ static void acute_entry(PathGeometry *state, const PathPoint *points, uint16_t c
     out->outer_offset = 0;
     if (out->s_preview || out->avoid_state != AVOID_CLEAR || out->avoid_offset)
     {
-        state->outer_offset = 0;
-        state->acute_frames = 0;
-        state->acute_direction = 0;
+        state->baseline_offset = 0;
+        state->baseline_frames = 0;
+        state->baseline_direction = 0;
         return;
     }
     if (out->far_valid && near_yaw * far_yaw >= 0 && fabsf(near_yaw) < .6f &&
         fabsf(far_yaw) > .6f && fabsf(far_yaw) - fabsf(near_yaw) > .35f)
     {
         int8_t direction = far_yaw > 0 ? 1 : -1;
-        if (state->acute_direction != direction)
+        if (state->baseline_direction != direction)
         {
-            state->acute_frames = 0;
-            state->outer_offset = 0;
-            state->acute_direction = direction;
+            state->baseline_frames = 0;
+            state->baseline_offset = 0;
+            state->baseline_direction = direction;
         }
-        if (state->acute_frames < 2) ++state->acute_frames;
-        if (state->acute_frames >= 2)
-            requested = far_yaw > 0 ? -ACUTE_OUTER_MM : ACUTE_OUTER_MM;
+        if (state->baseline_frames < 2) ++state->baseline_frames;
+        if (state->baseline_frames >= 2)
+            requested = far_yaw > 0 ? -25.0f : 25.0f;
     }
     else
-        state->acute_frames = 0;
+        state->baseline_frames = 0;
     /* 出口/入弯准备结束后每帧释放10mm；反向证据在上面的分支立即清零。 */
-    requested = state->outer_offset + bounded(requested - state->outer_offset, -10, 10);
+    requested = state->baseline_offset + bounded(requested - state->baseline_offset, -10, 10);
     if (!requested)
         return;
     side = requested < 0 ? 0 : 1;
     wall = &out->far_fit[side];
     if (!wall->valid || out->ref_y < wall->min_y || out->ref_y > wall->max_y)
     {
-        state->outer_offset = 0;
+        state->baseline_offset = 0;
         return;
     }
     normal = sqrtf(1 + wall->a * wall->a);
@@ -959,8 +1237,8 @@ static void acute_entry(PathGeometry *state, const PathPoint *points, uint16_t c
                        out->target_x - at(wall, out->ref_y)) / normal;
     out->outer_clearance = available;
     available = fmaxf(available - VEHICLE_HALF_CLEAR_MM, 0);
-    requested = bounded(requested, -fminf(available, ACUTE_OUTER_MM),
-                         fminf(available, ACUTE_OUTER_MM));
+    requested = bounded(requested, -fminf(available, 25.0f),
+                         fminf(available, 25.0f));
     yaw = out->preview_heading_rad;
     before.x = out->target_x; before.y = out->ref_y;
     after.x = before.x + requested * cosf(yaw);
@@ -968,12 +1246,26 @@ static void acute_entry(PathGeometry *state, const PathPoint *points, uint16_t c
     /* 包含目标横移经过的区域；不把单侧拟合误当成已验证的全车扫掠。 */
     if (!requested || !corridor_clear(points, count, before, after))
     {
-        state->outer_offset = 0;
+        state->baseline_offset = 0;
         return;
     }
-    state->outer_offset = out->outer_offset = requested;
+    state->baseline_offset = out->outer_offset = requested;
     out->target_x = after.x;
     out->ref_y = after.y;
+}
+
+static void acute_entry(PathGeometry *state, const PathPoint *points, uint16_t count,
+                        float cx, PathObservation *out)
+{
+    acute_prepare(state, points, count, cx, out);
+    if (out->acute_phase == ACUTE_OFF || out->acute_phase == ACUTE_CONFIRM)
+        baseline_curve_offset(state, points, count, out);
+    else
+    {
+        state->baseline_offset = 0;
+        state->baseline_frames = 0;
+        state->baseline_direction = 0;
+    }
 }
 
 void Path_Build(PathGeometry *state, const PathPoint *points, uint16_t count, float configured_width,
@@ -1032,8 +1324,10 @@ void Path_Build(PathGeometry *state, const PathPoint *points, uint16_t count, fl
     if (!out->valid)
     {
         if (++state->history_misses >= 2) Path_ClearHistory(state);
-        state->outer_offset = 0;
-        state->acute_frames = 0;
+        acute_clear(state);
+        state->baseline_offset = 0;
+        state->baseline_frames = 0;
+        out->acute_reason = ACUTE_LOST;
         return;
     }
     if (out->model)
@@ -1076,7 +1370,7 @@ void Path_Build(PathGeometry *state, const PathPoint *points, uint16_t count, fl
         state->history_model = out->model;
         state->history_target = target;
     }
-    acute_entry(state, points, count, out);
+    acute_entry(state, points, count, center_x, out);
 }
 
 float Path_Preview(float base_mm, float speed)
@@ -1147,7 +1441,7 @@ void Path_Control(PathController *state, const PathObservation *path, const Path
 {
     float limit, dt, original_d;
     int8_t wanted;
-    uint8_t curved, wait = 0;
+    uint8_t curved, wait = 0, preparing, acute_far_loss, acute_handoff;
     memset(out, 0, sizeof *out);
     out->pwm = out->candidate_pwm = actual_pwm;
     out->source = path->source;
@@ -1163,16 +1457,40 @@ void Path_Control(PathController *state, const PathObservation *path, const Path
         state->history = 0;
         state->evidence_frames = 0;
         state->transition_frames = 0;
+        state->transition_used = 0;
+        state->previous_acute_phase = ACUTE_OFF;
         return;
     }
     curved = fabsf(path->near_a) > 0.14f ||
              (path->far_valid && (fabsf(path->far_a) > 0.14f || fabsf(path->far_x - path->near_x) > 70));
-    /* 弯向状态依据道路本身；避让偏移不能把锥桶误解释成新的S弯。 */
-    out->road_error = g->center_x - (path->target_x - path->avoid_offset);
+    preparing = path->acute_phase == ACUTE_PREPARE;
+    /* 弯向状态依据道路本身；布位和避让都不能制造假的S弯换向。 */
+    out->road_error = g->center_x -
+                      ((preparing ? path->road_target_x : path->target_x) - path->avoid_offset);
     out->error = out->road_error;
     wanted = sign(out->error);
+    /* 连续的准备->同向主弯已有入口证据。此时远段短暂丢失也不能让上一
+     * 弯的bend再拦一次接管；只给本帧权限，不放宽普通S弯的反向门槛。 */
+    acute_handoff = state->history && state->previous_acute_phase == ACUTE_PREPARE &&
+                     path->acute_phase == ACUTE_TURN && path->acute_direction != 0 &&
+                     !path->s_preview && !path->straight && path->avoid_state == AVOID_CLEAR &&
+                     path->avoid_offset == 0 && (uint32_t)(now - state->previous_us) <= 250000u &&
+                     path->near_a * path->acute_direction > .10f &&
+                     wanted == -path->acute_direction && fabsf(out->error) > 30;
     /* 来源只是左/右墙身份，绝不规定输出方向。可靠反向路径当帧接管。 */
-    if (state->bend && path->straight)
+    if (preparing)
+    {
+        /* 布位方向可能与主弯相反，但不改写道路弯向，也不等待S弯反向确认。 */
+        state->evidence_frames = 0;
+    }
+    else if (acute_handoff)
+    {
+        if (state->bend && state->bend != wanted) out->reason = PATH_REVERSE;
+        state->bend = wanted;
+        state->pending_direction = 0;
+        state->evidence_frames = 0;
+    }
+    else if (state->bend && path->straight)
     {
         if (!state->evidence_frames || state->pending_direction != 0)
         {
@@ -1244,6 +1562,8 @@ void Path_Control(PathController *state, const PathObservation *path, const Path
         }
     }
     out->gate_reason = out->reason;
+    if (preparing)
+        out->error = g->center_x - path->target_x;
     /* 只有本帧再次确认的碰撞目标可覆盖保舵。旧偏移保持/释放不具备这个权限，
      * 否则会先把舵机拉回中位，再由弯向状态锁在中位（第三次遥测已出现）。 */
     if (path->avoid_state == AVOID_ACTIVE && path->avoid_offset != 0 && wait)
@@ -1269,23 +1589,39 @@ void Path_Control(PathController *state, const PathObservation *path, const Path
     /* 状态确定后限幅：确认出弯的这一帧就恢复直道限幅。 */
     limit = curved || state->bend ? 500.0f : g->straight_limit;
     out->error = bounded(out->error, -limit, limit);
-    /* 近远段硬切换曾让1178一帧回到1423。仅同向急弯短暂限制减小误差，
-     * 最多两帧，每帧仍允许减80mm；真实出弯、S弯、避让和长间隔立即退出。
-     * 这里不放大舵量，不延迟反向证据，也不把滤后的量写回道路几何。 */
-    if (path->target_transition)
+    /* 远段丢失不等于出弯。补充已确认急弯、近斜率0.35~0.6的漏检区间，
+     * 仅该事件将两帧减舵步长收至40mm；旧有大斜率分支仍为80mm。
+     * 新主弯阶段同一弯向只触发一次，跳变不能逐帧续期；未接管的场景
+     * 保留原80mm/两帧规则，避免改变已经实测良好的普通弯和S弯。 */
+    acute_far_loss = path->acute_phase == ACUTE_TURN && state->previous_far_valid &&
+                     !path->far_valid && fabsf(atanf(state->previous_far_a)) > .70f &&
+                     fabsf(path->near_a) > .35f;
+    if (!state->history || path->straight || path->s_preview ||
+        sign(out->error) != sign(state->previous_error) ||
+        path->avoid_state != AVOID_CLEAR || preparing || path->acute_phase != ACUTE_TURN)
+        state->transition_used = 0;
+    if (!state->transition_used && !preparing &&
+        state->previous_acute_phase != ACUTE_PREPARE &&
+        (path->target_transition || acute_far_loss))
+    {
         state->transition_frames = 2;
+        state->transition_step = acute_far_loss ? 40 : 80;
+    }
     if (state->transition_frames && state->history && !path->s_preview && !path->straight &&
+        !preparing && state->previous_acute_phase != ACUTE_PREPARE &&
         path->avoid_state == AVOID_CLEAR && path->avoid_offset == 0 &&
         (uint32_t)(now - state->previous_us) <= 250000u &&
-        fabsf(path->near_a) > .6f && path->near_a * state->previous_near_a > 0 &&
+        fabsf(path->near_a) > (state->transition_step == 40 ? .35f : .6f) &&
+        path->near_a * state->previous_near_a > 0 &&
         fabsf(atanf(path->near_a) - atanf(state->previous_near_a)) < .2f &&
         sign(out->error) == sign(state->previous_error) && fabsf(state->previous_error) > 250)
     {
-        float minimum = fmaxf(fabsf(state->previous_error) - 80, 0);
+        float minimum = fmaxf(fabsf(state->previous_error) - state->transition_step, 0);
         if (fabsf(out->error) < minimum)
         {
             out->error = sign(out->error) * minimum;
             out->transition_limited = 1;
+            state->transition_used = 1;
         }
         --state->transition_frames;
     }
@@ -1303,6 +1639,7 @@ void Path_Control(PathController *state, const PathObservation *path, const Path
                    fabsf(path->ref_y - state->previous_ref_y) > 100 || dt < 20000 || dt > 250000 ||
                    fabsf(path->avoid_offset - state->previous_avoid_offset) > 30 ||
                    out->transition_limited || path->identity_corrected ||
+                   preparing || state->previous_acute_phase == ACUTE_PREPARE ||
                    out->reason == PATH_REVERSE;
     out->p = 10 * out->kp * out->error;
     original_d = out->d_reset ? 0 : 10 * out->kd * (out->error - state->previous_error) * 115000.0f / dt;
@@ -1311,6 +1648,9 @@ void Path_Control(PathController *state, const PathObservation *path, const Path
         out->d = -out->p;
     out->unclamped = g->pwm_mid + out->p + out->d;
     out->candidate_pwm = (uint16_t)bounded(out->unclamped, g->pwm_min, g->pwm_max);
+    if (preparing)
+        out->candidate_pwm = (uint16_t)bounded(out->candidate_pwm,
+            fmaxf(g->pwm_min, (float)actual_pwm - 45), fminf(g->pwm_max, (float)actual_pwm + 45));
     out->computed = 1;
     out->bend = state->bend;
     if (wait)
@@ -1348,4 +1688,6 @@ void Path_Control(PathController *state, const PathObservation *path, const Path
     state->previous_far_valid = path->far_valid;
     state->previous_avoid_offset = path->avoid_offset;
     state->previous_near_a = path->near_a;
+    state->previous_far_a = path->far_a;
+    state->previous_acute_phase = path->acute_phase;
 }

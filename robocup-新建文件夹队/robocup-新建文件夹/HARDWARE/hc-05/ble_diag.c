@@ -378,10 +378,10 @@ static void motor_poll(void)
  * 主循环发送；每4个控制序号最多一帧，避免挤占CONTROL/编码器遥测。 */
 static void race_submit(void)
 {
-    uint32_t values[19], irq;
-    float data[14];
+    uint32_t values[22], irq;
+    float data[18];
     if (Diag_mode!=3 || !Diag_session || (control_seq & 3u) || !BLE_NormalSpace()) return;
-    values[0]=2;values[1]=control_seq;values[2]=Diag_revision;values[3]=Diag_input_seq;
+    values[0]=3;values[1]=control_seq;values[2]=Diag_revision;values[3]=Diag_input_seq;
     values[4]=Steering_path.model;values[5]=Steering_path.curve_rejected;
     values[6]=Steering_path.s_preview;values[7]=Steering_speed_reason;
     irq=__get_PRIMASK();__disable_irq();
@@ -393,6 +393,9 @@ static void race_submit(void)
     values[16]=Steering_path.target_transition;
     values[17]=Steering_command.transition_limited;
     values[18]=Steering_path.curve_checks;
+    values[19]=Steering_path.acute_phase;
+    values[20]=Steering_path.acute_reason;
+    values[21]=(uint32_t)(Steering_path.acute_direction+1); /* 0左/1无/2右 */
     __set_PRIMASK(irq);
     data[0]=Steering_path.support_mm;data[1]=Steering_path.heading_rad;
     data[2]=Steering_path.preview_heading_rad;data[3]=Steering_path.turn_distance_mm;
@@ -401,10 +404,13 @@ static void race_submit(void)
     data[8]=RACE_ACCEL;data[9]=RACE_DECEL;
     data[10]=Steering_path.outer_offset;data[11]=Steering_path.target_delta;
     data[12]=Steering_path.bend_rad;data[13]=Steering_path.outer_clearance;
-    /* schema 2明确标记新增字段；上位机同时兼容旧112字节和新148字节。 */
-    header(10,148);
-    memcpy(frame+14,values,sizeof values);memcpy(frame+90,data,sizeof data);
-    BLE_Queue(frame,148,1);
+    data[14]=Steering_path.acute_position;data[15]=Steering_path.acute_goal;
+    data[16]=Steering_path.acute_distance;data[17]=Steering_path.acute_heading;
+    /* schema 3：176字节，每4帧仅增加28字节，12Hz时约84字节/秒。
+     * 帧类型和频率不变；上位机仍识别schema 1/2，缺字段不能补零。 */
+    header(10,176);
+    memcpy(frame+14,values,sizeof values);memcpy(frame+102,data,sizeof data);
+    BLE_Queue(frame,176,1);
 }
 
 static void detail_submit(uint32_t elapsed, uint8_t action, uint8_t ok)
@@ -441,7 +447,8 @@ static void path_extra_submit(void)
          ((uint32_t)p->far_fit[0].rejected << 16) | ((uint32_t)p->far_fit[1].rejected << 24);
     u[6]=p->avoid_state; u[7]=p->avoid_confirm; u[8]=p->cone_candidates;
     u[9]=p->width_frozen; u[10]=c->gate_reason; u[11]=c->avoid_override;
-    f[0]=p->target_x-p->avoid_offset; f[1]=p->target_x; f[2]=c->road_error;
+    f[0]=(p->acute_phase==ACUTE_PREPARE ? p->road_target_x : p->target_x)-p->avoid_offset;
+    f[1]=p->target_x; f[2]=c->road_error;
     f[3]=p->avoid_offset; f[4]=p->near_ref_y; f[5]=p->width_candidate;
     f[6]=p->cone_x; f[7]=p->cone_y; f[8]=p->cone_lateral;
     f[9]=p->avoid_required; f[10]=p->avoid_allowed; f[11]=p->avoid_y;

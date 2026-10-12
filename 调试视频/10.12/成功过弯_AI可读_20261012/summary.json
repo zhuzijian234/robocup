@@ -1,0 +1,168 @@
+[
+  {
+    "tag": "SUC01_164512_左弯_电机关闭",
+    "capture": "v2_1012_164512_3089484000000",
+    "video": "人工推车,成功过弯,左转弯_v2_1012_164512_3089484000000_电机关闭.mp4",
+    "frames": 205,
+    "video_duration": 6.8,
+    "capture_duration": 17.844,
+    "offset_A": 0.406,
+    "offset_B": 0.466,
+    "motion_runs": [
+      [
+        0.41,
+        7.27
+      ]
+    ],
+    "moving_frames": 200,
+    "ctl_rows": 213,
+    "path_rows": 203,
+    "race_rows": 21,
+    "spd": 17.0,
+    "bendspd": 15.0
+  },
+  {
+    "tag": "SUC02_164616_左弯",
+    "capture": "v2_1012_164616_3154078000000",
+    "video": "人工推车_成功过弯_左转弯_v2_1012_164616_3154078000000.mp4",
+    "frames": 193,
+    "video_duration": 6.4,
+    "capture_duration": 17.687,
+    "offset_A": 0.422,
+    "offset_B": 0.819,
+    "motion_runs": [
+      [
+        0.42,
+        7.22
+      ]
+    ],
+    "moving_frames": 190,
+    "ctl_rows": 210,
+    "path_rows": 198,
+    "race_rows": 27,
+    "spd": 17.0,
+    "bendspd": 15.0
+  },
+  {
+    "tag": "SUC03_164757_左弯",
+    "capture": "v2_1012_164757_3254406000000",
+    "video": "人工推车_成功过弯_左转弯_v2_1012_164757_3254406000000.mp4",
+    "frames": 195,
+    "video_duration": 6.467,
+    "capture_duration": 17.516,
+    "offset_A": 0.438,
+    "offset_B": 1.393,
+    "motion_runs": [
+      [
+        0.44,
+        7.86
+      ]
+    ],
+    "moving_frames": 195,
+    "ctl_rows": 210,
+    "path_rows": 200,
+    "race_rows": 27,
+    "spd": 17.0,
+    "bendspd": 15.0
+  },
+  {
+    "tag": "SUC04_164942_右弯",
+    "capture": "v2_1012_164942_3359656000000",
+    "video": "人工推车_成功过弯_右转弯-v2_1012_164942_3359656000000.mp4",
+    "frames": 174,
+    "video_duration": 5.767,
+    "capture_duration": 16.938,
+    "offset_A": 0.406,
+    "offset_B": 0.405,
+    "motion_runs": [
+      [
+        0.41,
+        6.17
+      ]
+    ],
+    "moving_frames": 174,
+    "ctl_rows": 203,
+    "path_rows": 192,
+    "race_rows": 36,
+    "spd": 17.0,
+    "bendspd": 15.0
+  },
+  {
+    "tag": "SUC05_165050_右弯",
+    "capture": "v2_1012_165050_3428000000000",
+    "video": "人工推车_成功过弯_右转弯v2_1012_165050_3428000000000.mp4",
+    "frames": 134,
+    "video_duration": 4.433,
+    "capture_duration": 16.078,
+    "offset_A": 0.406,
+    "offset_B": 0.551,
+    "motion_runs": [
+      [
+        0.41,
+        4.98
+      ]
+    ],
+    "moving_frames": 134,
+    "ctl_rows": 192,
+    "path_rows": 185,
+    "race_rows": 27,
+    "spd": 17.0,
+    "bendspd": 15.0
+  },
+  {
+    "tag": "SUC06_165134_右弯",
+    "capture": "v2_1012_165134_3471765000000",
+    "video": "人工推车_成功过弯_右转弯v2_1012_165134_3471765000000.mp4",
+    "frames": 144,
+    "video_duration": 4.767,
+    "capture_duration": 15.907,
+    "offset_A": 0.407,
+    "offset_B": 0.358,
+    "motion_runs": [
+      [
+        0.41,
+        5.12
+      ]
+    ],
+    "moving_frames": 144,
+    "ctl_rows": 190,
+    "path_rows": 185,
+    "race_rows": 24,
+    "spd": 17.0,
+    "bendspd": 15.0
+  },
+  {
+    "tag": "SUC07_左弯_无遥测",
+    "capture": null,
+    "video": "人工推车_成功过弯_左转弯.mp4",
+    "frames": 237,
+    "video_duration": 7.867,
+    "capture_duration": null,
+    "offset_A": null,
+    "offset_B": null,
+    "motion_runs": [],
+    "moving_frames": 0,
+    "ctl_rows": 0,
+    "path_rows": 0,
+    "race_rows": 0,
+    "spd": null,
+    "bendspd": null
+  },
+  {
+    "tag": "SUC08_右弯_无遥测",
+    "capture": null,
+    "video": "人工推车_成功过弯_右转弯.mp4",
+    "frames": 177,
+    "video_duration": 5.867,
+    "capture_duration": null,
+    "offset_A": null,
+    "offset_B": null,
+    "motion_runs": [],
+    "moving_frames": 0,
+    "ctl_rows": 0,
+    "path_rows": 0,
+    "race_rows": 0,
+    "spd": null,
+    "bendspd": null
+  }
+]
