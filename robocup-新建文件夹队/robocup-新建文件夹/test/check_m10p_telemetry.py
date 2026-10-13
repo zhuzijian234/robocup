@@ -194,15 +194,15 @@ int main(void){
 }
 '''
 p=OUT/'race_codec.c';p.write_text(race_code,encoding='utf-8');r=run('race_codec',p)
-raw=bytes.fromhex(r['output'].strip());assert len(raw)==148
+raw=bytes.fromhex(r['output'].strip());assert len(raw)==176
 d=v2.Decoder();d.accept(raw,[],[],0.0);m=d.messages[0]
 assert m['model']==2 and m['s_preview']==1 and m['speed_ceiling']==17 and m['bend_speed']==10
 assert m['uart_ore']==2 and m['uart_fe']==3 and m['uart_ne']==4 and m['uart_input_seq']==99
 assert m['support_mm']==700 and m['speed_reason']==1 and m['speed_plan_us']==998000
-assert m['schema']==2 and m['duplicate_samples']==8 and m['identity_corrected']==1
+assert m['schema']==3 and m['duplicate_samples']==8 and m['identity_corrected']==1
 assert m['outer_offset']==-25 and m['target_delta']==-492 and m['curve_checks']==64 and m['transition_limited']==1
 import struct
-for payload in (raw[14:-2][:-4],struct.pack('<I',3)+raw[18:-2],raw[14:90]+struct.pack('<f',float('nan'))+raw[94:-2]):
+for payload in (raw[14:-2][:-4],struct.pack('<I',4)+raw[18:-2],raw[14:102]+struct.pack('<f',float('nan'))+raw[106:-2]):
     try:v2.Decoder().accept(v2.packet(10,payload,1,123),[],[],0.0)
     except ValueError:pass
     else:raise AssertionError('invalid race frame accepted')

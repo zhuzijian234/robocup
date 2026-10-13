@@ -1,0 +1,68 @@
+FRAME 5822 prior_a=0.000 prior_model=0 width=500.0
+BOUNDARY s=0 n=12 (-291.9 148.5)(-295.5 248.9)(-297.3 345.5)(-303.2 450.8)(-310.3 550.7)(-328.8 652.8)(-190.4 742.0)(-122.7 849.7)(-44.7 951.7)(40.4 1054.3)(134.8 1142.0)(268.7 1237.9)
+BOUNDARY s=1 n=5 (232.6 148.3)(235.2 244.9)(251.1 346.2)(283.4 457.4)(326.5 564.5)
+LINES valid=1 geom=0 source=0 duplicate=0 target=17.43 y=564.50 near=0.153
+LN valid=1 rejected=0 n=7 a=0.0776 b=-323.0 y=148.5..742.0 rms=38.54 gap=105.2
+RN valid=1 rejected=0 n=5 a=0.2277 b=185.5 y=148.3..564.5 rms=10.80 gap=111.1
+LF valid=1 rejected=0 n=8 a=0.8588 b=-840.1 y=550.7..1237.9 rms=33.91 gap=107.7
+RF valid=0 rejected=3 n=1 a=0.0000 b=0.0 y=564.5..564.5 rms=0.00 gap=0.0
+CURVE cluster=0..74 side=-1 ok=0 checks=2 target=17.4 support=0.0
+CURVE cluster=0..74 side=1 ok=1 checks=0 target=99.8 support=695.5
+CURVE cluster=74..150 side=-1 ok=0 checks=2 target=17.4 support=0.0
+CURVE cluster=74..150 side=1 ok=0 checks=2 target=17.4 support=0.0
+CURVE cluster=150..157 side=-1 ok=0 checks=1 target=17.4 support=0.0
+CURVE cluster=150..157 side=1 ok=0 checks=1 target=17.4 support=0.0
+CURVE cluster=157..248 side=-1 ok=0 checks=32 target=17.4 support=0.0
+CURVE cluster=157..248 side=1 ok=0 checks=2 target=17.4 support=0.0
+FINAL model=0 source=0 target=17.43 near=0.153 history=0.153
+FRAME 5823 prior_a=0.153 prior_model=0 width=500.0
+BOUNDARY s=0 n=12 (-295.9 148.7)(-296.6 247.9)(-300.4 340.9)(-309.8 444.2)(-329.8 559.2)(-188.8 642.5)(-118.2 751.8)(-46.9 847.9)(39.0 953.7)(135.5 1040.2)(260.5 1136.5)(412.3 1211.6)
+BOUNDARY s=1 n=5 (241.1 142.9)(252.6 241.1)(282.2 352.0)(322.2 450.0)(350.0 517.0)
+LINES valid=1 geom=0 source=0 duplicate=0 target=34.58 y=517.00 near=0.207
+LN valid=1 rejected=0 n=6 a=0.1165 b=-333.2 y=148.7..642.5 rms=40.76 gap=115.0
+RN valid=1 rejected=0 n=5 a=0.2973 b=188.4 y=142.9..517.0 rms=8.25 gap=110.9
+LF valid=1 rejected=0 n=8 a=1.0287 b=-898.1 y=559.2..1211.6 rms=35.98 gap=109.2
+RF valid=0 rejected=3 n=0 a=0.0000 b=0.0 y=0.0..0.0 rms=0.00 gap=0.0
+CURVE cluster=0..66 side=-1 ok=0 checks=2 target=34.6 support=0.0
+CURVE cluster=0..66 side=1 ok=0 checks=32 target=34.6 support=0.0
+CURVE cluster=66..184 side=-1 ok=0 checks=2 target=34.6 support=0.0
+CURVE cluster=66..184 side=1 ok=0 checks=2 target=34.6 support=0.0
+CURVE cluster=184..190 side=-1 ok=0 checks=1 target=34.6 support=0.0
+CURVE cluster=184..190 side=1 ok=0 checks=1 target=34.6 support=0.0
+CURVE cluster=190..275 side=-1 ok=0 checks=32 target=34.6 support=0.0
+CURVE cluster=190..275 side=1 ok=0 checks=2 target=34.6 support=0.0
+FINAL model=0 source=0 target=34.58 near=0.207 history=0.207
+FRAME 5824 prior_a=0.207 prior_model=0 width=500.0
+BOUNDARY s=0 n=6 (-296.6 145.8)(-302.2 248.0)(-307.6 346.8)(-325.7 453.1)(-333.0 507.0)(-400.1 660.0)
+BOUNDARY s=1 n=4 (259.8 143.6)(283.8 245.3)(322.4 345.8)(358.8 428.0)
+LINES valid=0 geom=3 source=3 duplicate=0 target=0.00 y=0.00 near=0.000
+LN valid=1 rejected=0 n=6 a=-0.1867 b=-254.1 y=145.8..660.0 rms=14.73 gap=153.0
+RN valid=1 rejected=0 n=4 a=0.3500 b=204.4 y=143.6..428.0 rms=4.95 gap=101.7
+LF valid=0 rejected=3 n=1 a=0.0000 b=0.0 y=660.0..660.0 rms=0.00 gap=0.0
+RF valid=0 rejected=3 n=0 a=0.0000 b=0.0 y=0.0..0.0 rms=0.00 gap=0.0
+CURVE cluster=0..60 side=-1 ok=0 checks=2 target=0.0 support=0.0
+CURVE cluster=0..60 side=1 ok=1 checks=0 target=153.0 support=595.6
+CURVE cluster=60..196 side=-1 ok=0 checks=2 target=0.0 support=0.0
+CURVE cluster=60..196 side=1 ok=0 checks=2 target=0.0 support=0.0
+CURVE cluster=196..203 side=-1 ok=0 checks=1 target=0.0 support=0.0
+CURVE cluster=196..203 side=1 ok=0 checks=1 target=0.0 support=0.0
+CURVE cluster=203..281 side=-1 ok=0 checks=32 target=0.0 support=0.0
+CURVE cluster=203..281 side=1 ok=0 checks=2 target=0.0 support=0.0
+FINAL model=2 source=2 target=152.99 near=0.399 history=0.399
+FRAME 5825 prior_a=0.399 prior_model=2 width=500.0
+BOUNDARY s=0 n=5 (-299.3 147.0)(-303.5 244.7)(-316.9 350.4)(-326.0 408.0)(-405.5 549.5)
+BOUNDARY s=1 n=3 (286.6 143.9)(325.0 247.4)(369.5 344.6)
+LINES valid=1 geom=0 source=1 duplicate=0 target=-125.12 y=549.50 near=-0.251
+LN valid=1 rejected=0 n=5 a=-0.2513 b=-244.8 y=147.0..549.5 rms=17.54 gap=141.5
+RN valid=0 rejected=3 n=3 a=0.0000 b=0.0 y=143.9..344.6 rms=0.00 gap=103.5
+LF valid=0 rejected=3 n=0 a=0.0000 b=0.0 y=0.0..0.0 rms=0.00 gap=0.0
+RF valid=0 rejected=3 n=0 a=0.0000 b=0.0 y=0.0..0.0 rms=0.00 gap=0.0
+CURVE cluster=0..51 side=-1 ok=0 checks=2 target=-125.1 support=0.0
+CURVE cluster=0..51 side=1 ok=0 checks=1 target=-125.1 support=0.0
+CURVE cluster=51..209 side=-1 ok=1 checks=0 target=244.5 support=700.0
+CURVE cluster=51..209 side=1 ok=0 checks=2 target=-125.1 support=0.0
+CURVE cluster=209..213 side=-1 ok=0 checks=1 target=-125.1 support=0.0
+CURVE cluster=209..213 side=1 ok=0 checks=1 target=-125.1 support=0.0
+CURVE cluster=213..281 side=-1 ok=0 checks=1 target=-125.1 support=0.0
+CURVE cluster=213..281 side=1 ok=0 checks=2 target=-125.1 support=0.0
+FINAL model=0 source=1 target=-125.12 near=-0.251 history=-0.251

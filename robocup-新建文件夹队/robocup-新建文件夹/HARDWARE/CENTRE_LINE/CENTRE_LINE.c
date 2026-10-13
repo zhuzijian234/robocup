@@ -82,6 +82,8 @@ void Steering_Update(const M10P_Scan *scan, const PathPoint *points, uint16_t co
         path->avoid_state = AVOID_CLEAR;
         path->acute_phase = ACUTE_OFF;
         path->acute_reason = ACUTE_LOST;
+        path->acute_direction = 0;
+        path->acute_checks = 0; /* 计算期间扫描失效，不能把未执行的入口证据记成有效阶段。 */
         path->outer_offset = 0;
         path->source = PATH_NONE;
         path->width = geometry.width;
