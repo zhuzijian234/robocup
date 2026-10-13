@@ -1,0 +1,18 @@
+seq 11199: valid=1 source=2 reason=0
+seq 11200: valid=1 source=2 reason=0
+seq 11201: valid=1 source=2 reason=0
+seq 11202: valid=1 source=2 reason=0
+seq 19646: valid=1 source=2 reason=0
+seq 19647: valid=1 source=2 reason=0
+seq 19648: valid=1 source=2 reason=0
+seq 19649: valid=1 source=2 reason=0
+seq 22476: valid=1 source=2 reason=0
+seq 22477: valid=1 source=2 reason=0
+seq 22478: valid=1 source=2 reason=0
+seq 22479: valid=1 source=1 reason=0
+seq 23483: valid=1 source=2 reason=0
+seq 23484: valid=1 source=2 reason=0
+seq 23485: valid=0 source=3 reason=3
+seq 23486: valid=1 source=2 reason=0
+PASS 16 recorded clouds and 16 mirrored clouds
+

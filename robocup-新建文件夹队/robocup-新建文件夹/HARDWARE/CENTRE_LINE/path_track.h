@@ -58,14 +58,6 @@ enum
     ACUTE_NO_EVIDENCE, ACUTE_CONFIRMING, ACUTE_POSITIONING, ACUTE_NEAR_TURN,
     ACUTE_NO_ROOM, ACUTE_PRIORITY, ACUTE_LOST, ACUTE_EXIT_SEEN
 };
-/* 入口拒绝/关联位图，单独通过阶段EVENT发送，保持已有RACE schema 3兼容。 */
-enum
-{
-    ACUTE_CHECK_NEAR = 1u, ACUTE_CHECK_PARALLEL = 2u, ACUTE_CHECK_DIRECTION = 4u,
-    ACUTE_CHECK_RANGE = 8u, ACUTE_CHECK_ROOM = 16u, ACUTE_CHECK_PRIORITY = 32u,
-    ACUTE_CHECK_GAP = 64u, ACUTE_CHECK_LINKED = 128u, ACUTE_CHECK_CONE = 256u,
-    ACUTE_CHECK_PREFILTER = 512u
-};
 typedef struct
 {
     float a, b; /* x = a*y + b，前向直线不会除以零 */
@@ -99,7 +91,6 @@ typedef struct
     float road_target_x; /* 布位前道路目标，避免向外摆舵被误判为S弯换向。 */
     uint8_t acute_phase, acute_reason;
     int8_t acute_direction; /* +1右弯、-1左弯，与舵机误差符号相反。 */
-    uint16_t acute_checks;
 } PathObservation;
 
 enum
