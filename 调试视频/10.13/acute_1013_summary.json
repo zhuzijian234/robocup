@@ -1,0 +1,2692 @@
+{
+  "194302_左大弯": {
+    "capture": "v2_1013_194302_3416906000000_195e6842",
+    "n": 40,
+    "phase": {
+      "0": 38,
+      "1": 1,
+      "2": 1
+    },
+    "reason": {
+      "0": 18,
+      "1": 1,
+      "2": 1,
+      "4": 2,
+      "6": 15,
+      "5": 2,
+      "3": 1
+    },
+    "checks": {
+      "PREFILTER": 15,
+      "GAP|DIRECTION": 2,
+      "GAP": 2,
+      "GAP|ROOM": 4,
+      "0(全过)": 10,
+      "GAP|NEAR": 1,
+      "PRIORITY": 2,
+      "GAP|PARALLEL": 1,
+      "NEAR": 1,
+      "LINKED|GAP|DIRECTION": 1,
+      "GAP|RANGE": 1
+    },
+    "prefilter_why": {
+      "左远弱+右远弱": 12,
+      "左远弱": 2,
+      "右远弱": 1
+    },
+    "rows": [
+      {
+        "t": 0.7029999999999745,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.056831855326890945,
+        "right_far_a": -0.05259811878204346
+      },
+      {
+        "t": 1.8899999999998727,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.05316951125860214,
+        "right_far_a": -0.05545862764120102
+      },
+      {
+        "t": 3.5470000000000255,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "GAP|DIRECTION",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": -0.3878171443939209
+      },
+      {
+        "t": 3.9220000000000255,
+        "phase": 1,
+        "reason": 1,
+        "dirn": 0,
+        "checks": "GAP",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.4989841878414154
+      },
+      {
+        "t": 3.9220000000000255,
+        "phase": 2,
+        "reason": 2,
+        "dirn": 0,
+        "checks": "GAP",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.6254499554634094
+      },
+      {
+        "t": 3.9220000000000255,
+        "phase": 0,
+        "reason": 4,
+        "dirn": 0,
+        "checks": "GAP|ROOM",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.7159277200698853
+      },
+      {
+        "t": 4.344000000000051,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.6622347831726074
+      },
+      {
+        "t": 4.780999999999949,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.186999999999898,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.594000000000051,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 6.4220000000000255,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 6.811999999999898,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.06216062605381012
+      },
+      {
+        "t": 7.25,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 7.639999999999873,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": -0.5537833571434021
+      },
+      {
+        "t": 7.639999999999873,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 0,
+        "checks": "GAP|ROOM",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.6070001721382141
+      },
+      {
+        "t": 7.639999999999873,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.5293706059455872
+      },
+      {
+        "t": 8.047000000000025,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 8.422000000000025,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 2,
+        "checks": "GAP|ROOM",
+        "model": null,
+        "left_far_a": 0.35266944766044617,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 8.422000000000025,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.29830917716026306,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 8.811999999999898,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": -0.1494763195514679
+      },
+      {
+        "t": 9.202999999999975,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": -0.49820515513420105
+      },
+      {
+        "t": 9.577999999999975,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "NEAR",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.9613840579986572
+      },
+      {
+        "t": 9.969000000000051,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 10.733999999999924,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 12.264999999999873,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "LINKED|GAP|DIRECTION",
+        "model": null,
+        "left_far_a": -0.4519799053668976,
+        "right_far_a": -0.6708637475967407
+      },
+      {
+        "t": 12.264999999999873,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.0264672189950943,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 14.125,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "GAP|DIRECTION",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.39958298206329346
+      },
+      {
+        "t": 14.514999999999873,
+        "phase": 0,
+        "reason": 4,
+        "dirn": 0,
+        "checks": "GAP|ROOM",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.7661765217781067
+      },
+      {
+        "t": 14.514999999999873,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 0,
+        "checks": "GAP|RANGE",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.6071919202804565
+      },
+      {
+        "t": 14.905999999999949,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.880698561668396
+      },
+      {
+        "t": 15.264999999999873,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 16.40599999999995,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -2.659844160079956,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 16.78099999999995,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": -1.6670507192611694,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 17.172000000000025,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 17.5,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 17.875,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 18.233999999999924,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 18.233999999999924,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 18.59400000000005,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 18.96900000000005,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": -2.702212333679199
+      }
+    ]
+  },
+  "194450_左弯": {
+    "capture": "v2_1013_194450_3524718000000_b41f5f1e",
+    "n": 52,
+    "phase": {
+      "0": 52
+    },
+    "reason": {
+      "0": 19,
+      "3": 2,
+      "6": 25,
+      "5": 5,
+      "4": 1
+    },
+    "checks": {
+      "PREFILTER": 17,
+      "GAP|DIRECTION": 2,
+      "GAP|RANGE": 2,
+      "PARALLEL": 2,
+      "GAP|NEAR": 5,
+      "0(全过)": 9,
+      "GAP|ROOM": 4,
+      "NEAR": 2,
+      "GAP|PARALLEL": 4,
+      "PRIORITY": 5
+    },
+    "prefilter_why": {
+      "左远弱+右远弱": 13,
+      "左远弱": 3,
+      "model=2+左远弱+右远弱": 1
+    },
+    "rows": [
+      {
+        "t": 0.7970000000000255,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.1167730838060379,
+        "right_far_a": 0.02889205887913704
+      },
+      {
+        "t": 1.2029999999999745,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.11806976050138474,
+        "right_far_a": 0.03403739258646965
+      },
+      {
+        "t": 2.3910000000000764,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.12531957030296326,
+        "right_far_a": 0.03326449543237686
+      },
+      {
+        "t": 4.063000000000102,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "GAP|DIRECTION",
+        "model": null,
+        "left_far_a": -0.1863178312778473,
+        "right_far_a": -0.32545173168182373
+      },
+      {
+        "t": 4.485000000000127,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 0,
+        "checks": "GAP|RANGE",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.9046168327331543
+      },
+      {
+        "t": 4.485000000000127,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "PARALLEL",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": -1.0235309600830078
+      },
+      {
+        "t": 4.485000000000127,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 0,
+        "checks": "GAP|RANGE",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.3883419036865234
+      },
+      {
+        "t": 4.875,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.1827753782272339
+      },
+      {
+        "t": 5.266000000000076,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.688000000000102,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 6.5,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 6.938000000000102,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.23655447363853455
+      },
+      {
+        "t": 7.3279999999999745,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 7.688000000000102,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 0,
+        "checks": "GAP|ROOM",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.5981653928756714
+      },
+      {
+        "t": 8.063000000000102,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": -0.7617191672325134
+      },
+      {
+        "t": 8.063000000000102,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 0.0,
+        "left_far_a": 0.11968657374382019,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 8.875,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "NEAR",
+        "model": null,
+        "left_far_a": 0.3098832368850708,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 8.875,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 0,
+        "checks": "GAP|ROOM",
+        "model": 0.0,
+        "left_far_a": 0.34727269411087036,
+        "right_far_a": -0.0364094153046608
+      },
+      {
+        "t": 8.875,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.08773785829544067
+      },
+      {
+        "t": 9.266000000000076,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.5113370418548584
+      },
+      {
+        "t": 9.702999999999975,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "NEAR",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.0039305686950684
+      },
+      {
+        "t": 10.141000000000076,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.724108338356018
+      },
+      {
+        "t": 10.5,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 10.985000000000127,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.4191263914108276
+      },
+      {
+        "t": 10.985000000000127,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -2.4441959857940674
+      },
+      {
+        "t": 11.797000000000025,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "PARALLEL",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.5140575170516968
+      },
+      {
+        "t": 11.797000000000025,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": 0.0,
+        "left_far_a": -0.5819761157035828,
+        "right_far_a": -0.7015277743339539
+      },
+      {
+        "t": 12.641000000000076,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.03209817782044411,
+        "right_far_a": -0.04740821197628975
+      },
+      {
+        "t": 13.875,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "GAP|DIRECTION",
+        "model": null,
+        "left_far_a": -0.18771351873874664,
+        "right_far_a": -0.3327963054180145
+      },
+      {
+        "t": 14.297000000000025,
+        "phase": 0,
+        "reason": 4,
+        "dirn": 0,
+        "checks": "GAP|ROOM",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": -0.8018927574157715
+      },
+      {
+        "t": 14.688000000000102,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": -1.3467739820480347
+      },
+      {
+        "t": 15.094000000000051,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 2.0,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 15.452999999999975,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": null,
+        "right_far_a": null
+      },
+      {
+        "t": 15.844000000000051,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -2.250242233276367
+      },
+      {
+        "t": 16.21900000000005,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.287507176399231
+      },
+      {
+        "t": 16.577999999999975,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.06839095801115036,
+        "right_far_a": -0.5625753998756409
+      },
+      {
+        "t": 17.34400000000005,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.48752057552337646
+      },
+      {
+        "t": 17.34400000000005,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 0,
+        "checks": "GAP|ROOM",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.7959634065628052
+      },
+      {
+        "t": 17.34400000000005,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.8791469931602478
+      },
+      {
+        "t": 17.702999999999975,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 18.09400000000005,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 18.84400000000005,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 18.84400000000005,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.09748947620391846,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 19.235000000000127,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": null,
+        "right_far_a": null
+      },
+      {
+        "t": 19.59400000000005,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 20.375,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 20.766000000000076,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 21.125,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": -0.1104767918586731,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 21.516000000000076,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.11827990412712097,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 21.922000000000025,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 25.516000000000076,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": null,
+        "right_far_a": null
+      },
+      {
+        "t": 25.891000000000076,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      }
+    ]
+  },
+  "194631_左弯": {
+    "capture": "v2_1013_194631_3625625000000_8da28e07",
+    "n": 56,
+    "phase": {
+      "0": 55,
+      "1": 1
+    },
+    "reason": {
+      "0": 23,
+      "1": 1,
+      "3": 4,
+      "6": 21,
+      "5": 7
+    },
+    "checks": {
+      "PREFILTER": 17,
+      "GAP|DIRECTION": 5,
+      "GAP": 1,
+      "GAP|RANGE": 3,
+      "GAP|PARALLEL": 5,
+      "0(全过)": 4,
+      "PRIORITY": 7,
+      "GAP|ROOM": 2,
+      "GAP|NEAR": 4,
+      "DIRECTION": 1,
+      "NEAR": 4,
+      "PARALLEL": 2,
+      "RANGE": 1
+    },
+    "prefilter_why": {
+      "左远弱+右远弱": 13,
+      "左远弱": 4
+    },
+    "rows": [
+      {
+        "t": 0.8279999999999745,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.02891457825899124,
+        "right_far_a": -0.05613238736987114
+      },
+      {
+        "t": 1.25,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.028865758329629898,
+        "right_far_a": -0.047217607498168945
+      },
+      {
+        "t": 2.467999999999847,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.030420899391174316,
+        "right_far_a": -0.05348482355475426
+      },
+      {
+        "t": 4.139999999999873,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "GAP|DIRECTION",
+        "model": 0.0,
+        "left_far_a": -0.2265966385602951,
+        "right_far_a": -0.32356756925582886
+      },
+      {
+        "t": 4.139999999999873,
+        "phase": 1,
+        "reason": 1,
+        "dirn": 0,
+        "checks": "GAP",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": -0.7041110396385193
+      },
+      {
+        "t": 4.530999999999949,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 0,
+        "checks": "GAP|RANGE",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.04680335521698
+      },
+      {
+        "t": 4.530999999999949,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.3147152662277222
+      },
+      {
+        "t": 4.936999999999898,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.780999999999949,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 6.170999999999822,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 6.5779999999999745,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 6.983999999999924,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.06738555431365967,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 7.405999999999949,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.38793522119522095
+      },
+      {
+        "t": 7.405999999999949,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 0,
+        "checks": "GAP|ROOM",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.6117870211601257
+      },
+      {
+        "t": 7.8279999999999745,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.7871766686439514
+      },
+      {
+        "t": 8.217999999999847,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.1308065801858902,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 8.625,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "DIRECTION",
+        "model": null,
+        "left_far_a": 0.3091168999671936,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 9.045999999999822,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.1492495834827423
+      },
+      {
+        "t": 9.045999999999822,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "GAP|DIRECTION",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.6159989833831787
+      },
+      {
+        "t": 9.467999999999847,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "NEAR",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.2229022979736328
+      },
+      {
+        "t": 9.842999999999847,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -2.4616692066192627
+      },
+      {
+        "t": 10.280999999999949,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.7251319885253906
+      },
+      {
+        "t": 10.686999999999898,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": null,
+        "right_far_a": null
+      },
+      {
+        "t": 11.108999999999924,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "NEAR",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.686435580253601
+      },
+      {
+        "t": 11.530999999999949,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "PARALLEL",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.3859645128250122
+      },
+      {
+        "t": 11.920999999999822,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "GAP|DIRECTION",
+        "model": null,
+        "left_far_a": -0.46515941619873047,
+        "right_far_a": -0.46782317757606506
+      },
+      {
+        "t": 11.920999999999822,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.08045534789562225,
+        "right_far_a": -0.06394457817077637
+      },
+      {
+        "t": 13.592999999999847,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "GAP|DIRECTION",
+        "model": null,
+        "left_far_a": -0.19932502508163452,
+        "right_far_a": -0.36493900418281555
+      },
+      {
+        "t": 14.125,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 0,
+        "checks": "GAP|RANGE",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.0175573825836182
+      },
+      {
+        "t": 14.125,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.6445598602294922
+      },
+      {
+        "t": 14.514999999999873,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 0,
+        "checks": "GAP|RANGE",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": -1.5958383083343506
+      },
+      {
+        "t": 14.514999999999873,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -2.1795010566711426
+      },
+      {
+        "t": 15.311999999999898,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.4027447700500488
+      },
+      {
+        "t": 15.670999999999822,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": null,
+        "right_far_a": null
+      },
+      {
+        "t": 16.061999999999898,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.0695931911468506
+      },
+      {
+        "t": 16.42099999999982,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.14635485410690308,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 16.79599999999982,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.4079333245754242
+      },
+      {
+        "t": 17.186999999999898,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 0,
+        "checks": "GAP|ROOM",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.8649663925170898
+      },
+      {
+        "t": 17.186999999999898,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": null,
+        "right_far_a": null
+      },
+      {
+        "t": 17.592999999999847,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 17.967999999999847,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.21525120735168457,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 17.967999999999847,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 2,
+        "checks": "RANGE",
+        "model": null,
+        "left_far_a": 0.307040810585022,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 17.967999999999847,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "NEAR",
+        "model": null,
+        "left_far_a": 0.39969921112060547,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 18.358999999999924,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.1882210224866867
+      },
+      {
+        "t": 18.717999999999847,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.6442301869392395
+      },
+      {
+        "t": 19.108999999999924,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": null,
+        "left_far_a": null,
+        "right_far_a": null
+      },
+      {
+        "t": 19.483999999999924,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -2.2246761322021484
+      },
+      {
+        "t": 20.608999999999924,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "NEAR",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.68326735496521
+      },
+      {
+        "t": 20.983999999999924,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "PARALLEL",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.3561694622039795
+      },
+      {
+        "t": 21.375,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "GAP|DIRECTION",
+        "model": null,
+        "left_far_a": -0.4380425810813904,
+        "right_far_a": -0.5347571969032288
+      },
+      {
+        "t": 21.733999999999924,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.06170836463570595,
+        "right_far_a": -0.04183113947510719
+      },
+      {
+        "t": 22.092999999999847,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.08147858083248138,
+        "right_far_a": 0.015337543562054634
+      },
+      {
+        "t": 24.375,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.07901924103498459,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 24.78099999999995,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 25.125,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.08318887650966644,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 25.54599999999982,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.12497060745954514,
+        "right_far_a": 0.0
+      }
+    ]
+  },
+  "194802_右弯_s弯后大急弯": {
+    "capture": "v2_1013_194802_3717046000000_bd535409",
+    "n": 35,
+    "phase": {
+      "0": 35
+    },
+    "reason": {
+      "0": 16,
+      "6": 14,
+      "3": 3,
+      "5": 2
+    },
+    "checks": {
+      "PREFILTER": 14,
+      "NEAR": 2,
+      "GAP|PARALLEL": 4,
+      "GAP|RANGE": 3,
+      "GAP|NEAR": 2,
+      "PRIORITY": 2,
+      "GAP|ROOM": 2,
+      "GAP|DIRECTION": 2,
+      "0(全过)": 4
+    },
+    "prefilter_why": {
+      "左远弱+右远弱": 10,
+      "右远弱": 4
+    },
+    "rows": [
+      {
+        "t": 0.9529999999999745,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.051526185125112534,
+        "right_far_a": 0.011081668548285961
+      },
+      {
+        "t": 0.9529999999999745,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 0.0,
+        "left_far_a": 0.04984285309910774,
+        "right_far_a": 0.010893336497247219
+      },
+      {
+        "t": 2.125,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.05761968344449997,
+        "right_far_a": 0.017854761332273483
+      },
+      {
+        "t": 3.405999999999949,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "NEAR",
+        "model": null,
+        "left_far_a": 0.37531355023384094,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 3.7970000000000255,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 0.71664959192276,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 3.7970000000000255,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 2,
+        "checks": "GAP|RANGE",
+        "model": 0.0,
+        "left_far_a": 1.3144444227218628,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 3.7970000000000255,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 1.2403572797775269,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 4.2029999999999745,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 1.9052623510360718,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 4.625,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": null,
+        "left_far_a": 1.770874261856079,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.0,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 2.453575611114502,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.4220000000000255,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": null,
+        "left_far_a": 1.560918927192688,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.844000000000051,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "NEAR",
+        "model": null,
+        "left_far_a": 1.227813482284546,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.844000000000051,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 1.207800269126892,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 6.6720000000000255,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.19492435455322266
+      },
+      {
+        "t": 6.6720000000000255,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 0,
+        "checks": "GAP|RANGE",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.7163768410682678
+      },
+      {
+        "t": 7.061999999999898,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 7.344000000000051,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 2,
+        "checks": "GAP|ROOM",
+        "model": null,
+        "left_far_a": 0.5184627175331116,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 7.344000000000051,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 0.8253775835037231,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 7.75,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 1.5740890502929688,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 8.155999999999949,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "GAP|DIRECTION",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.39490199089050293
+      },
+      {
+        "t": 8.530999999999949,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.03251354768872261
+      },
+      {
+        "t": 8.530999999999949,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "GAP|DIRECTION",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.32546132802963257
+      },
+      {
+        "t": 8.936999999999898,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.497323215007782,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 8.936999999999898,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 2,
+        "checks": "GAP|ROOM",
+        "model": null,
+        "left_far_a": 0.7802445292472839,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 9.344000000000051,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": 0.0,
+        "left_far_a": 1.0232081413269043,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 9.344000000000051,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 2,
+        "checks": "GAP|RANGE",
+        "model": null,
+        "left_far_a": 1.4978166818618774,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 9.75,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 10.172000000000025,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 18.34400000000005,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": null,
+        "right_far_a": null
+      },
+      {
+        "t": 18.733999999999924,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 19.09400000000005,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 19.483999999999924,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 20.641000000000076,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.182010680437088,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 21.40599999999995,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 21.40599999999995,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 0.0,
+        "left_far_a": 0.0032575554214417934,
+        "right_far_a": -0.03278231620788574
+      }
+    ]
+  },
+  "195030_右弯_表现差劲": {
+    "capture": "v2_1013_195030_3865031000000_676aafed",
+    "n": 32,
+    "phase": {
+      "0": 32
+    },
+    "reason": {
+      "0": 12,
+      "6": 13,
+      "3": 3,
+      "4": 1,
+      "5": 3
+    },
+    "checks": {
+      "PREFILTER": 11,
+      "NEAR": 2,
+      "GAP|PARALLEL": 2,
+      "GAP|RANGE": 3,
+      "GAP|NEAR": 5,
+      "GAP|ROOM": 1,
+      "PRIORITY": 3,
+      "GAP|DIRECTION": 1,
+      "0(全过)": 4
+    },
+    "prefilter_why": {
+      "左远弱+右远弱": 8,
+      "右远弱": 3
+    },
+    "rows": [
+      {
+        "t": 0.8440000000000509,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.02420325204730034,
+        "right_far_a": -0.052895866334438324
+      },
+      {
+        "t": 1.280999999999949,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.014959704130887985,
+        "right_far_a": -0.05167193338274956
+      },
+      {
+        "t": 2.5,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.017897842451930046,
+        "right_far_a": -0.04948234185576439
+      },
+      {
+        "t": 3.75,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "NEAR",
+        "model": null,
+        "left_far_a": 0.3809765577316284,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 4.1720000000000255,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 0.7171472311019897,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 4.5779999999999745,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 1.9206548929214478,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.0,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 2,
+        "checks": "GAP|RANGE",
+        "model": null,
+        "left_far_a": 1.7314175367355347,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.0,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": null,
+        "left_far_a": 1.465630292892456,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.375,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 2,
+        "checks": "GAP|RANGE",
+        "model": null,
+        "left_far_a": 1.6115453243255615,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.813000000000102,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 0.0,
+        "left_far_a": 2.093205690383911,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.813000000000102,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": 0.0,
+        "left_far_a": 1.6403621435165405,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 6.233999999999924,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 0.0,
+        "left_far_a": 1.9124631881713867,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 7.0470000000000255,
+        "phase": 0,
+        "reason": 4,
+        "dirn": 0,
+        "checks": "GAP|ROOM",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.6592969298362732
+      },
+      {
+        "t": 7.483999999999924,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": -0.8331581950187683
+      },
+      {
+        "t": 7.858999999999924,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "NEAR",
+        "model": 0.0,
+        "left_far_a": 0.662807047367096,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 7.858999999999924,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": 0.0,
+        "left_far_a": 1.0443860292434692,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 8.266000000000076,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 9.108999999999924,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.16167795658111572
+      },
+      {
+        "t": 9.108999999999924,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "GAP|DIRECTION",
+        "model": null,
+        "left_far_a": 0.08550045639276505,
+        "right_far_a": -0.3013589680194855
+      },
+      {
+        "t": 9.516000000000076,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 0.6042780876159668,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 9.922000000000025,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 2,
+        "checks": "GAP|RANGE",
+        "model": null,
+        "left_far_a": 0.8193178176879883,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 9.922000000000025,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": null,
+        "left_far_a": 1.1249526739120483,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 10.327999999999975,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 10.75,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 15.827999999999975,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 16.577999999999975,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 17.0,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": null,
+        "right_far_a": null
+      },
+      {
+        "t": 17.375,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": 0.0,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 17.75,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": null,
+        "right_far_a": null
+      },
+      {
+        "t": 24.25,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.14984944462776184,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 24.65599999999995,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.1554468870162964,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 25.03099999999995,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.14041085541248322,
+        "right_far_a": 0.0
+      }
+    ]
+  },
+  "195147_s弯没成功": {
+    "capture": "v2_1013_195147_3941359000000_fd8a625e",
+    "n": 34,
+    "phase": {
+      "0": 34
+    },
+    "reason": {
+      "0": 14,
+      "6": 18,
+      "3": 1,
+      "5": 1
+    },
+    "checks": {
+      "PREFILTER": 14,
+      "NEAR": 1,
+      "GAP|PARALLEL": 2,
+      "PARALLEL": 2,
+      "RANGE": 1,
+      "GAP|NEAR": 3,
+      "GAP|ROOM": 2,
+      "0(全过)": 8,
+      "PRIORITY": 1
+    },
+    "prefilter_why": {
+      "左远弱+右远弱": 11,
+      "model=2+右远弱": 1,
+      "右远弱": 1,
+      "左远弱": 1
+    },
+    "rows": [
+      {
+        "t": 0.8130000000001019,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.01662568189203739,
+        "right_far_a": -0.07522080838680267
+      },
+      {
+        "t": 1.219000000000051,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 0.0,
+        "left_far_a": -0.015338687226176262,
+        "right_far_a": -0.06557071954011917
+      },
+      {
+        "t": 2.3910000000000764,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": -0.01868496462702751,
+        "right_far_a": -0.07017779350280762
+      },
+      {
+        "t": 3.657000000000153,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "NEAR",
+        "model": 0.0,
+        "left_far_a": 0.30391159653663635,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 4.063000000000102,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 2.0,
+        "left_far_a": 0.8810538053512573,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 4.063000000000102,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": 0.0,
+        "left_far_a": 1.1124849319458008,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 4.375,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "PARALLEL",
+        "model": 0.0,
+        "left_far_a": 1.7286975383758545,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 4.735000000000127,
+        "phase": 0,
+        "reason": 3,
+        "dirn": 2,
+        "checks": "RANGE",
+        "model": null,
+        "left_far_a": 1.6481672525405884,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 4.735000000000127,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": null,
+        "left_far_a": 1.4210631847381592,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.141000000000076,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": 0.0,
+        "left_far_a": 1.9379111528396606,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.5470000000000255,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": 0.0,
+        "left_far_a": 1.6031068563461304,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 5.969000000000051,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 6.782000000000153,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 0,
+        "checks": "GAP|ROOM",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.33705055713653564
+      },
+      {
+        "t": 6.782000000000153,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|PARALLEL",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -0.47504621744155884
+      },
+      {
+        "t": 7.1720000000000255,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "GAP|NEAR",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -1.0725334882736206
+      },
+      {
+        "t": 7.579000000000178,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 2,
+        "checks": "GAP|ROOM",
+        "model": null,
+        "left_far_a": 0.6045578718185425,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 7.579000000000178,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "PARALLEL",
+        "model": null,
+        "left_far_a": 1.0101678371429443,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 8.016000000000076,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 8.438000000000102,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": null,
+        "right_far_a": null
+      },
+      {
+        "t": 13.954000000000178,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 14.344000000000051,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 14.735000000000127,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 15.110000000000127,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 15.5,
+        "phase": 0,
+        "reason": 5,
+        "dirn": 1,
+        "checks": "PRIORITY",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 15.875,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 19.0,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 19.360000000000127,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 20.547000000000025,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 20.547000000000025,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 20.938000000000102,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": -2.274625539779663
+      },
+      {
+        "t": 21.297000000000025,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 21.672000000000025,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      },
+      {
+        "t": 22.063000000000102,
+        "phase": 0,
+        "reason": 0,
+        "dirn": 1,
+        "checks": "PREFILTER",
+        "model": null,
+        "left_far_a": null,
+        "right_far_a": null
+      },
+      {
+        "t": 22.45400000000018,
+        "phase": 0,
+        "reason": 6,
+        "dirn": 1,
+        "checks": "0(全过)",
+        "model": null,
+        "left_far_a": 0.0,
+        "right_far_a": 0.0
+      }
+    ]
+  }
+}

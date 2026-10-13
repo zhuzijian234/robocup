@@ -1,0 +1,3017 @@
+{
+  "tag": "195030",
+  "bin": "D:\\OneDrive\\Desktop\\robocup\\robocup-新建文件夹队\\robocup-新建文件夹\\上位机\\log\\v2_1013_195030_3865031000000_676aafed.bin",
+  "sha_matches": true,
+  "rx_validated": true,
+  "bad_frames": 0,
+  "tx_missing": 0,
+  "tx_duplicates": 0,
+  "extension_duplicates": [],
+  "session": 145367538,
+  "session_control_counts": {
+    "3355754148": 6,
+    "145367538": 294
+  },
+  "formal_bounds": [
+    2.0779999999999745,
+    11.577999999999975
+  ],
+  "all_controls": 294,
+  "formal_controls": 118,
+  "formal_seq": [
+    9356,
+    9473
+  ],
+  "zero_device_ms": 780411,
+  "start_event": {
+    "type": 4,
+    "tx_seq": 118,
+    "session": 145367538,
+    "host_t": 2.5,
+    "event_ms": 780411,
+    "param_revision": 13,
+    "event_code": 1,
+    "key": 108,
+    "old": 0.0,
+    "new": 17.0
+  },
+  "param_events": [
+    {
+      "type": 4,
+      "tx_seq": 118,
+      "session": 145367538,
+      "host_t": 2.5,
+      "event_ms": 780411,
+      "param_revision": 13,
+      "event_code": 1,
+      "key": 108,
+      "old": 0.0,
+      "new": 17.0
+    }
+  ],
+  "configs": {
+    "(145367538, 12)": {
+      "layout": "rc26-mask31-v2.1",
+      "build": "sha256-59f2128e3e3ec016",
+      "lidar": 3,
+      "algorithm": 4,
+      "input_kind": 1,
+      "baud": 115200,
+      "rate": 1,
+      "timeout_ms": 0,
+      "health_ms": 1000,
+      "units": "mm;CCR;encoder_units;x=a*y+b;PD=ref700-cap1.5-Dcap150;exit=confirm-reduce;spd=curve-plan;max=108;bend=123;acc=124;dec=125",
+      "dma_bytes": 1024,
+      "point_capacity": 800,
+      "geometry": "path=local+contour;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121;acute=entry50+gap+handoff",
+      "lidar_config": "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720",
+      "kp": 0.03500000014901161,
+      "kp2": 0.03999999910593033,
+      "kp3": 0.039500001817941666,
+      "kd": 0.03500000014901161,
+      "kd2": 0.02199999988079071,
+      "kd3": 0.019999999552965164,
+      "sp_kp": 8.5,
+      "sp_ki": 0.5049999952316284,
+      "spd": 0.0,
+      "angle": 90.0,
+      "cx": 10.0,
+      "eclamp": 200.0,
+      "dy": 200.0,
+      "preview": 700.0,
+      "width": 500.0,
+      "bendspd": 15.0,
+      "accel": 2.0,
+      "decel": 12.0
+    },
+    "(145367538, 13)": {
+      "layout": "rc26-mask31-v2.1",
+      "build": "sha256-59f2128e3e3ec016",
+      "lidar": 3,
+      "algorithm": 4,
+      "input_kind": 1,
+      "baud": 115200,
+      "rate": 1,
+      "timeout_ms": 0,
+      "health_ms": 1000,
+      "units": "mm;CCR;encoder_units;x=a*y+b;PD=ref700-cap1.5-Dcap150;exit=confirm-reduce;spd=curve-plan;max=108;bend=123;acc=124;dec=125",
+      "dma_bytes": 1024,
+      "point_capacity": 800,
+      "geometry": "path=local+contour;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121;acute=entry50+gap+handoff",
+      "lidar_config": "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720",
+      "kp": 0.03500000014901161,
+      "kp2": 0.03999999910593033,
+      "kp3": 0.039500001817941666,
+      "kd": 0.03500000014901161,
+      "kd2": 0.02199999988079071,
+      "kd3": 0.019999999552965164,
+      "sp_kp": 8.5,
+      "sp_ki": 0.5049999952316284,
+      "spd": 17.0,
+      "angle": 90.0,
+      "cx": 10.0,
+      "eclamp": 200.0,
+      "dy": 200.0,
+      "preview": 700.0,
+      "width": 500.0,
+      "bendspd": 15.0,
+      "accel": 2.0,
+      "decel": 12.0
+    }
+  },
+  "formal_actions": {
+    "1": 96,
+    "5": 17,
+    "2": 5
+  },
+  "formal_geometry": {
+    "0": 94,
+    "None": 8,
+    "2": 15,
+    "3": 1
+  },
+  "action_ranges": [
+    {
+      "value": 1,
+      "seq0": 9356,
+      "seq1": 9420,
+      "t0": -0.449,
+      "t1": 4.901,
+      "n": 65
+    },
+    {
+      "value": 5,
+      "seq0": 9421,
+      "seq1": 9421,
+      "t0": 4.979,
+      "t1": 4.979,
+      "n": 1
+    },
+    {
+      "value": 1,
+      "seq0": 9422,
+      "seq1": 9428,
+      "t0": 5.069,
+      "t1": 5.564,
+      "n": 7
+    },
+    {
+      "value": 5,
+      "seq0": 9429,
+      "seq1": 9429,
+      "t0": 5.651,
+      "t1": 5.651,
+      "n": 1
+    },
+    {
+      "value": 1,
+      "seq0": 9430,
+      "seq1": 9432,
+      "t0": 5.729,
+      "t1": 5.896,
+      "n": 3
+    },
+    {
+      "value": 5,
+      "seq0": 9433,
+      "seq1": 9433,
+      "t0": 5.987,
+      "t1": 5.987,
+      "n": 1
+    },
+    {
+      "value": 1,
+      "seq0": 9434,
+      "seq1": 9440,
+      "t0": 6.066,
+      "t1": 6.568,
+      "n": 7
+    },
+    {
+      "value": 2,
+      "seq0": 9441,
+      "seq1": 9441,
+      "t0": 6.647,
+      "t1": 6.647,
+      "n": 1
+    },
+    {
+      "value": 1,
+      "seq0": 9442,
+      "seq1": 9442,
+      "t0": 6.736,
+      "t1": 6.736,
+      "n": 1
+    },
+    {
+      "value": 2,
+      "seq0": 9443,
+      "seq1": 9443,
+      "t0": 6.815,
+      "t1": 6.815,
+      "n": 1
+    },
+    {
+      "value": 1,
+      "seq0": 9444,
+      "seq1": 9446,
+      "t0": 6.904,
+      "t1": 7.061,
+      "n": 3
+    },
+    {
+      "value": 2,
+      "seq0": 9447,
+      "seq1": 9448,
+      "t0": 7.151,
+      "t1": 7.228,
+      "n": 2
+    },
+    {
+      "value": 1,
+      "seq0": 9449,
+      "seq1": 9449,
+      "t0": 7.319,
+      "t1": 7.319,
+      "n": 1
+    },
+    {
+      "value": 2,
+      "seq0": 9450,
+      "seq1": 9450,
+      "t0": 7.397,
+      "t1": 7.397,
+      "n": 1
+    },
+    {
+      "value": 1,
+      "seq0": 9451,
+      "seq1": 9459,
+      "t0": 7.489,
+      "t1": 8.149,
+      "n": 9
+    },
+    {
+      "value": 5,
+      "seq0": 9460,
+      "seq1": 9473,
+      "t0": 8.237,
+      "t1": 9.321,
+      "n": 14
+    }
+  ],
+  "geometry_ranges": [
+    {
+      "value": 0,
+      "seq0": 9356,
+      "seq1": 9356,
+      "t0": -0.449,
+      "t1": -0.449,
+      "n": 1
+    },
+    {
+      "value": null,
+      "seq0": 9357,
+      "seq1": 9359,
+      "t0": -0.37,
+      "t1": -0.203,
+      "n": 3
+    },
+    {
+      "value": 0,
+      "seq0": 9360,
+      "seq1": 9364,
+      "t0": -0.113,
+      "t1": 0.223,
+      "n": 5
+    },
+    {
+      "value": null,
+      "seq0": 9365,
+      "seq1": 9365,
+      "t0": 0.301,
+      "t1": 0.301,
+      "n": 1
+    },
+    {
+      "value": 0,
+      "seq0": 9366,
+      "seq1": 9400,
+      "t0": 0.391,
+      "t1": 3.234,
+      "n": 35
+    },
+    {
+      "value": null,
+      "seq0": 9401,
+      "seq1": 9401,
+      "t0": 3.312,
+      "t1": 3.312,
+      "n": 1
+    },
+    {
+      "value": 0,
+      "seq0": 9402,
+      "seq1": 9412,
+      "t0": 3.405,
+      "t1": 4.23,
+      "n": 11
+    },
+    {
+      "value": null,
+      "seq0": 9413,
+      "seq1": 9413,
+      "t0": 4.319,
+      "t1": 4.319,
+      "n": 1
+    },
+    {
+      "value": 0,
+      "seq0": 9414,
+      "seq1": 9420,
+      "t0": 4.398,
+      "t1": 4.901,
+      "n": 7
+    },
+    {
+      "value": 2,
+      "seq0": 9421,
+      "seq1": 9421,
+      "t0": 4.979,
+      "t1": 4.979,
+      "n": 1
+    },
+    {
+      "value": 0,
+      "seq0": 9422,
+      "seq1": 9428,
+      "t0": 5.069,
+      "t1": 5.564,
+      "n": 7
+    },
+    {
+      "value": 2,
+      "seq0": 9429,
+      "seq1": 9429,
+      "t0": 5.651,
+      "t1": 5.651,
+      "n": 1
+    },
+    {
+      "value": 0,
+      "seq0": 9430,
+      "seq1": 9432,
+      "t0": 5.729,
+      "t1": 5.896,
+      "n": 3
+    },
+    {
+      "value": 3,
+      "seq0": 9433,
+      "seq1": 9433,
+      "t0": 5.987,
+      "t1": 5.987,
+      "n": 1
+    },
+    {
+      "value": 0,
+      "seq0": 9434,
+      "seq1": 9436,
+      "t0": 6.066,
+      "t1": 6.232,
+      "n": 3
+    },
+    {
+      "value": null,
+      "seq0": 9437,
+      "seq1": 9437,
+      "t0": 6.311,
+      "t1": 6.311,
+      "n": 1
+    },
+    {
+      "value": 0,
+      "seq0": 9438,
+      "seq1": 9459,
+      "t0": 6.4,
+      "t1": 8.149,
+      "n": 22
+    },
+    {
+      "value": 2,
+      "seq0": 9460,
+      "seq1": 9460,
+      "t0": 8.237,
+      "t1": 8.237,
+      "n": 1
+    },
+    {
+      "value": null,
+      "seq0": 9461,
+      "seq1": 9461,
+      "t0": 8.314,
+      "t1": 8.314,
+      "n": 1
+    },
+    {
+      "value": 2,
+      "seq0": 9462,
+      "seq1": 9473,
+      "t0": 8.404,
+      "t1": 9.321,
+      "n": 12
+    }
+  ],
+  "acute": [
+    {
+      "type": 4,
+      "tx_seq": 4,
+      "session": 145367538,
+      "host_t": 0.8440000000000509,
+      "event_ms": 778798,
+      "param_revision": 12,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9342,
+      "input_seq": 9342,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": -1.613,
+      "host_phase": "preroll"
+    },
+    {
+      "type": 4,
+      "tx_seq": 26,
+      "session": 145367538,
+      "host_t": 1.280999999999949,
+      "event_ms": 779212,
+      "param_revision": 12,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9347,
+      "input_seq": 9347,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": -1.199,
+      "host_phase": "preroll"
+    },
+    {
+      "type": 4,
+      "tx_seq": 124,
+      "session": 145367538,
+      "host_t": 2.5,
+      "event_ms": 780466,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9362,
+      "input_seq": 9362,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 0.055,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 197,
+      "session": 145367538,
+      "host_t": 3.75,
+      "event_ms": 781798,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9378,
+      "input_seq": 9378,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 1,
+      "acute_event_dropped": 0,
+      "run_device_t": 1.387,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 215,
+      "session": 145367538,
+      "host_t": 4.1720000000000255,
+      "event_ms": 782135,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9382,
+      "input_seq": 9382,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 66,
+      "acute_event_dropped": 0,
+      "run_device_t": 1.724,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 239,
+      "session": 145367538,
+      "host_t": 4.5779999999999745,
+      "event_ms": 782559,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9387,
+      "input_seq": 9387,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 2.148,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 263,
+      "session": 145367538,
+      "host_t": 5.0,
+      "event_ms": 782977,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9392,
+      "input_seq": 9392,
+      "acute_phase": 0,
+      "acute_reason": 3,
+      "acute_direction_code": 2,
+      "acute_checks": 72,
+      "acute_event_dropped": 0,
+      "run_device_t": 2.566,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 268,
+      "session": 145367538,
+      "host_t": 5.0,
+      "event_ms": 783055,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9393,
+      "input_seq": 9393,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 2.644,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 292,
+      "session": 145367538,
+      "host_t": 5.375,
+      "event_ms": 783481,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9398,
+      "input_seq": 9398,
+      "acute_phase": 0,
+      "acute_reason": 3,
+      "acute_direction_code": 2,
+      "acute_checks": 72,
+      "acute_event_dropped": 0,
+      "run_device_t": 3.07,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 302,
+      "session": 145367538,
+      "host_t": 5.813000000000102,
+      "event_ms": 783645,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9400,
+      "input_seq": 9400,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 3.234,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 321,
+      "session": 145367538,
+      "host_t": 5.813000000000102,
+      "event_ms": 783984,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9404,
+      "input_seq": 9404,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 3.573,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 340,
+      "session": 145367538,
+      "host_t": 6.233999999999924,
+      "event_ms": 784305,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9408,
+      "input_seq": 9408,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 3.894,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 385,
+      "session": 145367538,
+      "host_t": 7.0470000000000255,
+      "event_ms": 785145,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9418,
+      "input_seq": 9418,
+      "acute_phase": 0,
+      "acute_reason": 4,
+      "acute_direction_code": 0,
+      "acute_checks": 80,
+      "acute_event_dropped": 0,
+      "run_device_t": 4.734,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 396,
+      "session": 145367538,
+      "host_t": 7.483999999999924,
+      "event_ms": 785312,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9420,
+      "input_seq": 9420,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 4.901,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 415,
+      "session": 145367538,
+      "host_t": 7.858999999999924,
+      "event_ms": 785637,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9424,
+      "input_seq": 9424,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 1,
+      "acute_event_dropped": 0,
+      "run_device_t": 5.226,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 434,
+      "session": 145367538,
+      "host_t": 7.858999999999924,
+      "event_ms": 785975,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9428,
+      "input_seq": 9428,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 5.564,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 453,
+      "session": 145367538,
+      "host_t": 8.266000000000076,
+      "event_ms": 786307,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9432,
+      "input_seq": 9432,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 5.896,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 486,
+      "session": 145367538,
+      "host_t": 9.108999999999924,
+      "event_ms": 786890,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9439,
+      "input_seq": 9439,
+      "acute_phase": 0,
+      "acute_reason": 5,
+      "acute_direction_code": 1,
+      "acute_checks": 32,
+      "acute_event_dropped": 0,
+      "run_device_t": 6.479,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 504,
+      "session": 145367538,
+      "host_t": 9.108999999999924,
+      "event_ms": 787226,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9443,
+      "input_seq": 9443,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 68,
+      "acute_event_dropped": 0,
+      "run_device_t": 6.815,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 523,
+      "session": 145367538,
+      "host_t": 9.516000000000076,
+      "event_ms": 787562,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9447,
+      "input_seq": 9447,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 66,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.151,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 534,
+      "session": 145367538,
+      "host_t": 9.922000000000025,
+      "event_ms": 787730,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9449,
+      "input_seq": 9449,
+      "acute_phase": 0,
+      "acute_reason": 3,
+      "acute_direction_code": 2,
+      "acute_checks": 72,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.319,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 539,
+      "session": 145367538,
+      "host_t": 9.922000000000025,
+      "event_ms": 787808,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9450,
+      "input_seq": 9450,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.397,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 557,
+      "session": 145367538,
+      "host_t": 10.327999999999975,
+      "event_ms": 788143,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9454,
+      "input_seq": 9454,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.732,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 586,
+      "session": 145367538,
+      "host_t": 10.75,
+      "event_ms": 788648,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9460,
+      "input_seq": 9460,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 0,
+      "acute_event_dropped": 0,
+      "run_device_t": 8.237,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 892,
+      "session": 145367538,
+      "host_t": 15.827999999999975,
+      "event_ms": 793973,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9524,
+      "input_seq": 9524,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 13.562,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 932,
+      "session": 145367538,
+      "host_t": 16.577999999999975,
+      "event_ms": 794644,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9532,
+      "input_seq": 9532,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 0,
+      "acute_event_dropped": 0,
+      "run_device_t": 14.233,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 953,
+      "session": 145367538,
+      "host_t": 17.0,
+      "event_ms": 794980,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9536,
+      "input_seq": 9536,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 14.569,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 973,
+      "session": 145367538,
+      "host_t": 17.375,
+      "event_ms": 795316,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9540,
+      "input_seq": 9540,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 0,
+      "acute_event_dropped": 0,
+      "run_device_t": 14.905,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 999,
+      "session": 145367538,
+      "host_t": 17.75,
+      "event_ms": 795730,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9545,
+      "input_seq": 9545,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 15.319,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1387,
+      "session": 145367538,
+      "host_t": 24.25,
+      "event_ms": 802398,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9625,
+      "input_seq": 9625,
+      "acute_phase": 0,
+      "acute_reason": 5,
+      "acute_direction_code": 1,
+      "acute_checks": 32,
+      "acute_event_dropped": 0,
+      "run_device_t": 21.987,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1408,
+      "session": 145367538,
+      "host_t": 24.65599999999995,
+      "event_ms": 802723,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9629,
+      "input_seq": 9629,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 0,
+      "acute_event_dropped": 0,
+      "run_device_t": 22.312,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1427,
+      "session": 145367538,
+      "host_t": 25.03099999999995,
+      "event_ms": 803058,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9633,
+      "input_seq": 9633,
+      "acute_phase": 0,
+      "acute_reason": 5,
+      "acute_direction_code": 1,
+      "acute_checks": 32,
+      "acute_event_dropped": 0,
+      "run_device_t": 22.647,
+      "host_phase": "dump"
+    }
+  ],
+  "formal_acute_events": [
+    {
+      "type": 4,
+      "tx_seq": 124,
+      "session": 145367538,
+      "host_t": 2.5,
+      "event_ms": 780466,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9362,
+      "input_seq": 9362,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 0.055,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 197,
+      "session": 145367538,
+      "host_t": 3.75,
+      "event_ms": 781798,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9378,
+      "input_seq": 9378,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 1,
+      "acute_event_dropped": 0,
+      "run_device_t": 1.387,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 215,
+      "session": 145367538,
+      "host_t": 4.1720000000000255,
+      "event_ms": 782135,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9382,
+      "input_seq": 9382,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 66,
+      "acute_event_dropped": 0,
+      "run_device_t": 1.724,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 239,
+      "session": 145367538,
+      "host_t": 4.5779999999999745,
+      "event_ms": 782559,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9387,
+      "input_seq": 9387,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 2.148,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 263,
+      "session": 145367538,
+      "host_t": 5.0,
+      "event_ms": 782977,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9392,
+      "input_seq": 9392,
+      "acute_phase": 0,
+      "acute_reason": 3,
+      "acute_direction_code": 2,
+      "acute_checks": 72,
+      "acute_event_dropped": 0,
+      "run_device_t": 2.566,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 268,
+      "session": 145367538,
+      "host_t": 5.0,
+      "event_ms": 783055,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9393,
+      "input_seq": 9393,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 2.644,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 292,
+      "session": 145367538,
+      "host_t": 5.375,
+      "event_ms": 783481,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9398,
+      "input_seq": 9398,
+      "acute_phase": 0,
+      "acute_reason": 3,
+      "acute_direction_code": 2,
+      "acute_checks": 72,
+      "acute_event_dropped": 0,
+      "run_device_t": 3.07,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 302,
+      "session": 145367538,
+      "host_t": 5.813000000000102,
+      "event_ms": 783645,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9400,
+      "input_seq": 9400,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 3.234,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 321,
+      "session": 145367538,
+      "host_t": 5.813000000000102,
+      "event_ms": 783984,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9404,
+      "input_seq": 9404,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 3.573,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 340,
+      "session": 145367538,
+      "host_t": 6.233999999999924,
+      "event_ms": 784305,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9408,
+      "input_seq": 9408,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 3.894,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 385,
+      "session": 145367538,
+      "host_t": 7.0470000000000255,
+      "event_ms": 785145,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9418,
+      "input_seq": 9418,
+      "acute_phase": 0,
+      "acute_reason": 4,
+      "acute_direction_code": 0,
+      "acute_checks": 80,
+      "acute_event_dropped": 0,
+      "run_device_t": 4.734,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 396,
+      "session": 145367538,
+      "host_t": 7.483999999999924,
+      "event_ms": 785312,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9420,
+      "input_seq": 9420,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 4.901,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 415,
+      "session": 145367538,
+      "host_t": 7.858999999999924,
+      "event_ms": 785637,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9424,
+      "input_seq": 9424,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 1,
+      "acute_event_dropped": 0,
+      "run_device_t": 5.226,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 434,
+      "session": 145367538,
+      "host_t": 7.858999999999924,
+      "event_ms": 785975,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9428,
+      "input_seq": 9428,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 5.564,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 453,
+      "session": 145367538,
+      "host_t": 8.266000000000076,
+      "event_ms": 786307,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9432,
+      "input_seq": 9432,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 5.896,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 486,
+      "session": 145367538,
+      "host_t": 9.108999999999924,
+      "event_ms": 786890,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9439,
+      "input_seq": 9439,
+      "acute_phase": 0,
+      "acute_reason": 5,
+      "acute_direction_code": 1,
+      "acute_checks": 32,
+      "acute_event_dropped": 0,
+      "run_device_t": 6.479,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 504,
+      "session": 145367538,
+      "host_t": 9.108999999999924,
+      "event_ms": 787226,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9443,
+      "input_seq": 9443,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 68,
+      "acute_event_dropped": 0,
+      "run_device_t": 6.815,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 523,
+      "session": 145367538,
+      "host_t": 9.516000000000076,
+      "event_ms": 787562,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9447,
+      "input_seq": 9447,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 66,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.151,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 534,
+      "session": 145367538,
+      "host_t": 9.922000000000025,
+      "event_ms": 787730,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9449,
+      "input_seq": 9449,
+      "acute_phase": 0,
+      "acute_reason": 3,
+      "acute_direction_code": 2,
+      "acute_checks": 72,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.319,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 539,
+      "session": 145367538,
+      "host_t": 9.922000000000025,
+      "event_ms": 787808,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9450,
+      "input_seq": 9450,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.397,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 557,
+      "session": 145367538,
+      "host_t": 10.327999999999975,
+      "event_ms": 788143,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9454,
+      "input_seq": 9454,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.732,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 586,
+      "session": 145367538,
+      "host_t": 10.75,
+      "event_ms": 788648,
+      "param_revision": 13,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 9460,
+      "input_seq": 9460,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 0,
+      "acute_event_dropped": 0,
+      "run_device_t": 8.237,
+      "host_phase": "formal"
+    }
+  ],
+  "pairs": {
+    "5": 115,
+    "8": 110,
+    "10": 23
+  },
+  "phases": {
+    "0": 23
+  },
+  "models": {
+    "0": 23
+  },
+  "avoidance": {
+    "0": 109,
+    "None": 8,
+    "1": 1
+  },
+  "control_dt_us": {
+    "n": 118,
+    "min": 75447,
+    "median": 79421.0,
+    "max": 93036
+  },
+  "process_us": {
+    "n": 115,
+    "min": 4435,
+    "median": 5267,
+    "max": 8940
+  },
+  "pd_d": {
+    "n": 115,
+    "min": -81.81396484375,
+    "median": 0.0,
+    "max": 29.61854362487793
+  },
+  "pwm": {
+    "n": 118,
+    "min": 1170.0,
+    "median": 1289.0,
+    "max": 1720.0
+  },
+  "cloud_count": 8,
+  "clouds_complete": 8,
+  "cloud_meta": [
+    {
+      "type": 9,
+      "tx_seq": 678,
+      "session": 145367538,
+      "host_t": 12.391000000000076,
+      "schema": 4,
+      "snapshot_id": 7,
+      "frame_index": 0,
+      "control_seq": 9386,
+      "param_revision": 13,
+      "input_seq": 9386,
+      "input_us": 782464308,
+      "epoch": 1,
+      "trigger_flags": 0,
+      "total_points": 279,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          395,
+          105
+        ],
+        [
+          389,
+          105
+        ],
+        [
+          386,
+          109
+        ],
+        [
+          391,
+          112
+        ],
+        [
+          392,
+          117
+        ],
+        [
+          404,
+          126
+        ],
+        [
+          403,
+          127
+        ],
+        [
+          410,
+          134
+        ],
+        [
+          396,
+          134
+        ],
+        [
+          397,
+          138
+        ],
+        [
+          393,
+          140
+        ],
+        [
+          392,
+          145
+        ],
+        [
+          389,
+          147
+        ],
+        [
+          403,
+          156
+        ],
+        [
+          418,
+          167
+        ],
+        [
+          408,
+          165
+        ],
+        [
+          413,
+          174
+        ],
+        [
+          409,
+          176
+        ],
+        [
+          405,
+          176
+        ],
+        [
+          399,
+          179
+        ],
+        [
+          402,
+          186
+        ],
+        [
+          401,
+          191
+        ],
+        [
+          405,
+          195
+        ],
+        [
+          422,
+          209
+        ],
+        [
+          420,
+          212
+        ],
+        [
+          414,
+          215
+        ],
+        [
+          418,
+          219
+        ],
+        [
+          415,
+          223
+        ],
+        [
+          410,
+          222
+        ],
+        [
+          433,
+          241
+        ],
+        [
+          443,
+          254
+        ],
+        [
+          433,
+          255
+        ],
+        [
+          431,
+          258
+        ],
+        [
+          426,
+          257
+        ],
+        [
+          425,
+          263
+        ],
+        [
+          434,
+          271
+        ],
+        [
+          447,
+          289
+        ],
+        [
+          443,
+          288
+        ],
+        [
+          442,
+          297
+        ],
+        [
+          447,
+          306
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 760,
+      "session": 145367538,
+      "host_t": 13.905999999999949,
+      "schema": 4,
+      "snapshot_id": 7,
+      "frame_index": 1,
+      "control_seq": 9387,
+      "param_revision": 13,
+      "input_seq": 9387,
+      "input_us": 782553481,
+      "epoch": 1,
+      "trigger_flags": 0,
+      "total_points": 284,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          391,
+          104
+        ],
+        [
+          397,
+          109
+        ],
+        [
+          396,
+          110
+        ],
+        [
+          389,
+          114
+        ],
+        [
+          386,
+          117
+        ],
+        [
+          394,
+          121
+        ],
+        [
+          377,
+          122
+        ],
+        [
+          386,
+          128
+        ],
+        [
+          383,
+          130
+        ],
+        [
+          387,
+          133
+        ],
+        [
+          406,
+          145
+        ],
+        [
+          409,
+          149
+        ],
+        [
+          403,
+          152
+        ],
+        [
+          393,
+          152
+        ],
+        [
+          394,
+          155
+        ],
+        [
+          393,
+          162
+        ],
+        [
+          395,
+          165
+        ],
+        [
+          401,
+          170
+        ],
+        [
+          408,
+          179
+        ],
+        [
+          415,
+          188
+        ],
+        [
+          411,
+          188
+        ],
+        [
+          402,
+          187
+        ],
+        [
+          404,
+          196
+        ],
+        [
+          400,
+          196
+        ],
+        [
+          395,
+          197
+        ],
+        [
+          409,
+          208
+        ],
+        [
+          425,
+          222
+        ],
+        [
+          421,
+          225
+        ],
+        [
+          421,
+          229
+        ],
+        [
+          421,
+          237
+        ],
+        [
+          416,
+          238
+        ],
+        [
+          418,
+          241
+        ],
+        [
+          440,
+          264
+        ],
+        [
+          435,
+          263
+        ],
+        [
+          438,
+          271
+        ],
+        [
+          432,
+          272
+        ],
+        [
+          451,
+          291
+        ],
+        [
+          454,
+          295
+        ],
+        [
+          447,
+          298
+        ],
+        [
+          450,
+          305
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 853,
+      "session": 145367538,
+      "host_t": 15.452999999999975,
+      "schema": 4,
+      "snapshot_id": 7,
+      "frame_index": 2,
+      "control_seq": 9388,
+      "param_revision": 13,
+      "input_seq": 9388,
+      "input_us": 782632033,
+      "epoch": 1,
+      "trigger_flags": 64,
+      "total_points": 282,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          377,
+          102
+        ],
+        [
+          378,
+          106
+        ],
+        [
+          391,
+          114
+        ],
+        [
+          395,
+          119
+        ],
+        [
+          394,
+          123
+        ],
+        [
+          397,
+          126
+        ],
+        [
+          386,
+          127
+        ],
+        [
+          383,
+          131
+        ],
+        [
+          389,
+          137
+        ],
+        [
+          384,
+          136
+        ],
+        [
+          375,
+          137
+        ],
+        [
+          395,
+          149
+        ],
+        [
+          400,
+          154
+        ],
+        [
+          403,
+          159
+        ],
+        [
+          398,
+          162
+        ],
+        [
+          407,
+          171
+        ],
+        [
+          392,
+          168
+        ],
+        [
+          392,
+          174
+        ],
+        [
+          396,
+          178
+        ],
+        [
+          391,
+          179
+        ],
+        [
+          411,
+          192
+        ],
+        [
+          410,
+          199
+        ],
+        [
+          407,
+          201
+        ],
+        [
+          403,
+          201
+        ],
+        [
+          410,
+          212
+        ],
+        [
+          407,
+          213
+        ],
+        [
+          411,
+          219
+        ],
+        [
+          422,
+          229
+        ],
+        [
+          419,
+          234
+        ],
+        [
+          422,
+          240
+        ],
+        [
+          416,
+          242
+        ],
+        [
+          418,
+          248
+        ],
+        [
+          448,
+          273
+        ],
+        [
+          444,
+          273
+        ],
+        [
+          439,
+          274
+        ],
+        [
+          446,
+          285
+        ],
+        [
+          468,
+          307
+        ],
+        [
+          462,
+          308
+        ],
+        [
+          464,
+          317
+        ],
+        [
+          493,
+          343
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 949,
+      "session": 145367538,
+      "host_t": 17.0,
+      "schema": 4,
+      "snapshot_id": 7,
+      "frame_index": 3,
+      "control_seq": 9389,
+      "param_revision": 13,
+      "input_seq": 9389,
+      "input_us": 782721645,
+      "epoch": 1,
+      "trigger_flags": 64,
+      "total_points": 286,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          380,
+          101
+        ],
+        [
+          377,
+          103
+        ],
+        [
+          377,
+          106
+        ],
+        [
+          383,
+          109
+        ],
+        [
+          379,
+          113
+        ],
+        [
+          384,
+          118
+        ],
+        [
+          384,
+          121
+        ],
+        [
+          397,
+          131
+        ],
+        [
+          389,
+          132
+        ],
+        [
+          391,
+          134
+        ],
+        [
+          395,
+          141
+        ],
+        [
+          389,
+          142
+        ],
+        [
+          389,
+          148
+        ],
+        [
+          385,
+          148
+        ],
+        [
+          388,
+          153
+        ],
+        [
+          399,
+          161
+        ],
+        [
+          404,
+          170
+        ],
+        [
+          400,
+          170
+        ],
+        [
+          400,
+          176
+        ],
+        [
+          399,
+          181
+        ],
+        [
+          402,
+          186
+        ],
+        [
+          400,
+          187
+        ],
+        [
+          416,
+          202
+        ],
+        [
+          423,
+          207
+        ],
+        [
+          417,
+          208
+        ],
+        [
+          416,
+          214
+        ],
+        [
+          425,
+          222
+        ],
+        [
+          435,
+          232
+        ],
+        [
+          446,
+          242
+        ],
+        [
+          437,
+          244
+        ],
+        [
+          441,
+          253
+        ],
+        [
+          446,
+          258
+        ],
+        [
+          464,
+          275
+        ],
+        [
+          466,
+          281
+        ],
+        [
+          462,
+          286
+        ],
+        [
+          462,
+          288
+        ],
+        [
+          480,
+          308
+        ],
+        [
+          482,
+          316
+        ],
+        [
+          481,
+          318
+        ],
+        [
+          509,
+          345
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 1049,
+      "session": 145367538,
+      "host_t": 18.53099999999995,
+      "schema": 4,
+      "snapshot_id": 7,
+      "frame_index": 4,
+      "control_seq": 9458,
+      "param_revision": 13,
+      "input_seq": 9458,
+      "input_us": 788473479,
+      "epoch": 1,
+      "trigger_flags": 96,
+      "total_points": 296,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          1460,
+          241
+        ],
+        [
+          1441,
+          249
+        ],
+        [
+          1451,
+          256
+        ],
+        [
+          1428,
+          275
+        ],
+        [
+          1414,
+          278
+        ],
+        [
+          1384,
+          288
+        ],
+        [
+          1369,
+          301
+        ],
+        [
+          1337,
+          305
+        ],
+        [
+          1331,
+          309
+        ],
+        [
+          1299,
+          323
+        ],
+        [
+          1297,
+          333
+        ],
+        [
+          1296,
+          343
+        ],
+        [
+          1263,
+          349
+        ],
+        [
+          1255,
+          352
+        ],
+        [
+          1229,
+          355
+        ],
+        [
+          1222,
+          363
+        ],
+        [
+          1188,
+          368
+        ],
+        [
+          1187,
+          382
+        ],
+        [
+          1157,
+          382
+        ],
+        [
+          1147,
+          389
+        ],
+        [
+          1115,
+          392
+        ],
+        [
+          1114,
+          397
+        ],
+        [
+          1083,
+          404
+        ],
+        [
+          1067,
+          407
+        ],
+        [
+          1065,
+          416
+        ],
+        [
+          1038,
+          414
+        ],
+        [
+          1011,
+          417
+        ],
+        [
+          1008,
+          420
+        ],
+        [
+          1002,
+          431
+        ],
+        [
+          975,
+          428
+        ],
+        [
+          967,
+          433
+        ],
+        [
+          934,
+          431
+        ],
+        [
+          934,
+          439
+        ],
+        [
+          925,
+          448
+        ],
+        [
+          900,
+          444
+        ],
+        [
+          892,
+          453
+        ],
+        [
+          865,
+          447
+        ],
+        [
+          854,
+          446
+        ],
+        [
+          846,
+          454
+        ],
+        [
+          834,
+          459
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 1142,
+      "session": 145367538,
+      "host_t": 20.063000000000102,
+      "schema": 4,
+      "snapshot_id": 7,
+      "frame_index": 5,
+      "control_seq": 9459,
+      "param_revision": 13,
+      "input_seq": 9459,
+      "input_us": 788551952,
+      "epoch": 1,
+      "trigger_flags": 32,
+      "total_points": 305,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          1838,
+          106
+        ],
+        [
+          1824,
+          126
+        ],
+        [
+          1796,
+          137
+        ],
+        [
+          1793,
+          151
+        ],
+        [
+          1737,
+          166
+        ],
+        [
+          1728,
+          178
+        ],
+        [
+          1701,
+          189
+        ],
+        [
+          1675,
+          199
+        ],
+        [
+          1636,
+          213
+        ],
+        [
+          1631,
+          218
+        ],
+        [
+          1601,
+          233
+        ],
+        [
+          1600,
+          245
+        ],
+        [
+          1575,
+          253
+        ],
+        [
+          1562,
+          269
+        ],
+        [
+          1511,
+          278
+        ],
+        [
+          1488,
+          285
+        ],
+        [
+          1494,
+          298
+        ],
+        [
+          1455,
+          307
+        ],
+        [
+          1416,
+          310
+        ],
+        [
+          1419,
+          322
+        ],
+        [
+          1380,
+          329
+        ],
+        [
+          1389,
+          337
+        ],
+        [
+          1326,
+          337
+        ],
+        [
+          1326,
+          343
+        ],
+        [
+          1281,
+          352
+        ],
+        [
+          1282,
+          357
+        ],
+        [
+          1241,
+          365
+        ],
+        [
+          1241,
+          376
+        ],
+        [
+          1214,
+          378
+        ],
+        [
+          1211,
+          386
+        ],
+        [
+          1170,
+          388
+        ],
+        [
+          1183,
+          397
+        ],
+        [
+          1139,
+          397
+        ],
+        [
+          1141,
+          407
+        ],
+        [
+          1098,
+          401
+        ],
+        [
+          1082,
+          414
+        ],
+        [
+          1061,
+          410
+        ],
+        [
+          1049,
+          419
+        ],
+        [
+          1021,
+          417
+        ],
+        [
+          1012,
+          427
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 1234,
+      "session": 145367538,
+      "host_t": 21.952999999999975,
+      "schema": 4,
+      "snapshot_id": 7,
+      "frame_index": 6,
+      "control_seq": 9460,
+      "param_revision": 13,
+      "input_seq": 9460,
+      "input_us": 788641576,
+      "epoch": 1,
+      "trigger_flags": 33,
+      "total_points": 299,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          2144,
+          109
+        ],
+        [
+          2104,
+          123
+        ],
+        [
+          2089,
+          130
+        ],
+        [
+          1996,
+          154
+        ],
+        [
+          1949,
+          165
+        ],
+        [
+          1910,
+          176
+        ],
+        [
+          1848,
+          191
+        ],
+        [
+          1819,
+          202
+        ],
+        [
+          1803,
+          207
+        ],
+        [
+          1746,
+          227
+        ],
+        [
+          1714,
+          237
+        ],
+        [
+          1684,
+          245
+        ],
+        [
+          1660,
+          255
+        ],
+        [
+          1630,
+          269
+        ],
+        [
+          1601,
+          277
+        ],
+        [
+          1580,
+          292
+        ],
+        [
+          1550,
+          298
+        ],
+        [
+          1539,
+          308
+        ],
+        [
+          1525,
+          312
+        ],
+        [
+          1499,
+          330
+        ],
+        [
+          1462,
+          334
+        ],
+        [
+          1438,
+          340
+        ],
+        [
+          1422,
+          353
+        ],
+        [
+          1392,
+          357
+        ],
+        [
+          1360,
+          360
+        ],
+        [
+          1328,
+          367
+        ],
+        [
+          1315,
+          369
+        ],
+        [
+          1280,
+          375
+        ],
+        [
+          1272,
+          383
+        ],
+        [
+          1225,
+          384
+        ],
+        [
+          1222,
+          393
+        ],
+        [
+          1192,
+          394
+        ],
+        [
+          1189,
+          408
+        ],
+        [
+          1155,
+          406
+        ],
+        [
+          1152,
+          410
+        ],
+        [
+          1112,
+          410
+        ],
+        [
+          1097,
+          419
+        ],
+        [
+          1068,
+          417
+        ],
+        [
+          1061,
+          424
+        ],
+        [
+          1044,
+          431
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 1328,
+      "session": 145367538,
+      "host_t": 23.5,
+      "schema": 4,
+      "snapshot_id": 7,
+      "frame_index": 7,
+      "control_seq": 9461,
+      "param_revision": 13,
+      "input_seq": 9461,
+      "input_us": 788719698,
+      "epoch": 1,
+      "trigger_flags": 33,
+      "total_points": 282,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          2528,
+          107
+        ],
+        [
+          2507,
+          116
+        ],
+        [
+          2410,
+          139
+        ],
+        [
+          2331,
+          161
+        ],
+        [
+          2289,
+          175
+        ],
+        [
+          2267,
+          182
+        ],
+        [
+          2158,
+          207
+        ],
+        [
+          2108,
+          218
+        ],
+        [
+          2066,
+          229
+        ],
+        [
+          2005,
+          238
+        ],
+        [
+          1938,
+          252
+        ],
+        [
+          1900,
+          262
+        ],
+        [
+          1843,
+          268
+        ],
+        [
+          1793,
+          282
+        ],
+        [
+          1752,
+          289
+        ],
+        [
+          1712,
+          296
+        ],
+        [
+          1662,
+          307
+        ],
+        [
+          1642,
+          316
+        ],
+        [
+          1615,
+          317
+        ],
+        [
+          1579,
+          329
+        ],
+        [
+          1548,
+          341
+        ],
+        [
+          1536,
+          351
+        ],
+        [
+          1514,
+          357
+        ],
+        [
+          1476,
+          366
+        ],
+        [
+          1473,
+          377
+        ],
+        [
+          1446,
+          377
+        ],
+        [
+          1394,
+          386
+        ],
+        [
+          1382,
+          394
+        ],
+        [
+          1356,
+          398
+        ],
+        [
+          1309,
+          394
+        ],
+        [
+          1307,
+          399
+        ],
+        [
+          1260,
+          406
+        ],
+        [
+          1228,
+          406
+        ],
+        [
+          1211,
+          416
+        ],
+        [
+          1174,
+          413
+        ],
+        [
+          1172,
+          422
+        ],
+        [
+          1129,
+          421
+        ],
+        [
+          1110,
+          424
+        ],
+        [
+          1091,
+          421
+        ],
+        [
+          1075,
+          429
+        ]
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "t": 0.0,
+      "command": "info"
+    },
+    {
+      "t": 0.42200000000002547,
+      "command": "session 145367538"
+    },
+    {
+      "t": 0.8440000000000509,
+      "command": "tele 3"
+    },
+    {
+      "t": 1.2970000000000255,
+      "command": "rate 1"
+    },
+    {
+      "t": 1.6880000000001019,
+      "command": "getcfg"
+    },
+    {
+      "t": 2.0779999999999745,
+      "command": "spd 17"
+    },
+    {
+      "t": 11.577999999999975,
+      "command": "cloud freeze"
+    },
+    {
+      "t": 12.0,
+      "command": "cloud dump"
+    },
+    {
+      "t": 12.766000000000076,
+      "command": "cloud status"
+    },
+    {
+      "t": 13.905999999999949,
+      "command": "cloud status"
+    },
+    {
+      "t": 15.077999999999975,
+      "command": "cloud status"
+    },
+    {
+      "t": 16.202999999999975,
+      "command": "cloud status"
+    },
+    {
+      "t": 17.391000000000076,
+      "command": "cloud status"
+    },
+    {
+      "t": 18.53099999999995,
+      "command": "cloud status"
+    },
+    {
+      "t": 19.65599999999995,
+      "command": "cloud status"
+    },
+    {
+      "t": 20.827999999999975,
+      "command": "cloud status"
+    },
+    {
+      "t": 21.96900000000005,
+      "command": "cloud status"
+    },
+    {
+      "t": 23.108999999999924,
+      "command": "cloud status"
+    },
+    {
+      "t": 24.25,
+      "command": "cloud status"
+    }
+  ]
+}

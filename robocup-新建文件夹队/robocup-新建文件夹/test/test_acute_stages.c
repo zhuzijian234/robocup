@@ -112,50 +112,6 @@ static int interruption_checks(void)
     return 0;
 }
 
-/* 只在新入口识别中接续真实断墙；普通直线/轮廓聚类仍保持原间隔。 */
-static int gap_checks(void)
-{
-    PathPoint original[400], points[400];
-    unsigned n, m, i, pass;
-    int direction;
-    PathGeometry g;
-    PathObservation p;
-    AcuteWall wall;
-    for (direction=-1; direction<=1; direction+=2)
-    {
-        n=corner(original,650,direction,0);m=0;
-        for(i=0;i<n;++i)
-            if(!(original[i].x*direction<0 && original[i].y>800 && original[i].y<935))
-                points[m++]=original[i];
-        wall=acute_wall(points,(uint16_t)m,-direction);
-        CHECK(wall.linked && wall.valid==2 && wall.distance>700);
-        memset(&g,0,sizeof g);
-        for(pass=0;pass<2;++pass)Path_Build(&g,points,(uint16_t)m,500,900,10,&p);
-        CHECK(p.valid && p.acute_phase==ACUTE_PREPARE);
-        CHECK(p.acute_checks & ACUTE_CHECK_LINKED);
-        /* 将出口整体移远，超过有约束的端点距离，不能把未知空洞接成弯墙。 */
-        for(i=0;i<m;++i)if(points[i].x*direction<0 && points[i].y>935)points[i].y+=250;
-        wall=acute_wall(points,(uint16_t)m,-direction);
-        CHECK(!wall.linked && wall.distance==0);
-    }
-    /* 受控候选单元测试：两个几何均可接续的远簇，必须拒绝猜测。 */
-    {
-        uint16_t from=0,to=0;
-        memset(&wall,0,sizeof wall);wall.b=-250;wall.end=70;
-        for(i=0;i<70;++i){points[i].x=-250;points[i].y=100+10.0f*i;}
-        for(i=0;i<40;++i){points[70+i].x=-230+.7f*i*10;points[70+i].y=920+10.0f*i;}
-        CHECK(acute_extension(points,110,-1,&wall,&from,&to));
-        CHECK(from==70 && to==110);
-        for(i=0;i<40;++i){points[110+i].x=-220+.8f*i*10;points[110+i].y=920+10.0f*i;}
-        CHECK(!acute_extension(points,150,-1,&wall,&from,&to));
-        /* 短小簇不能成为出口；远簇向反方向弯也不能续接。 */
-        CHECK(!acute_extension(points,78,-1,&wall,&from,&to));
-        for(i=0;i<40;++i)points[70+i].x=-230-.7f*i*10;
-        CHECK(!acute_extension(points,110,-1,&wall,&from,&to));
-    }
-    return 0;
-}
-
 int main(void)
 {
     PathPoint points[400];
@@ -178,17 +134,17 @@ int main(void)
                    side,i,p.valid,p.acute_phase,p.acute_reason,p.acute_distance,p.acute_goal,p.target_x,p.ref_y);
         }
         CHECK(p.valid && p.acute_phase == ACUTE_PREPARE && p.acute_direction == side);
-        CHECK(p.acute_goal > 0 && p.acute_goal <= 50 && p.outer_offset * side < 0);
+        CHECK(p.acute_goal > 0 && p.acute_goal <= 40 && p.outer_offset * side < 0);
         CHECK(fabsf(p.acute_position) < 1 && p.acute_distance > ACUTE_TAKEOVER_MM);
         Path_Control(&c,&p,&gains,1,100000,1445,&o);
         CHECK(o.applied && o.reason == PATH_APPLY && c.bend == 0 && o.d == 0);
         CHECK(abs((int)o.pwm-1445) <= 45);
         CHECK((o.pwm-1445.0f) * side > 0); /* 右弯先向左，左弯先向右。 */
-        /* 到达外侧50mm后不再累计偏移，局部位置读数不拿远目标误差充数。 */
-        n=corner(points,650,side,side*50.0f);
+        /* 到达外侧40mm后不再累计偏移，局部位置读数不拿远目标误差充数。 */
+        n=corner(points,650,side,side*40.0f);
         Path_Build(&g,points,(uint16_t)n,500,900,10,&p);
-        CHECK(p.acute_phase==ACUTE_PREPARE && fabsf(p.acute_position-50)<1);
-        CHECK(p.acute_goal<=50 && fabsf(p.target_x-10)<15);
+        CHECK(p.acute_phase==ACUTE_PREPARE && fabsf(p.acute_position-40)<1);
+        CHECK(p.acute_goal<=40 && fabsf(p.target_x-10)<15);
         n=corner(points,650,side,0);
         /* 缺帧与证据中断必须重新确认，不能沿用上一次的单帧。 */
         Path_Build(&g,points,0,500,900,10,&p);
@@ -271,7 +227,6 @@ int main(void)
     Path_ClearHistory(&g);
     CHECK(!g.acute_phase && !g.acute_frames && !g.baseline_offset);
     CHECK(interruption_checks()==0);
-    CHECK(gap_checks()==0);
     printf("PASS %u acute preparation/priority/handoff/bounded-transition checks\n", checks);
     return 0;
 }

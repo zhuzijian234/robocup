@@ -1,0 +1,3552 @@
+{
+  "tag": "194631",
+  "bin": "D:\\OneDrive\\Desktop\\robocup\\robocup-新建文件夹队\\robocup-新建文件夹\\上位机\\log\\v2_1013_194631_3625625000000_8da28e07.bin",
+  "sha_matches": true,
+  "rx_validated": true,
+  "bad_frames": 0,
+  "tx_missing": 0,
+  "tx_duplicates": 0,
+  "extension_duplicates": [],
+  "session": 1338059754,
+  "session_control_counts": {
+    "1295771703": 6,
+    "1338059754": 305
+  },
+  "formal_bounds": [
+    2.061999999999898,
+    14.125
+  ],
+  "all_controls": 305,
+  "formal_controls": 149,
+  "formal_seq": [
+    6488,
+    6636
+  ],
+  "zero_device_ms": 541328,
+  "start_event": {
+    "type": 4,
+    "tx_seq": 117,
+    "session": 1338059754,
+    "host_t": 2.467999999999847,
+    "event_ms": 541328,
+    "param_revision": 6,
+    "event_code": 1,
+    "key": 108,
+    "old": 0.0,
+    "new": 17.0
+  },
+  "param_events": [
+    {
+      "type": 4,
+      "tx_seq": 117,
+      "session": 1338059754,
+      "host_t": 2.467999999999847,
+      "event_ms": 541328,
+      "param_revision": 6,
+      "event_code": 1,
+      "key": 108,
+      "old": 0.0,
+      "new": 17.0
+    }
+  ],
+  "configs": {
+    "(1338059754, 5)": {
+      "layout": "rc26-mask31-v2.1",
+      "build": "sha256-59f2128e3e3ec016",
+      "lidar": 3,
+      "algorithm": 4,
+      "input_kind": 1,
+      "baud": 115200,
+      "rate": 1,
+      "timeout_ms": 0,
+      "health_ms": 1000,
+      "units": "mm;CCR;encoder_units;x=a*y+b;PD=ref700-cap1.5-Dcap150;exit=confirm-reduce;spd=curve-plan;max=108;bend=123;acc=124;dec=125",
+      "dma_bytes": 1024,
+      "point_capacity": 800,
+      "geometry": "path=local+contour;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121;acute=entry50+gap+handoff",
+      "lidar_config": "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720",
+      "kp": 0.03500000014901161,
+      "kp2": 0.03999999910593033,
+      "kp3": 0.039500001817941666,
+      "kd": 0.03500000014901161,
+      "kd2": 0.02199999988079071,
+      "kd3": 0.019999999552965164,
+      "sp_kp": 8.5,
+      "sp_ki": 0.5049999952316284,
+      "spd": 0.0,
+      "angle": 90.0,
+      "cx": 10.0,
+      "eclamp": 200.0,
+      "dy": 200.0,
+      "preview": 700.0,
+      "width": 500.0,
+      "bendspd": 15.0,
+      "accel": 2.0,
+      "decel": 12.0
+    },
+    "(1338059754, 6)": {
+      "layout": "rc26-mask31-v2.1",
+      "build": "sha256-59f2128e3e3ec016",
+      "lidar": 3,
+      "algorithm": 4,
+      "input_kind": 1,
+      "baud": 115200,
+      "rate": 1,
+      "timeout_ms": 0,
+      "health_ms": 1000,
+      "units": "mm;CCR;encoder_units;x=a*y+b;PD=ref700-cap1.5-Dcap150;exit=confirm-reduce;spd=curve-plan;max=108;bend=123;acc=124;dec=125",
+      "dma_bytes": 1024,
+      "point_capacity": 800,
+      "geometry": "path=local+contour;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121;acute=entry50+gap+handoff",
+      "lidar_config": "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720",
+      "kp": 0.03500000014901161,
+      "kp2": 0.03999999910593033,
+      "kp3": 0.039500001817941666,
+      "kd": 0.03500000014901161,
+      "kd2": 0.02199999988079071,
+      "kd3": 0.019999999552965164,
+      "sp_kp": 8.5,
+      "sp_ki": 0.5049999952316284,
+      "spd": 17.0,
+      "angle": 90.0,
+      "cx": 10.0,
+      "eclamp": 200.0,
+      "dy": 200.0,
+      "preview": 700.0,
+      "width": 500.0,
+      "bendspd": 15.0,
+      "accel": 2.0,
+      "decel": 12.0
+    }
+  },
+  "formal_actions": {
+    "1": 137,
+    "5": 7,
+    "2": 5
+  },
+  "formal_geometry": {
+    "0": 136,
+    "None": 6,
+    "2": 1,
+    "3": 6
+  },
+  "action_ranges": [
+    {
+      "value": 1,
+      "seq0": 6488,
+      "seq1": 6532,
+      "t0": -0.454,
+      "t1": 3.22,
+      "n": 45
+    },
+    {
+      "value": 5,
+      "seq0": 6533,
+      "seq1": 6533,
+      "t0": 3.307,
+      "t1": 3.307,
+      "n": 1
+    },
+    {
+      "value": 1,
+      "seq0": 6534,
+      "seq1": 6534,
+      "t0": 3.385,
+      "t1": 3.385,
+      "n": 1
+    },
+    {
+      "value": 5,
+      "seq0": 6535,
+      "seq1": 6539,
+      "t0": 3.464,
+      "t1": 3.799,
+      "n": 5
+    },
+    {
+      "value": 1,
+      "seq0": 6540,
+      "seq1": 6544,
+      "t0": 3.888,
+      "t1": 4.213,
+      "n": 5
+    },
+    {
+      "value": 5,
+      "seq0": 6545,
+      "seq1": 6545,
+      "t0": 4.302,
+      "t1": 4.302,
+      "n": 1
+    },
+    {
+      "value": 1,
+      "seq0": 6546,
+      "seq1": 6551,
+      "t0": 4.381,
+      "t1": 4.806,
+      "n": 6
+    },
+    {
+      "value": 2,
+      "seq0": 6552,
+      "seq1": 6552,
+      "t0": 4.884,
+      "t1": 4.884,
+      "n": 1
+    },
+    {
+      "value": 1,
+      "seq0": 6553,
+      "seq1": 6556,
+      "t0": 4.974,
+      "t1": 5.221,
+      "n": 4
+    },
+    {
+      "value": 2,
+      "seq0": 6557,
+      "seq1": 6557,
+      "t0": 5.299,
+      "t1": 5.299,
+      "n": 1
+    },
+    {
+      "value": 1,
+      "seq0": 6558,
+      "seq1": 6574,
+      "t0": 5.389,
+      "t1": 6.72,
+      "n": 17
+    },
+    {
+      "value": 2,
+      "seq0": 6575,
+      "seq1": 6575,
+      "t0": 6.799,
+      "t1": 6.799,
+      "n": 1
+    },
+    {
+      "value": 1,
+      "seq0": 6576,
+      "seq1": 6610,
+      "t0": 6.888,
+      "t1": 9.719,
+      "n": 35
+    },
+    {
+      "value": 2,
+      "seq0": 6611,
+      "seq1": 6611,
+      "t0": 9.808,
+      "t1": 9.808,
+      "n": 1
+    },
+    {
+      "value": 1,
+      "seq0": 6612,
+      "seq1": 6626,
+      "t0": 9.886,
+      "t1": 11.05,
+      "n": 15
+    },
+    {
+      "value": 2,
+      "seq0": 6627,
+      "seq1": 6627,
+      "t0": 11.139,
+      "t1": 11.139,
+      "n": 1
+    },
+    {
+      "value": 1,
+      "seq0": 6628,
+      "seq1": 6636,
+      "t0": 11.218,
+      "t1": 11.892,
+      "n": 9
+    }
+  ],
+  "geometry_ranges": [
+    {
+      "value": 0,
+      "seq0": 6488,
+      "seq1": 6488,
+      "t0": -0.454,
+      "t1": -0.454,
+      "n": 1
+    },
+    {
+      "value": null,
+      "seq0": 6489,
+      "seq1": 6491,
+      "t0": -0.375,
+      "t1": -0.208,
+      "n": 3
+    },
+    {
+      "value": 0,
+      "seq0": 6492,
+      "seq1": 6496,
+      "t0": -0.118,
+      "t1": 0.218,
+      "n": 5
+    },
+    {
+      "value": null,
+      "seq0": 6497,
+      "seq1": 6497,
+      "t0": 0.296,
+      "t1": 0.296,
+      "n": 1
+    },
+    {
+      "value": 0,
+      "seq0": 6498,
+      "seq1": 6532,
+      "t0": 0.375,
+      "t1": 3.22,
+      "n": 35
+    },
+    {
+      "value": 2,
+      "seq0": 6533,
+      "seq1": 6533,
+      "t0": 3.307,
+      "t1": 3.307,
+      "n": 1
+    },
+    {
+      "value": 0,
+      "seq0": 6534,
+      "seq1": 6534,
+      "t0": 3.385,
+      "t1": 3.385,
+      "n": 1
+    },
+    {
+      "value": 3,
+      "seq0": 6535,
+      "seq1": 6539,
+      "t0": 3.464,
+      "t1": 3.799,
+      "n": 5
+    },
+    {
+      "value": 0,
+      "seq0": 6540,
+      "seq1": 6544,
+      "t0": 3.888,
+      "t1": 4.213,
+      "n": 5
+    },
+    {
+      "value": 3,
+      "seq0": 6545,
+      "seq1": 6545,
+      "t0": 4.302,
+      "t1": 4.302,
+      "n": 1
+    },
+    {
+      "value": 0,
+      "seq0": 6546,
+      "seq1": 6592,
+      "t0": 4.381,
+      "t1": 8.219,
+      "n": 47
+    },
+    {
+      "value": null,
+      "seq0": 6593,
+      "seq1": 6593,
+      "t0": 8.297,
+      "t1": 8.297,
+      "n": 1
+    },
+    {
+      "value": 0,
+      "seq0": 6594,
+      "seq1": 6616,
+      "t0": 8.386,
+      "t1": 10.222,
+      "n": 23
+    },
+    {
+      "value": null,
+      "seq0": 6617,
+      "seq1": 6617,
+      "t0": 10.3,
+      "t1": 10.3,
+      "n": 1
+    },
+    {
+      "value": 0,
+      "seq0": 6618,
+      "seq1": 6636,
+      "t0": 10.39,
+      "t1": 11.892,
+      "n": 19
+    }
+  ],
+  "acute": [
+    {
+      "type": 4,
+      "tx_seq": 3,
+      "session": 1338059754,
+      "host_t": 0.8279999999999745,
+      "event_ms": 539711,
+      "param_revision": 5,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6474,
+      "input_seq": 6474,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": -1.617,
+      "host_phase": "preroll"
+    },
+    {
+      "type": 4,
+      "tx_seq": 25,
+      "session": 1338059754,
+      "host_t": 1.25,
+      "event_ms": 540125,
+      "param_revision": 5,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6479,
+      "input_seq": 6479,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": -1.203,
+      "host_phase": "preroll"
+    },
+    {
+      "type": 4,
+      "tx_seq": 123,
+      "session": 1338059754,
+      "host_t": 2.467999999999847,
+      "event_ms": 541378,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6494,
+      "input_seq": 6494,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 0.05,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 205,
+      "session": 1338059754,
+      "host_t": 4.139999999999873,
+      "event_ms": 542879,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6512,
+      "input_seq": 6512,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 68,
+      "acute_event_dropped": 0,
+      "run_device_t": 1.551,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 224,
+      "session": 1338059754,
+      "host_t": 4.139999999999873,
+      "event_ms": 543215,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6516,
+      "input_seq": 6516,
+      "acute_phase": 1,
+      "acute_reason": 1,
+      "acute_direction_code": 0,
+      "acute_checks": 64,
+      "acute_event_dropped": 0,
+      "run_device_t": 1.887,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 229,
+      "session": 1338059754,
+      "host_t": 4.530999999999949,
+      "event_ms": 543295,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6517,
+      "input_seq": 6517,
+      "acute_phase": 0,
+      "acute_reason": 3,
+      "acute_direction_code": 0,
+      "acute_checks": 72,
+      "acute_event_dropped": 0,
+      "run_device_t": 1.967,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 239,
+      "session": 1338059754,
+      "host_t": 4.530999999999949,
+      "event_ms": 543460,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6519,
+      "input_seq": 6519,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 66,
+      "acute_event_dropped": 0,
+      "run_device_t": 2.132,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 258,
+      "session": 1338059754,
+      "host_t": 4.936999999999898,
+      "event_ms": 543795,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6523,
+      "input_seq": 6523,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 2.467,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 305,
+      "session": 1338059754,
+      "host_t": 5.780999999999949,
+      "event_ms": 544635,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6533,
+      "input_seq": 6533,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 0,
+      "acute_event_dropped": 0,
+      "run_device_t": 3.307,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 337,
+      "session": 1338059754,
+      "host_t": 6.170999999999822,
+      "event_ms": 545216,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6540,
+      "input_seq": 6540,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 3.888,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 361,
+      "session": 1338059754,
+      "host_t": 6.5779999999999745,
+      "event_ms": 545630,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6545,
+      "input_seq": 6545,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 0,
+      "acute_event_dropped": 0,
+      "run_device_t": 4.302,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 379,
+      "session": 1338059754,
+      "host_t": 6.983999999999924,
+      "event_ms": 545966,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6549,
+      "input_seq": 6549,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 4.638,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 398,
+      "session": 1338059754,
+      "host_t": 7.405999999999949,
+      "event_ms": 546302,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6553,
+      "input_seq": 6553,
+      "acute_phase": 0,
+      "acute_reason": 5,
+      "acute_direction_code": 1,
+      "acute_checks": 32,
+      "acute_event_dropped": 0,
+      "run_device_t": 4.974,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 408,
+      "session": 1338059754,
+      "host_t": 7.405999999999949,
+      "event_ms": 546460,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6555,
+      "input_seq": 6555,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 0,
+      "acute_checks": 80,
+      "acute_event_dropped": 0,
+      "run_device_t": 5.132,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 427,
+      "session": 1338059754,
+      "host_t": 7.8279999999999745,
+      "event_ms": 546795,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6559,
+      "input_seq": 6559,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 5.467,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 446,
+      "session": 1338059754,
+      "host_t": 8.217999999999847,
+      "event_ms": 547130,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6563,
+      "input_seq": 6563,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 5.802,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 465,
+      "session": 1338059754,
+      "host_t": 8.625,
+      "event_ms": 547466,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6567,
+      "input_seq": 6567,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 4,
+      "acute_event_dropped": 0,
+      "run_device_t": 6.138,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 484,
+      "session": 1338059754,
+      "host_t": 9.045999999999822,
+      "event_ms": 547802,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6571,
+      "input_seq": 6571,
+      "acute_phase": 0,
+      "acute_reason": 5,
+      "acute_direction_code": 1,
+      "acute_checks": 32,
+      "acute_event_dropped": 0,
+      "run_device_t": 6.474,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 503,
+      "session": 1338059754,
+      "host_t": 9.045999999999822,
+      "event_ms": 548127,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6575,
+      "input_seq": 6575,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 68,
+      "acute_event_dropped": 0,
+      "run_device_t": 6.799,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 522,
+      "session": 1338059754,
+      "host_t": 9.467999999999847,
+      "event_ms": 548463,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6579,
+      "input_seq": 6579,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 1,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.135,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 541,
+      "session": 1338059754,
+      "host_t": 9.842999999999847,
+      "event_ms": 548797,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6583,
+      "input_seq": 6583,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.469,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 569,
+      "session": 1338059754,
+      "host_t": 10.280999999999949,
+      "event_ms": 549304,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6589,
+      "input_seq": 6589,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.976,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 589,
+      "session": 1338059754,
+      "host_t": 10.686999999999898,
+      "event_ms": 549625,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6593,
+      "input_seq": 6593,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 8.297,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 612,
+      "session": 1338059754,
+      "host_t": 11.108999999999924,
+      "event_ms": 550054,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6598,
+      "input_seq": 6598,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 1,
+      "acute_event_dropped": 0,
+      "run_device_t": 8.726,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 631,
+      "session": 1338059754,
+      "host_t": 11.530999999999949,
+      "event_ms": 550389,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6602,
+      "input_seq": 6602,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 2,
+      "acute_event_dropped": 0,
+      "run_device_t": 9.061,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 649,
+      "session": 1338059754,
+      "host_t": 11.920999999999822,
+      "event_ms": 550711,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6606,
+      "input_seq": 6606,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 68,
+      "acute_event_dropped": 0,
+      "run_device_t": 9.383,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 667,
+      "session": 1338059754,
+      "host_t": 11.920999999999822,
+      "event_ms": 551047,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6610,
+      "input_seq": 6610,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 9.719,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 755,
+      "session": 1338059754,
+      "host_t": 13.592999999999847,
+      "event_ms": 552636,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6629,
+      "input_seq": 6629,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 68,
+      "acute_event_dropped": 0,
+      "run_device_t": 11.308,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 773,
+      "session": 1338059754,
+      "host_t": 14.125,
+      "event_ms": 552974,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6633,
+      "input_seq": 6633,
+      "acute_phase": 0,
+      "acute_reason": 3,
+      "acute_direction_code": 0,
+      "acute_checks": 72,
+      "acute_event_dropped": 0,
+      "run_device_t": 11.646,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 783,
+      "session": 1338059754,
+      "host_t": 14.125,
+      "event_ms": 553128,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6635,
+      "input_seq": 6635,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 11.8,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 789,
+      "session": 1338059754,
+      "host_t": 14.514999999999873,
+      "event_ms": 553220,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6636,
+      "input_seq": 6636,
+      "acute_phase": 0,
+      "acute_reason": 3,
+      "acute_direction_code": 0,
+      "acute_checks": 72,
+      "acute_event_dropped": 0,
+      "run_device_t": 11.892,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 794,
+      "session": 1338059754,
+      "host_t": 14.514999999999873,
+      "event_ms": 553295,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6637,
+      "input_seq": 6637,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 11.967,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 852,
+      "session": 1338059754,
+      "host_t": 15.311999999999898,
+      "event_ms": 554303,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6649,
+      "input_seq": 6649,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 12.975,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 874,
+      "session": 1338059754,
+      "host_t": 15.670999999999822,
+      "event_ms": 554639,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6653,
+      "input_seq": 6653,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 0,
+      "acute_event_dropped": 0,
+      "run_device_t": 13.311,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 893,
+      "session": 1338059754,
+      "host_t": 16.061999999999898,
+      "event_ms": 554964,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6657,
+      "input_seq": 6657,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 66,
+      "acute_event_dropped": 0,
+      "run_device_t": 13.636,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 914,
+      "session": 1338059754,
+      "host_t": 16.42099999999982,
+      "event_ms": 555298,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6661,
+      "input_seq": 6661,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 13.97,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 939,
+      "session": 1338059754,
+      "host_t": 16.79599999999982,
+      "event_ms": 555725,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6666,
+      "input_seq": 6666,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 66,
+      "acute_event_dropped": 0,
+      "run_device_t": 14.397,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 954,
+      "session": 1338059754,
+      "host_t": 17.186999999999898,
+      "event_ms": 555971,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6669,
+      "input_seq": 6669,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 0,
+      "acute_checks": 80,
+      "acute_event_dropped": 0,
+      "run_device_t": 14.643,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 960,
+      "session": 1338059754,
+      "host_t": 17.186999999999898,
+      "event_ms": 556049,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6670,
+      "input_seq": 6670,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 66,
+      "acute_event_dropped": 0,
+      "run_device_t": 14.721,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 980,
+      "session": 1338059754,
+      "host_t": 17.592999999999847,
+      "event_ms": 556386,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6674,
+      "input_seq": 6674,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 15.058,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1005,
+      "session": 1338059754,
+      "host_t": 17.967999999999847,
+      "event_ms": 556798,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6679,
+      "input_seq": 6679,
+      "acute_phase": 0,
+      "acute_reason": 5,
+      "acute_direction_code": 1,
+      "acute_checks": 32,
+      "acute_event_dropped": 0,
+      "run_device_t": 15.47,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1015,
+      "session": 1338059754,
+      "host_t": 17.967999999999847,
+      "event_ms": 556966,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6681,
+      "input_seq": 6681,
+      "acute_phase": 0,
+      "acute_reason": 3,
+      "acute_direction_code": 2,
+      "acute_checks": 8,
+      "acute_event_dropped": 0,
+      "run_device_t": 15.638,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1021,
+      "session": 1338059754,
+      "host_t": 17.967999999999847,
+      "event_ms": 557056,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6682,
+      "input_seq": 6682,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 1,
+      "acute_event_dropped": 0,
+      "run_device_t": 15.728,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1042,
+      "session": 1338059754,
+      "host_t": 18.358999999999924,
+      "event_ms": 557391,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6686,
+      "input_seq": 6686,
+      "acute_phase": 0,
+      "acute_reason": 5,
+      "acute_direction_code": 1,
+      "acute_checks": 32,
+      "acute_event_dropped": 0,
+      "run_device_t": 16.063,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1064,
+      "session": 1338059754,
+      "host_t": 18.717999999999847,
+      "event_ms": 557717,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6690,
+      "input_seq": 6690,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 66,
+      "acute_event_dropped": 0,
+      "run_device_t": 16.389,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1083,
+      "session": 1338059754,
+      "host_t": 19.108999999999924,
+      "event_ms": 558053,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6694,
+      "input_seq": 6694,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 16.725,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1103,
+      "session": 1338059754,
+      "host_t": 19.483999999999924,
+      "event_ms": 558386,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6698,
+      "input_seq": 6698,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 17.058,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1178,
+      "session": 1338059754,
+      "host_t": 20.608999999999924,
+      "event_ms": 559643,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6713,
+      "input_seq": 6713,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 1,
+      "acute_event_dropped": 0,
+      "run_device_t": 18.315,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1198,
+      "session": 1338059754,
+      "host_t": 20.983999999999924,
+      "event_ms": 559979,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6717,
+      "input_seq": 6717,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 2,
+      "acute_event_dropped": 0,
+      "run_device_t": 18.651,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1218,
+      "session": 1338059754,
+      "host_t": 21.375,
+      "event_ms": 560301,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6721,
+      "input_seq": 6721,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 68,
+      "acute_event_dropped": 0,
+      "run_device_t": 18.973,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1239,
+      "session": 1338059754,
+      "host_t": 21.733999999999924,
+      "event_ms": 560636,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6725,
+      "input_seq": 6725,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 19.308,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1259,
+      "session": 1338059754,
+      "host_t": 22.092999999999847,
+      "event_ms": 560972,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6729,
+      "input_seq": 6729,
+      "acute_phase": 0,
+      "acute_reason": 5,
+      "acute_direction_code": 1,
+      "acute_checks": 32,
+      "acute_event_dropped": 0,
+      "run_device_t": 19.644,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1397,
+      "session": 1338059754,
+      "host_t": 24.375,
+      "event_ms": 563311,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6757,
+      "input_seq": 6757,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 0,
+      "acute_event_dropped": 0,
+      "run_device_t": 21.983,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1417,
+      "session": 1338059754,
+      "host_t": 24.78099999999995,
+      "event_ms": 563646,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6761,
+      "input_seq": 6761,
+      "acute_phase": 0,
+      "acute_reason": 5,
+      "acute_direction_code": 1,
+      "acute_checks": 32,
+      "acute_event_dropped": 0,
+      "run_device_t": 22.318,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1447,
+      "session": 1338059754,
+      "host_t": 25.125,
+      "event_ms": 564138,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6767,
+      "input_seq": 6767,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 22.81,
+      "host_phase": "dump"
+    },
+    {
+      "type": 4,
+      "tx_seq": 1466,
+      "session": 1338059754,
+      "host_t": 25.54599999999982,
+      "event_ms": 564474,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6771,
+      "input_seq": 6771,
+      "acute_phase": 0,
+      "acute_reason": 5,
+      "acute_direction_code": 1,
+      "acute_checks": 32,
+      "acute_event_dropped": 0,
+      "run_device_t": 23.146,
+      "host_phase": "dump"
+    }
+  ],
+  "formal_acute_events": [
+    {
+      "type": 4,
+      "tx_seq": 123,
+      "session": 1338059754,
+      "host_t": 2.467999999999847,
+      "event_ms": 541378,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6494,
+      "input_seq": 6494,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 0.05,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 205,
+      "session": 1338059754,
+      "host_t": 4.139999999999873,
+      "event_ms": 542879,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6512,
+      "input_seq": 6512,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 68,
+      "acute_event_dropped": 0,
+      "run_device_t": 1.551,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 224,
+      "session": 1338059754,
+      "host_t": 4.139999999999873,
+      "event_ms": 543215,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6516,
+      "input_seq": 6516,
+      "acute_phase": 1,
+      "acute_reason": 1,
+      "acute_direction_code": 0,
+      "acute_checks": 64,
+      "acute_event_dropped": 0,
+      "run_device_t": 1.887,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 229,
+      "session": 1338059754,
+      "host_t": 4.530999999999949,
+      "event_ms": 543295,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6517,
+      "input_seq": 6517,
+      "acute_phase": 0,
+      "acute_reason": 3,
+      "acute_direction_code": 0,
+      "acute_checks": 72,
+      "acute_event_dropped": 0,
+      "run_device_t": 1.967,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 239,
+      "session": 1338059754,
+      "host_t": 4.530999999999949,
+      "event_ms": 543460,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6519,
+      "input_seq": 6519,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 66,
+      "acute_event_dropped": 0,
+      "run_device_t": 2.132,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 258,
+      "session": 1338059754,
+      "host_t": 4.936999999999898,
+      "event_ms": 543795,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6523,
+      "input_seq": 6523,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 2.467,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 305,
+      "session": 1338059754,
+      "host_t": 5.780999999999949,
+      "event_ms": 544635,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6533,
+      "input_seq": 6533,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 0,
+      "acute_event_dropped": 0,
+      "run_device_t": 3.307,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 337,
+      "session": 1338059754,
+      "host_t": 6.170999999999822,
+      "event_ms": 545216,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6540,
+      "input_seq": 6540,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 3.888,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 361,
+      "session": 1338059754,
+      "host_t": 6.5779999999999745,
+      "event_ms": 545630,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6545,
+      "input_seq": 6545,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 0,
+      "acute_event_dropped": 0,
+      "run_device_t": 4.302,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 379,
+      "session": 1338059754,
+      "host_t": 6.983999999999924,
+      "event_ms": 545966,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6549,
+      "input_seq": 6549,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 4.638,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 398,
+      "session": 1338059754,
+      "host_t": 7.405999999999949,
+      "event_ms": 546302,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6553,
+      "input_seq": 6553,
+      "acute_phase": 0,
+      "acute_reason": 5,
+      "acute_direction_code": 1,
+      "acute_checks": 32,
+      "acute_event_dropped": 0,
+      "run_device_t": 4.974,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 408,
+      "session": 1338059754,
+      "host_t": 7.405999999999949,
+      "event_ms": 546460,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6555,
+      "input_seq": 6555,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 0,
+      "acute_checks": 80,
+      "acute_event_dropped": 0,
+      "run_device_t": 5.132,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 427,
+      "session": 1338059754,
+      "host_t": 7.8279999999999745,
+      "event_ms": 546795,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6559,
+      "input_seq": 6559,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 5.467,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 446,
+      "session": 1338059754,
+      "host_t": 8.217999999999847,
+      "event_ms": 547130,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6563,
+      "input_seq": 6563,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 5.802,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 465,
+      "session": 1338059754,
+      "host_t": 8.625,
+      "event_ms": 547466,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6567,
+      "input_seq": 6567,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 4,
+      "acute_event_dropped": 0,
+      "run_device_t": 6.138,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 484,
+      "session": 1338059754,
+      "host_t": 9.045999999999822,
+      "event_ms": 547802,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6571,
+      "input_seq": 6571,
+      "acute_phase": 0,
+      "acute_reason": 5,
+      "acute_direction_code": 1,
+      "acute_checks": 32,
+      "acute_event_dropped": 0,
+      "run_device_t": 6.474,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 503,
+      "session": 1338059754,
+      "host_t": 9.045999999999822,
+      "event_ms": 548127,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6575,
+      "input_seq": 6575,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 68,
+      "acute_event_dropped": 0,
+      "run_device_t": 6.799,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 522,
+      "session": 1338059754,
+      "host_t": 9.467999999999847,
+      "event_ms": 548463,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6579,
+      "input_seq": 6579,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 1,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.135,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 541,
+      "session": 1338059754,
+      "host_t": 9.842999999999847,
+      "event_ms": 548797,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6583,
+      "input_seq": 6583,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.469,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 569,
+      "session": 1338059754,
+      "host_t": 10.280999999999949,
+      "event_ms": 549304,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6589,
+      "input_seq": 6589,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 65,
+      "acute_event_dropped": 0,
+      "run_device_t": 7.976,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 589,
+      "session": 1338059754,
+      "host_t": 10.686999999999898,
+      "event_ms": 549625,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6593,
+      "input_seq": 6593,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 8.297,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 612,
+      "session": 1338059754,
+      "host_t": 11.108999999999924,
+      "event_ms": 550054,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6598,
+      "input_seq": 6598,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 1,
+      "acute_event_dropped": 0,
+      "run_device_t": 8.726,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 631,
+      "session": 1338059754,
+      "host_t": 11.530999999999949,
+      "event_ms": 550389,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6602,
+      "input_seq": 6602,
+      "acute_phase": 0,
+      "acute_reason": 6,
+      "acute_direction_code": 1,
+      "acute_checks": 2,
+      "acute_event_dropped": 0,
+      "run_device_t": 9.061,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 649,
+      "session": 1338059754,
+      "host_t": 11.920999999999822,
+      "event_ms": 550711,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6606,
+      "input_seq": 6606,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 68,
+      "acute_event_dropped": 0,
+      "run_device_t": 9.383,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 667,
+      "session": 1338059754,
+      "host_t": 11.920999999999822,
+      "event_ms": 551047,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6610,
+      "input_seq": 6610,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 9.719,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 755,
+      "session": 1338059754,
+      "host_t": 13.592999999999847,
+      "event_ms": 552636,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6629,
+      "input_seq": 6629,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 68,
+      "acute_event_dropped": 0,
+      "run_device_t": 11.308,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 773,
+      "session": 1338059754,
+      "host_t": 14.125,
+      "event_ms": 552974,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6633,
+      "input_seq": 6633,
+      "acute_phase": 0,
+      "acute_reason": 3,
+      "acute_direction_code": 0,
+      "acute_checks": 72,
+      "acute_event_dropped": 0,
+      "run_device_t": 11.646,
+      "host_phase": "formal"
+    },
+    {
+      "type": 4,
+      "tx_seq": 783,
+      "session": 1338059754,
+      "host_t": 14.125,
+      "event_ms": 553128,
+      "param_revision": 6,
+      "event_code": 3,
+      "schema": 1,
+      "control_seq": 6635,
+      "input_seq": 6635,
+      "acute_phase": 0,
+      "acute_reason": 0,
+      "acute_direction_code": 1,
+      "acute_checks": 512,
+      "acute_event_dropped": 0,
+      "run_device_t": 11.8,
+      "host_phase": "formal"
+    }
+  ],
+  "pairs": {
+    "5": 146,
+    "8": 143,
+    "10": 29
+  },
+  "phases": {
+    "0": 28,
+    "1": 1
+  },
+  "models": {
+    "0": 28,
+    "2": 1
+  },
+  "avoidance": {
+    "0": 143,
+    "None": 6
+  },
+  "control_dt_us": {
+    "n": 149,
+    "min": 75232,
+    "median": 79226,
+    "max": 93181
+  },
+  "process_us": {
+    "n": 146,
+    "min": 4491,
+    "median": 5174.0,
+    "max": 8797
+  },
+  "pd_d": {
+    "n": 146,
+    "min": -25.794626235961914,
+    "median": 0.0,
+    "max": 29.783153533935547
+  },
+  "pwm": {
+    "n": 149,
+    "min": 1310.0,
+    "median": 1533.0,
+    "max": 1720.0
+  },
+  "cloud_count": 8,
+  "clouds_complete": 8,
+  "cloud_meta": [
+    {
+      "type": 9,
+      "tx_seq": 819,
+      "session": 1338059754,
+      "host_t": 14.905999999999949,
+      "schema": 4,
+      "snapshot_id": 3,
+      "frame_index": 0,
+      "control_seq": 6514,
+      "param_revision": 6,
+      "input_seq": 6514,
+      "input_us": 543040150,
+      "epoch": 1,
+      "trigger_flags": 0,
+      "total_points": 244,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          232,
+          100
+        ],
+        [
+          228,
+          102
+        ],
+        [
+          216,
+          100
+        ],
+        [
+          215,
+          102
+        ],
+        [
+          218,
+          104
+        ],
+        [
+          217,
+          106
+        ],
+        [
+          220,
+          111
+        ],
+        [
+          231,
+          118
+        ],
+        [
+          238,
+          124
+        ],
+        [
+          231,
+          124
+        ],
+        [
+          231,
+          125
+        ],
+        [
+          222,
+          124
+        ],
+        [
+          224,
+          128
+        ],
+        [
+          230,
+          134
+        ],
+        [
+          228,
+          136
+        ],
+        [
+          223,
+          136
+        ],
+        [
+          219,
+          135
+        ],
+        [
+          219,
+          138
+        ],
+        [
+          223,
+          143
+        ],
+        [
+          222,
+          146
+        ],
+        [
+          219,
+          148
+        ],
+        [
+          214,
+          145
+        ],
+        [
+          216,
+          149
+        ],
+        [
+          216,
+          152
+        ],
+        [
+          213,
+          154
+        ],
+        [
+          216,
+          159
+        ],
+        [
+          211,
+          158
+        ],
+        [
+          218,
+          166
+        ],
+        [
+          225,
+          175
+        ],
+        [
+          228,
+          180
+        ],
+        [
+          224,
+          180
+        ],
+        [
+          225,
+          183
+        ],
+        [
+          217,
+          181
+        ],
+        [
+          220,
+          185
+        ],
+        [
+          219,
+          188
+        ],
+        [
+          220,
+          194
+        ],
+        [
+          215,
+          191
+        ],
+        [
+          208,
+          190
+        ],
+        [
+          207,
+          192
+        ],
+        [
+          203,
+          191
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 905,
+      "session": 1338059754,
+      "host_t": 16.42099999999982,
+      "schema": 4,
+      "snapshot_id": 3,
+      "frame_index": 1,
+      "control_seq": 6515,
+      "param_revision": 6,
+      "input_seq": 6515,
+      "input_us": 543118781,
+      "epoch": 1,
+      "trigger_flags": 0,
+      "total_points": 251,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          210,
+          101
+        ],
+        [
+          221,
+          108
+        ],
+        [
+          214,
+          107
+        ],
+        [
+          216,
+          112
+        ],
+        [
+          219,
+          115
+        ],
+        [
+          221,
+          117
+        ],
+        [
+          226,
+          123
+        ],
+        [
+          213,
+          119
+        ],
+        [
+          213,
+          122
+        ],
+        [
+          216,
+          125
+        ],
+        [
+          217,
+          128
+        ],
+        [
+          219,
+          131
+        ],
+        [
+          217,
+          133
+        ],
+        [
+          213,
+          135
+        ],
+        [
+          213,
+          135
+        ],
+        [
+          211,
+          137
+        ],
+        [
+          212,
+          142
+        ],
+        [
+          210,
+          142
+        ],
+        [
+          209,
+          144
+        ],
+        [
+          204,
+          145
+        ],
+        [
+          211,
+          150
+        ],
+        [
+          200,
+          147
+        ],
+        [
+          202,
+          150
+        ],
+        [
+          211,
+          159
+        ],
+        [
+          214,
+          165
+        ],
+        [
+          221,
+          173
+        ],
+        [
+          218,
+          176
+        ],
+        [
+          217,
+          177
+        ],
+        [
+          213,
+          176
+        ],
+        [
+          217,
+          182
+        ],
+        [
+          210,
+          182
+        ],
+        [
+          208,
+          183
+        ],
+        [
+          209,
+          185
+        ],
+        [
+          205,
+          188
+        ],
+        [
+          200,
+          186
+        ],
+        [
+          196,
+          185
+        ],
+        [
+          203,
+          192
+        ],
+        [
+          210,
+          204
+        ],
+        [
+          217,
+          216
+        ],
+        [
+          211,
+          212
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 993,
+      "session": 1338059754,
+      "host_t": 17.592999999999847,
+      "schema": 4,
+      "snapshot_id": 3,
+      "frame_index": 2,
+      "control_seq": 6516,
+      "param_revision": 6,
+      "input_seq": 6516,
+      "input_us": 543208346,
+      "epoch": 1,
+      "trigger_flags": 128,
+      "total_points": 270,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          210,
+          100
+        ],
+        [
+          218,
+          106
+        ],
+        [
+          225,
+          113
+        ],
+        [
+          227,
+          116
+        ],
+        [
+          216,
+          112
+        ],
+        [
+          224,
+          119
+        ],
+        [
+          222,
+          121
+        ],
+        [
+          218,
+          121
+        ],
+        [
+          212,
+          121
+        ],
+        [
+          214,
+          124
+        ],
+        [
+          218,
+          129
+        ],
+        [
+          209,
+          126
+        ],
+        [
+          211,
+          130
+        ],
+        [
+          210,
+          131
+        ],
+        [
+          207,
+          133
+        ],
+        [
+          208,
+          137
+        ],
+        [
+          205,
+          136
+        ],
+        [
+          205,
+          138
+        ],
+        [
+          219,
+          152
+        ],
+        [
+          220,
+          155
+        ],
+        [
+          218,
+          158
+        ],
+        [
+          215,
+          158
+        ],
+        [
+          219,
+          162
+        ],
+        [
+          218,
+          164
+        ],
+        [
+          216,
+          168
+        ],
+        [
+          212,
+          166
+        ],
+        [
+          213,
+          172
+        ],
+        [
+          207,
+          169
+        ],
+        [
+          212,
+          175
+        ],
+        [
+          202,
+          171
+        ],
+        [
+          200,
+          173
+        ],
+        [
+          202,
+          176
+        ],
+        [
+          200,
+          177
+        ],
+        [
+          204,
+          185
+        ],
+        [
+          210,
+          195
+        ],
+        [
+          210,
+          196
+        ],
+        [
+          213,
+          206
+        ],
+        [
+          206,
+          200
+        ],
+        [
+          212,
+          209
+        ],
+        [
+          206,
+          210
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 1078,
+      "session": 1338059754,
+      "host_t": 19.108999999999924,
+      "schema": 4,
+      "snapshot_id": 3,
+      "frame_index": 3,
+      "control_seq": 6517,
+      "param_revision": 6,
+      "input_seq": 6517,
+      "input_us": 543286499,
+      "epoch": 1,
+      "trigger_flags": 0,
+      "total_points": 272,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          222,
+          102
+        ],
+        [
+          221,
+          105
+        ],
+        [
+          221,
+          106
+        ],
+        [
+          226,
+          110
+        ],
+        [
+          215,
+          108
+        ],
+        [
+          218,
+          112
+        ],
+        [
+          220,
+          116
+        ],
+        [
+          217,
+          117
+        ],
+        [
+          213,
+          116
+        ],
+        [
+          213,
+          118
+        ],
+        [
+          202,
+          115
+        ],
+        [
+          196,
+          115
+        ],
+        [
+          207,
+          124
+        ],
+        [
+          204,
+          124
+        ],
+        [
+          203,
+          125
+        ],
+        [
+          201,
+          126
+        ],
+        [
+          205,
+          131
+        ],
+        [
+          216,
+          142
+        ],
+        [
+          218,
+          147
+        ],
+        [
+          218,
+          149
+        ],
+        [
+          214,
+          148
+        ],
+        [
+          215,
+          152
+        ],
+        [
+          219,
+          157
+        ],
+        [
+          218,
+          159
+        ],
+        [
+          214,
+          159
+        ],
+        [
+          208,
+          159
+        ],
+        [
+          212,
+          163
+        ],
+        [
+          209,
+          165
+        ],
+        [
+          208,
+          166
+        ],
+        [
+          203,
+          166
+        ],
+        [
+          195,
+          163
+        ],
+        [
+          192,
+          164
+        ],
+        [
+          197,
+          169
+        ],
+        [
+          203,
+          177
+        ],
+        [
+          207,
+          184
+        ],
+        [
+          210,
+          190
+        ],
+        [
+          211,
+          195
+        ],
+        [
+          209,
+          197
+        ],
+        [
+          206,
+          197
+        ],
+        [
+          207,
+          202
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 1164,
+      "session": 1338059754,
+      "host_t": 20.608999999999924,
+      "schema": 4,
+      "snapshot_id": 3,
+      "frame_index": 4,
+      "control_seq": 6533,
+      "param_revision": 6,
+      "input_seq": 6533,
+      "input_us": 544629539,
+      "epoch": 1,
+      "trigger_flags": 33,
+      "total_points": 265,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          165,
+          100
+        ],
+        [
+          166,
+          102
+        ],
+        [
+          159,
+          101
+        ],
+        [
+          164,
+          108
+        ],
+        [
+          162,
+          108
+        ],
+        [
+          169,
+          115
+        ],
+        [
+          167,
+          115
+        ],
+        [
+          167,
+          119
+        ],
+        [
+          169,
+          121
+        ],
+        [
+          164,
+          120
+        ],
+        [
+          167,
+          125
+        ],
+        [
+          157,
+          119
+        ],
+        [
+          163,
+          127
+        ],
+        [
+          156,
+          123
+        ],
+        [
+          155,
+          123
+        ],
+        [
+          155,
+          127
+        ],
+        [
+          151,
+          126
+        ],
+        [
+          153,
+          129
+        ],
+        [
+          149,
+          129
+        ],
+        [
+          150,
+          130
+        ],
+        [
+          146,
+          130
+        ],
+        [
+          147,
+          134
+        ],
+        [
+          147,
+          136
+        ],
+        [
+          145,
+          136
+        ],
+        [
+          147,
+          140
+        ],
+        [
+          160,
+          156
+        ],
+        [
+          159,
+          156
+        ],
+        [
+          154,
+          156
+        ],
+        [
+          157,
+          161
+        ],
+        [
+          153,
+          160
+        ],
+        [
+          153,
+          162
+        ],
+        [
+          150,
+          161
+        ],
+        [
+          148,
+          164
+        ],
+        [
+          147,
+          165
+        ],
+        [
+          146,
+          167
+        ],
+        [
+          143,
+          166
+        ],
+        [
+          139,
+          165
+        ],
+        [
+          140,
+          169
+        ],
+        [
+          139,
+          170
+        ],
+        [
+          137,
+          172
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 1250,
+      "session": 1338059754,
+      "host_t": 21.733999999999924,
+      "schema": 4,
+      "snapshot_id": 3,
+      "frame_index": 5,
+      "control_seq": 6534,
+      "param_revision": 6,
+      "input_seq": 6534,
+      "input_us": 544707673,
+      "epoch": 1,
+      "trigger_flags": 96,
+      "total_points": 256,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          154,
+          105
+        ],
+        [
+          154,
+          107
+        ],
+        [
+          161,
+          113
+        ],
+        [
+          161,
+          116
+        ],
+        [
+          157,
+          114
+        ],
+        [
+          155,
+          115
+        ],
+        [
+          156,
+          119
+        ],
+        [
+          163,
+          127
+        ],
+        [
+          155,
+          122
+        ],
+        [
+          156,
+          124
+        ],
+        [
+          146,
+          119
+        ],
+        [
+          148,
+          122
+        ],
+        [
+          144,
+          123
+        ],
+        [
+          151,
+          129
+        ],
+        [
+          142,
+          125
+        ],
+        [
+          140,
+          124
+        ],
+        [
+          138,
+          125
+        ],
+        [
+          138,
+          127
+        ],
+        [
+          136,
+          127
+        ],
+        [
+          136,
+          130
+        ],
+        [
+          134,
+          131
+        ],
+        [
+          131,
+          129
+        ],
+        [
+          139,
+          140
+        ],
+        [
+          139,
+          143
+        ],
+        [
+          136,
+          143
+        ],
+        [
+          143,
+          153
+        ],
+        [
+          140,
+          151
+        ],
+        [
+          141,
+          154
+        ],
+        [
+          138,
+          154
+        ],
+        [
+          134,
+          152
+        ],
+        [
+          132,
+          154
+        ],
+        [
+          138,
+          163
+        ],
+        [
+          136,
+          163
+        ],
+        [
+          129,
+          156
+        ],
+        [
+          121,
+          151
+        ],
+        [
+          127,
+          161
+        ],
+        [
+          120,
+          156
+        ],
+        [
+          122,
+          160
+        ],
+        [
+          121,
+          162
+        ],
+        [
+          120,
+          164
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 1333,
+      "session": 1338059754,
+      "host_t": 23.25,
+      "schema": 4,
+      "snapshot_id": 3,
+      "frame_index": 6,
+      "control_seq": 6535,
+      "param_revision": 6,
+      "input_seq": 6535,
+      "input_us": 544786157,
+      "epoch": 1,
+      "trigger_flags": 33,
+      "total_points": 269,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          153,
+          100
+        ],
+        [
+          155,
+          103
+        ],
+        [
+          152,
+          102
+        ],
+        [
+          153,
+          106
+        ],
+        [
+          145,
+          102
+        ],
+        [
+          146,
+          105
+        ],
+        [
+          142,
+          103
+        ],
+        [
+          142,
+          105
+        ],
+        [
+          140,
+          106
+        ],
+        [
+          136,
+          105
+        ],
+        [
+          136,
+          107
+        ],
+        [
+          132,
+          107
+        ],
+        [
+          132,
+          108
+        ],
+        [
+          129,
+          107
+        ],
+        [
+          130,
+          109
+        ],
+        [
+          125,
+          107
+        ],
+        [
+          130,
+          114
+        ],
+        [
+          128,
+          114
+        ],
+        [
+          128,
+          116
+        ],
+        [
+          129,
+          120
+        ],
+        [
+          135,
+          126
+        ],
+        [
+          127,
+          121
+        ],
+        [
+          139,
+          135
+        ],
+        [
+          136,
+          136
+        ],
+        [
+          137,
+          138
+        ],
+        [
+          134,
+          137
+        ],
+        [
+          135,
+          141
+        ],
+        [
+          130,
+          139
+        ],
+        [
+          129,
+          139
+        ],
+        [
+          126,
+          140
+        ],
+        [
+          125,
+          141
+        ],
+        [
+          123,
+          141
+        ],
+        [
+          125,
+          145
+        ],
+        [
+          125,
+          146
+        ],
+        [
+          113,
+          138
+        ],
+        [
+          114,
+          141
+        ],
+        [
+          119,
+          149
+        ],
+        [
+          113,
+          144
+        ],
+        [
+          108,
+          139
+        ],
+        [
+          113,
+          148
+        ]
+      ]
+    },
+    {
+      "type": 9,
+      "tx_seq": 1419,
+      "session": 1338059754,
+      "host_t": 24.78099999999995,
+      "schema": 4,
+      "snapshot_id": 3,
+      "frame_index": 7,
+      "control_seq": 6536,
+      "param_revision": 6,
+      "input_seq": 6536,
+      "input_us": 544875705,
+      "epoch": 1,
+      "trigger_flags": 33,
+      "total_points": 249,
+      "offset": 0,
+      "count": 40,
+      "points": [
+        [
+          116,
+          102
+        ],
+        [
+          121,
+          110
+        ],
+        [
+          123,
+          114
+        ],
+        [
+          119,
+          111
+        ],
+        [
+          121,
+          115
+        ],
+        [
+          118,
+          115
+        ],
+        [
+          115,
+          113
+        ],
+        [
+          114,
+          115
+        ],
+        [
+          119,
+          122
+        ],
+        [
+          115,
+          121
+        ],
+        [
+          113,
+          120
+        ],
+        [
+          116,
+          126
+        ],
+        [
+          110,
+          121
+        ],
+        [
+          108,
+          122
+        ],
+        [
+          102,
+          116
+        ],
+        [
+          102,
+          120
+        ],
+        [
+          104,
+          122
+        ],
+        [
+          104,
+          125
+        ],
+        [
+          102,
+          125
+        ],
+        [
+          96,
+          119
+        ],
+        [
+          99,
+          125
+        ],
+        [
+          92,
+          118
+        ],
+        [
+          98,
+          129
+        ],
+        [
+          98,
+          131
+        ],
+        [
+          95,
+          130
+        ],
+        [
+          96,
+          134
+        ],
+        [
+          95,
+          135
+        ],
+        [
+          94,
+          136
+        ],
+        [
+          99,
+          146
+        ],
+        [
+          94,
+          140
+        ],
+        [
+          95,
+          145
+        ],
+        [
+          92,
+          144
+        ],
+        [
+          93,
+          149
+        ],
+        [
+          89,
+          144
+        ],
+        [
+          91,
+          151
+        ],
+        [
+          89,
+          150
+        ],
+        [
+          91,
+          156
+        ],
+        [
+          92,
+          163
+        ],
+        [
+          90,
+          162
+        ],
+        [
+          90,
+          165
+        ]
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "t": 0.01499999999987267,
+      "command": "info"
+    },
+    {
+      "t": 0.42099999999982174,
+      "command": "session 1338059754"
+    },
+    {
+      "t": 0.8279999999999745,
+      "command": "tele 3"
+    },
+    {
+      "t": 1.2649999999998727,
+      "command": "rate 1"
+    },
+    {
+      "t": 1.6709999999998217,
+      "command": "getcfg"
+    },
+    {
+      "t": 2.061999999999898,
+      "command": "spd 17"
+    },
+    {
+      "t": 14.125,
+      "command": "cloud freeze"
+    },
+    {
+      "t": 14.514999999999873,
+      "command": "cloud dump"
+    },
+    {
+      "t": 15.311999999999898,
+      "command": "cloud status"
+    },
+    {
+      "t": 16.42099999999982,
+      "command": "cloud status"
+    },
+    {
+      "t": 17.592999999999847,
+      "command": "cloud status"
+    },
+    {
+      "t": 18.717999999999847,
+      "command": "cloud status"
+    },
+    {
+      "t": 19.875,
+      "command": "cloud status"
+    },
+    {
+      "t": 20.983999999999924,
+      "command": "cloud status"
+    },
+    {
+      "t": 22.108999999999924,
+      "command": "cloud status"
+    },
+    {
+      "t": 23.264999999999873,
+      "command": "cloud status"
+    },
+    {
+      "t": 24.389999999999873,
+      "command": "cloud status"
+    },
+    {
+      "t": 25.561999999999898,
+      "command": "cloud status"
+    }
+  ]
+}

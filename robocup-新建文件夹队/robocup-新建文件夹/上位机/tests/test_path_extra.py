@@ -109,7 +109,6 @@ class PathExtraTests(unittest.TestCase):
                     if text=='getcfg':
                         frames=config_frames(session=self.session)
                         self.buffer+=b''.join(frames);self.seq=len(frames)
-                return len(command)
             def read(self, size):
                 if self.buffer:
                     data=self.buffer[:size];self.buffer=self.buffer[size:];return data

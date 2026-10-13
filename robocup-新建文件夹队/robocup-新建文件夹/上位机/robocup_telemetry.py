@@ -1000,12 +1000,7 @@ def cmd_capture(a):
     return 1 if a.diag and not parser.total_frames else 0
 
 
-def cmd_capture_v2(a, *, connection=None, service=None, stop_requested=None, on_ready=None, notify=None):
-    """CLI可独占串口；GUI借用同一工作线程的连接，并在读循环中处理电机命令。
-
-    service返回False可提前结束协商/导出；停止采集仍保留原点云导出流程。
-    借用连接不在此关闭，保证采集结束和生成报告期间仍能关闭电机。
-    """
+def cmd_capture_v2(a):
     import serial
     if not math.isfinite(a.sec) or a.sec<=0:raise ValueError("采集时长必须大于0")
     import uuid
@@ -1018,25 +1013,17 @@ def cmd_capture_v2(a, *, connection=None, service=None, stop_requested=None, on_
     start=time.monotonic();formal=None;end_reason="complete";error=None
     meta={"run_uuid":str(uuid.uuid4()),"started_utc":datetime.now(timezone.utc).isoformat(),
           "host_version":"v2.1","host_sha256":hashlib.sha256(Path(__file__).read_bytes()+Path(v2.__file__).read_bytes()).hexdigest(),"protocol":2,"port":port,"baud":a.baud,"requested_rate":a.rate}
-    serial_port=connection if connection is not None else serial.Serial(port,a.baud,timeout=.03)
-    announce=notify or (lambda message: print(message,flush=True))
+    serial_port=serial.Serial(port,a.baud,timeout=.03)
     def send(cmd):
         events.append({"t":time.monotonic()-start,"command":cmd.strip()})
-        data=cmd.encode("ascii")
-        if serial_port.write(data)!=len(data):raise IOError("串口命令未完整发送")
-        return True
+        serial_port.write(cmd.encode("ascii"));return True
     handshake=v2.Handshake(send,parser,a.rate)
     try:
         with open(path,"wb") as raw,open(path+".rx.jsonl","w",encoding="utf-8") as rx:
             handshake.start(time.monotonic())
             last_rx=time.monotonic()
             while True:
-                if service and service(parser,send,"negotiating" if formal is None else "capture") is False:
-                    end_reason="user_stop"
-                    if formal is None:error="协商已取消；原始数据已保存，未进入正式采集"
-                    break
-                if ((a.stop_file and os.path.exists(a.stop_file)) or
-                        (stop_requested and stop_requested())):
+                if a.stop_file and os.path.exists(a.stop_file):
                     end_reason="user_stop"
                     if formal is None:error="协商未完成即停止；原始数据已保存，不能作为正式run"
                     break
@@ -1050,8 +1037,7 @@ def cmd_capture_v2(a, *, connection=None, service=None, stop_requested=None, on_
                     if handshake.done:
                         formal=now;meta["pre_roll_s"]=now-start
                         meta["session"]=handshake.session;meta["info"]=handshake.info
-                        announce("V2协商及配置完整，开始正式采集")
-                        if on_ready:on_ready()
+                        print("V2协商及配置完整，开始正式采集",flush=True)
                 else:
                     if any(m["session"]!=handshake.session for m in parser.v2.messages[-10:]):
                         raise ValueError("设备会话改变，停止当前run并重新协商")
@@ -1068,7 +1054,7 @@ def cmd_capture_v2(a, *, connection=None, service=None, stop_requested=None, on_
             if formal is not None and any(x in (handshake.info or '') for x in ('cloud=1', 'cloud=2')):
                 # 双快照最多3200点，按40点/200ms发送需要16秒，额外留队列排空余量。
                 dump_timeout = 24 if 'cloud=2' in handshake.info else 12
-                announce(f'正式采集结束，正在导出冻结点云（最多{dump_timeout}秒）')
+                print(f'正式采集结束，正在导出冻结点云（最多{dump_timeout}秒）', flush=True)
                 cursor=len(parser.ascii_lines)
                 # 等freeze/status确认后再dump，避免设备尚未处理冻结命令就启动导出。
                 send('cloud freeze\n')
@@ -1077,8 +1063,6 @@ def cmd_capture_v2(a, *, connection=None, service=None, stop_requested=None, on_
                 dump_attempts=0;last_dump=0;export_cursor=len(parser.v2.messages)
                 meta['cloud_dump']='timeout_or_incomplete'
                 while time.monotonic()<deadline:
-                    if service and service(parser,send,"dump") is False:
-                        meta['cloud_dump']='cancelled';break
                     chunk=serial_port.read(4096);now=time.monotonic()
                     if chunk:
                         raw.write(chunk);hasher.update(chunk)
@@ -1121,14 +1105,13 @@ def cmd_capture_v2(a, *, connection=None, service=None, stop_requested=None, on_
     except KeyboardInterrupt:end_reason="user_interrupt"
     except Exception as exc:end_reason="error";error=str(exc)
     finally:
-        if connection is None:serial_port.close()
-        duration=time.monotonic()-start
+        serial_port.close();duration=time.monotonic()-start
         meta.update(version=1,clock="host_monotonic",duration_s=duration,bytes=offset,
                     sha256=hasher.hexdigest(),ended_utc=datetime.now(timezone.utc).isoformat(),
                     end_reason=end_reason,error=error,commands=events,
                     configs={f"{sid}:{rev}":cfg for (sid,rev),cfg in parser.v2.configs.items()})
         with open(path+".meta.json","w",encoding="utf-8") as f:json.dump(meta,f,ensure_ascii=False,indent=2)
-    announce("已保存 "+path+("；错误："+error if error else ""))
+    print("已保存 "+path+("；错误："+error if error else ""),flush=True)
     return 1 if error else 0
 
 

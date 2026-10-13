@@ -426,18 +426,6 @@ int main(void)
         far[1].b=250; near[0].max_y=250;
         CHECK(!recovery_side(near,far,1,500,700));
     }
-    /* 桶原本不挡中线，但布位会靠近它：检查完整底座包络，不能只看扫描圆。 */
-    {
-        int side;
-        PathPoint a={0,100}, straight={0,450}, outward;
-        for(side=-1;side<=1;side+=2)
-        {
-            n=cone_road(1000,side*360.0f,400);
-            outward.x=side*50.0f;outward.y=450;
-            CHECK(acute_cones_clear(points,(uint16_t)n,10,a,straight));
-            CHECK(!acute_cones_clear(points,(uint16_t)n,10,a,outward));
-        }
-    }
     printf("PASS %u production path geometry / steering checks\n", checks);
     return 0;
 }

@@ -1,0 +1,74 @@
+[
+  {
+    "t": 0.1089999999999236,
+    "text": "INFO proto=1,2 layout=rc26-mask31-v2.1 fw=sha256-59f2128e3e3ec016 lidar=3 algorithm=4 input=1 atomic=0 detail=2 motor=1 extra=1 cloud=2 race=2"
+  },
+  {
+    "t": 0.20299999999997453,
+    "text": "OK session 179554638"
+  },
+  {
+    "t": 0.7029999999999745,
+    "text": "OK tele 3"
+  },
+  {
+    "t": 1.125,
+    "text": "OK rate 1"
+  },
+  {
+    "t": 1.5149999999998727,
+    "text": "OK getcfg"
+  },
+  {
+    "t": 1.8899999999998727,
+    "text": "OK spd=17"
+  },
+  {
+    "t": 8.047000000000025,
+    "text": "CLOUD id=1 state=2 frames=8 sending=0"
+  },
+  {
+    "t": 8.422000000000025,
+    "text": "CLOUD id=1 state=2 frames=8 sending=1"
+  },
+  {
+    "t": 9.202999999999975,
+    "text": "CLOUD id=1 state=2 frames=8 sending=1"
+  },
+  {
+    "t": 10.344000000000051,
+    "text": "CLOUD id=1 state=2 frames=8 sending=1"
+  },
+  {
+    "t": 11.469000000000051,
+    "text": "CLOUD id=1 state=2 frames=8 sending=1"
+  },
+  {
+    "t": 12.625,
+    "text": "CLOUD id=1 state=2 frames=8 sending=1"
+  },
+  {
+    "t": 13.764999999999873,
+    "text": "CLOUD id=1 state=2 frames=8 sending=1"
+  },
+  {
+    "t": 14.905999999999949,
+    "text": "CLOUD id=1 state=2 frames=8 sending=1"
+  },
+  {
+    "t": 16.03099999999995,
+    "text": "CLOUD id=1 state=2 frames=8 sending=1"
+  },
+  {
+    "t": 17.172000000000025,
+    "text": "CLOUD id=1 state=2 frames=8 sending=1"
+  },
+  {
+    "t": 18.233999999999924,
+    "text": "CLOUD id=1 state=2 frames=8 sending=1"
+  },
+  {
+    "t": 18.233999999999924,
+    "text": "OK spd=0"
+  }
+]

@@ -103,25 +103,25 @@ class TelemetryTests(unittest.TestCase):
             core.write_csv(parsed, str(Path(d)/"demo.csv"))
             core.write_report(r, str(Path(d)/"demo.md"))
 
-    def test_gui_detection_uses_unique_v2_file_and_start_speed(self):
+    def test_gui_capture_resets_session(self):
         gui = importlib.import_module("robocup_gui")
         app = gui.App.__new__(gui.App)
-        app.connected, app.capturing, app.reporting = True, False, False
-        jobs = []
-        app.session = type("Session", (), {"port": "FAKE", "baud": 115200,
-            "request_capture": lambda self, args, speed: jobs.append((args, speed))})()
-        app.seconds = type("Value", (), {"get": lambda self: "5"})()
-        app.capture_text = app.progress_text = type("Label", (), {"set": lambda self, value: None})()
-        app._start_speed = lambda: 17
-        app._buttons = lambda: None
+        app.ser, app.capturing = object(), False
+        app.parser = core.StreamParser()
+        app.parser.feed(frame())
+        app.raw = bytearray(b"old")
+        app.sp_sec = type("Value", (), {"get": lambda self: "5"})()
+        app.btn_start, app.btn_diag, app.btn_stop = {}, {}, {}
         app.log = lambda s: None
+        app.send = lambda s: True
         for _ in range(2):
-            gui.App.start_detection(app)
-            self.assertTrue(app.capturing)
-            self.assertEqual(app.phase, "negotiating")
+            gui.App.start_capture(app)
+            self.assertEqual(app.raw, b"")
+            self.assertEqual(app.rx_events, [])
+            self.assertEqual(app.parser.total_frames, 0)
+            app.parser.feed(frame())
+            app.raw.extend(frame())
             app.capturing = False
-        self.assertNotEqual(jobs[0][0].out, jobs[1][0].out)
-        self.assertTrue(all(speed == 17 and args.rate == 1 and args.sec == 5 for args, speed in jobs))
 
 
 if __name__ == "__main__":

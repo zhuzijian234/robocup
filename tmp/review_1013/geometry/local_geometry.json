@@ -1,0 +1,883 @@
+[
+  {
+    "tag": "194302",
+    "session": "179554638",
+    "seq": 3999,
+    "revision": 2,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 222,
+    "outward_mm": -67.69109417061463,
+    "equivalent_width_mm": 452.9384163702823,
+    "local_yaw_rad": -0.11539967474691122,
+    "left_mm": 158.77811401452652,
+    "right_mm": 294.1603023557558,
+    "outer_feature_50mm_y_range": null,
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194302",
+    "session": "179554638",
+    "seq": 4000,
+    "revision": 2,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 228,
+    "outward_mm": -55.57309801043387,
+    "equivalent_width_mm": 459.767090183899,
+    "local_yaw_rad": -0.14051810943545706,
+    "left_mm": 174.3104470815156,
+    "right_mm": 285.45664310238334,
+    "outer_feature_50mm_y_range": [
+      1100.0,
+      1150.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194302",
+    "session": "179554638",
+    "seq": 4001,
+    "revision": 2,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 242,
+    "outward_mm": -40.142076788828874,
+    "equivalent_width_mm": 459.3817025493546,
+    "local_yaw_rad": -0.12787370746978288,
+    "left_mm": 189.54877448584844,
+    "right_mm": 269.8329280635062,
+    "outer_feature_50mm_y_range": [
+      900.0,
+      950.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194302",
+    "session": "179554638",
+    "seq": 4002,
+    "revision": 2,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 261,
+    "outward_mm": -28.07986797599402,
+    "equivalent_width_mm": 465.8574069176849,
+    "local_yaw_rad": -0.14653880341244024,
+    "left_mm": 204.84883548284844,
+    "right_mm": 261.0085714348365,
+    "outer_feature_50mm_y_range": [
+      900.0,
+      950.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194302",
+    "session": "179554638",
+    "seq": 4012,
+    "revision": 2,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 274,
+    "outer_feature_50mm_y_range": [
+      450.0,
+      500.0
+    ],
+    "near_wall_failures": [
+      "no_near_seed",
+      null
+    ]
+  },
+  {
+    "tag": "194302",
+    "session": "179554638",
+    "seq": 4013,
+    "revision": 2,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 270,
+    "outer_feature_50mm_y_range": [
+      450.0,
+      500.0
+    ],
+    "near_wall_failures": [
+      "no_near_seed",
+      null
+    ]
+  },
+  {
+    "tag": "194302",
+    "session": "179554638",
+    "seq": 4014,
+    "revision": 2,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 273,
+    "outer_feature_50mm_y_range": [
+      450.0,
+      500.0
+    ],
+    "near_wall_failures": [
+      "no_near_seed",
+      null
+    ]
+  },
+  {
+    "tag": "194302",
+    "session": "179554638",
+    "seq": 4015,
+    "revision": 2,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 274,
+    "outer_feature_50mm_y_range": [
+      450.0,
+      500.0
+    ],
+    "near_wall_failures": [
+      "no_near_seed",
+      null
+    ]
+  },
+  {
+    "tag": "194450",
+    "session": "1295771703",
+    "seq": 5306,
+    "revision": 4,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 274,
+    "outward_mm": 1.1322037854685192,
+    "equivalent_width_mm": 506.347945836555,
+    "local_yaw_rad": -0.21008509183415053,
+    "left_mm": 254.30617670374602,
+    "right_mm": 252.04176913280898,
+    "outer_feature_50mm_y_range": [
+      650.0,
+      700.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194450",
+    "session": "1295771703",
+    "seq": 5307,
+    "revision": 4,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 274,
+    "outward_mm": 17.360479934384344,
+    "equivalent_width_mm": 530.2703589491775,
+    "local_yaw_rad": -0.16550131653769296,
+    "left_mm": 282.4956594089731,
+    "right_mm": 247.7746995402044,
+    "outer_feature_50mm_y_range": [
+      600.0,
+      650.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194450",
+    "session": "1295771703",
+    "seq": 5308,
+    "revision": 4,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 274,
+    "outward_mm": 22.62026047004936,
+    "equivalent_width_mm": 536.2536973377987,
+    "local_yaw_rad": -0.1373470207367571,
+    "left_mm": 290.7471091389487,
+    "right_mm": 245.50658819884998,
+    "outer_feature_50mm_y_range": [
+      600.0,
+      650.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194450",
+    "session": "1295771703",
+    "seq": 5309,
+    "revision": 4,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 277,
+    "outward_mm": 19.1587407218084,
+    "equivalent_width_mm": 520.1197674249898,
+    "local_yaw_rad": -0.17889758907996844,
+    "left_mm": 279.2186244343033,
+    "right_mm": 240.9011429906865,
+    "outer_feature_50mm_y_range": [
+      550.0,
+      600.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194450",
+    "session": "1295771703",
+    "seq": 5321,
+    "revision": 4,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 282,
+    "outer_feature_50mm_y_range": [
+      450.0,
+      500.0
+    ],
+    "near_wall_failures": [
+      "no_near_seed",
+      null
+    ]
+  },
+  {
+    "tag": "194450",
+    "session": "1295771703",
+    "seq": 5322,
+    "revision": 4,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 271,
+    "outer_feature_50mm_y_range": [
+      450.0,
+      500.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194450",
+    "session": "1295771703",
+    "seq": 5323,
+    "revision": 4,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 266,
+    "outer_feature_50mm_y_range": [
+      500.0,
+      550.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194450",
+    "session": "1295771703",
+    "seq": 5324,
+    "revision": 4,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 256,
+    "outer_feature_50mm_y_range": [
+      450.0,
+      500.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194631",
+    "session": "1338059754",
+    "seq": 6514,
+    "revision": 6,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 244,
+    "outward_mm": 8.999522061758782,
+    "equivalent_width_mm": 467.05606791045113,
+    "local_yaw_rad": -0.1749018595808579,
+    "left_mm": 242.52755601698433,
+    "right_mm": 224.52851189346677,
+    "outer_feature_50mm_y_range": [
+      800.0,
+      850.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194631",
+    "session": "1338059754",
+    "seq": 6515,
+    "revision": 6,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 251,
+    "outward_mm": 20.431263893170083,
+    "equivalent_width_mm": 475.6969709168893,
+    "local_yaw_rad": -0.16328843134247573,
+    "left_mm": 258.2797493516147,
+    "right_mm": 217.41722156527456,
+    "outer_feature_50mm_y_range": [
+      750.0,
+      800.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194631",
+    "session": "1338059754",
+    "seq": 6516,
+    "revision": 6,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 270,
+    "outward_mm": 28.858880689202962,
+    "equivalent_width_mm": 490.93723543735905,
+    "local_yaw_rad": -0.1690632929308011,
+    "left_mm": 274.3274984078825,
+    "right_mm": 216.60973702947658,
+    "outer_feature_50mm_y_range": [
+      700.0,
+      750.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194631",
+    "session": "1338059754",
+    "seq": 6517,
+    "revision": 6,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 272,
+    "outward_mm": 38.46279218234605,
+    "equivalent_width_mm": 507.80054335859825,
+    "local_yaw_rad": -0.14709138547946388,
+    "left_mm": 292.3630638616452,
+    "right_mm": 215.43747949695307,
+    "outer_feature_50mm_y_range": [
+      650.0,
+      700.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194631",
+    "session": "1338059754",
+    "seq": 6533,
+    "revision": 6,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 265,
+    "outer_feature_50mm_y_range": [
+      400.0,
+      450.0
+    ],
+    "near_wall_failures": [
+      "no_near_seed",
+      null
+    ]
+  },
+  {
+    "tag": "194631",
+    "session": "1338059754",
+    "seq": 6534,
+    "revision": 6,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 256,
+    "outer_feature_50mm_y_range": [
+      400.0,
+      450.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194631",
+    "session": "1338059754",
+    "seq": 6535,
+    "revision": 6,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 269,
+    "outer_feature_50mm_y_range": [
+      450.0,
+      500.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194631",
+    "session": "1338059754",
+    "seq": 6536,
+    "revision": 6,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 249,
+    "outer_feature_50mm_y_range": [
+      550.0,
+      600.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194802",
+    "session": "3866662303",
+    "seq": 7608,
+    "revision": 8,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 285,
+    "outer_feature_50mm_y_range": [
+      550.0,
+      600.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194802",
+    "session": "3866662303",
+    "seq": 7609,
+    "revision": 8,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 285,
+    "outer_feature_50mm_y_range": [
+      450.0,
+      500.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194802",
+    "session": "3866662303",
+    "seq": 7610,
+    "revision": 8,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 282,
+    "outer_feature_50mm_y_range": [
+      400.0,
+      450.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194802",
+    "session": "3866662303",
+    "seq": 7611,
+    "revision": 8,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 284,
+    "outward_mm": 57.13615180078111,
+    "equivalent_width_mm": 559.6981813741145,
+    "local_yaw_rad": 0.5216091768564075,
+    "left_mm": 222.7129388862761,
+    "right_mm": 336.9852424878383,
+    "outer_feature_50mm_y_range": [
+      600.0,
+      650.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194802",
+    "session": "3866662303",
+    "seq": 7676,
+    "revision": 8,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 266,
+    "outer_feature_50mm_y_range": [
+      400.0,
+      450.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194802",
+    "session": "3866662303",
+    "seq": 7677,
+    "revision": 8,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 262,
+    "outer_feature_50mm_y_range": null,
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194802",
+    "session": "3866662303",
+    "seq": 7678,
+    "revision": 8,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 275,
+    "outer_feature_50mm_y_range": null,
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "194802",
+    "session": "3866662303",
+    "seq": 7679,
+    "revision": 8,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 281,
+    "outer_feature_50mm_y_range": null,
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195030",
+    "session": "145367538",
+    "seq": 9386,
+    "revision": 13,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 279,
+    "outward_mm": 69.36645045652809,
+    "equivalent_width_mm": 584.307107327823,
+    "local_yaw_rad": 0.26260390770021147,
+    "left_mm": 222.7871032073834,
+    "right_mm": 361.5200041204396,
+    "outer_feature_50mm_y_range": [
+      600.0,
+      650.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195030",
+    "session": "145367538",
+    "seq": 9387,
+    "revision": 13,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 284,
+    "outward_mm": 61.66431029514888,
+    "equivalent_width_mm": 578.8626429207054,
+    "local_yaw_rad": 0.267203360834125,
+    "left_mm": 227.76701116520383,
+    "right_mm": 351.0956317555016,
+    "outer_feature_50mm_y_range": [
+      550.0,
+      600.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195030",
+    "session": "145367538",
+    "seq": 9388,
+    "revision": 13,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 282,
+    "outer_feature_50mm_y_range": [
+      550.0,
+      600.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195030",
+    "session": "145367538",
+    "seq": 9389,
+    "revision": 13,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 286,
+    "outward_mm": 40.25389592798898,
+    "equivalent_width_mm": 566.7483729396032,
+    "local_yaw_rad": 0.3867783341915271,
+    "left_mm": 243.12029054181264,
+    "right_mm": 323.6280823977906,
+    "outer_feature_50mm_y_range": [
+      550.0,
+      600.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195030",
+    "session": "145367538",
+    "seq": 9458,
+    "revision": 13,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 296,
+    "outer_feature_50mm_y_range": [
+      400.0,
+      450.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195030",
+    "session": "145367538",
+    "seq": 9459,
+    "revision": 13,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 305,
+    "outer_feature_50mm_y_range": null,
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195030",
+    "session": "145367538",
+    "seq": 9460,
+    "revision": 13,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 299,
+    "outer_feature_50mm_y_range": null,
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195030",
+    "session": "145367538",
+    "seq": 9461,
+    "revision": 13,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 282,
+    "outer_feature_50mm_y_range": null,
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195147",
+    "session": "388327886",
+    "seq": 10299,
+    "revision": 15,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 280,
+    "outward_mm": 76.62085336697217,
+    "equivalent_width_mm": 577.8032412393436,
+    "local_yaw_rad": 0.25430029793123166,
+    "left_mm": 212.2807672526996,
+    "right_mm": 365.52247398664394,
+    "outer_feature_50mm_y_range": [
+      650.0,
+      700.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195147",
+    "session": "388327886",
+    "seq": 10300,
+    "revision": 15,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 282,
+    "outward_mm": 75.97634837326379,
+    "equivalent_width_mm": 591.9440119462658,
+    "local_yaw_rad": 0.24358017414678168,
+    "left_mm": 219.99565759986916,
+    "right_mm": 371.94835434639674,
+    "outer_feature_50mm_y_range": [
+      600.0,
+      650.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195147",
+    "session": "388327886",
+    "seq": 10301,
+    "revision": 15,
+    "accepted": true,
+    "complete": "1",
+    "point_count": 282,
+    "outward_mm": 64.59839040926416,
+    "equivalent_width_mm": 579.722797159717,
+    "local_yaw_rad": 0.2832598429244166,
+    "left_mm": 225.2630081705943,
+    "right_mm": 354.4597889891226,
+    "outer_feature_50mm_y_range": [
+      550.0,
+      600.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195147",
+    "session": "388327886",
+    "seq": 10302,
+    "revision": 15,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 283,
+    "outer_feature_50mm_y_range": [
+      500.0,
+      550.0
+    ],
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195147",
+    "session": "388327886",
+    "seq": 10346,
+    "revision": 15,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 257,
+    "outer_feature_50mm_y_range": [
+      350.0,
+      400.0
+    ],
+    "near_wall_failures": [
+      null,
+      "insufficient_near_bins"
+    ]
+  },
+  {
+    "tag": "195147",
+    "session": "388327886",
+    "seq": 10347,
+    "revision": 15,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 261,
+    "outer_feature_50mm_y_range": null,
+    "near_wall_failures": [
+      "near_not_straight",
+      "near_not_straight"
+    ]
+  },
+  {
+    "tag": "195147",
+    "session": "388327886",
+    "seq": 10348,
+    "revision": 15,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 260,
+    "outer_feature_50mm_y_range": null,
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  },
+  {
+    "tag": "195147",
+    "session": "388327886",
+    "seq": 10349,
+    "revision": 15,
+    "accepted": false,
+    "complete": "1",
+    "point_count": 243,
+    "outer_feature_50mm_y_range": null,
+    "near_wall_failures": [
+      null,
+      null
+    ]
+  }
+]
