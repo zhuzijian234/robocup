@@ -134,17 +134,18 @@ int main(void)
                    side,i,p.valid,p.acute_phase,p.acute_reason,p.acute_distance,p.acute_goal,p.target_x,p.ref_y);
         }
         CHECK(p.valid && p.acute_phase == ACUTE_PREPARE && p.acute_direction == side);
-        CHECK(p.acute_goal > 0 && p.acute_goal <= 40 && p.outer_offset * side < 0);
+        CHECK(p.acute_goal > 0 && p.acute_goal <= ACUTE_OUTER_MM && p.outer_offset * side < 0);
         CHECK(fabsf(p.acute_position) < 1 && p.acute_distance > ACUTE_TAKEOVER_MM);
         Path_Control(&c,&p,&gains,1,100000,1445,&o);
         CHECK(o.applied && o.reason == PATH_APPLY && c.bend == 0 && o.d == 0);
         CHECK(abs((int)o.pwm-1445) <= 45);
         CHECK((o.pwm-1445.0f) * side > 0); /* 右弯先向左，左弯先向右。 */
-        /* 到达外侧40mm后不再累计偏移，局部位置读数不拿远目标误差充数。 */
-        n=corner(points,650,side,side*40.0f);
+        /* 到达外侧目标后不再累计偏移（goal 是绝对位置目标，不是每帧累加），
+         * 局部位置读数不拿远目标误差充数。 */
+        n=corner(points,650,side,side*ACUTE_OUTER_MM);
         Path_Build(&g,points,(uint16_t)n,500,900,10,&p);
-        CHECK(p.acute_phase==ACUTE_PREPARE && fabsf(p.acute_position-40)<1);
-        CHECK(p.acute_goal<=40 && fabsf(p.target_x-10)<15);
+        CHECK(p.acute_phase==ACUTE_PREPARE && fabsf(p.acute_position-ACUTE_OUTER_MM)<1);
+        CHECK(p.acute_goal<=ACUTE_OUTER_MM && fabsf(p.target_x-10)<15);
         n=corner(points,650,side,0);
         /* 缺帧与证据中断必须重新确认，不能沿用上一次的单帧。 */
         Path_Build(&g,points,0,500,900,10,&p);

@@ -19,7 +19,12 @@
 #define CONE_BASE_ENVELOPE_MM 170.0f
 #define VEHICLE_HALF_CLEAR_MM 150.0f
 #define CONE_JOIN_MM 75.0f
-#define ACUTE_OUTER_MM 40.0f /* 入口局部位置目标上限，不是远端目标减40mm。 */
+#define ACUTE_OUTER_MM 70.0f /* 入口局部位置目标上限，不是远端目标减70mm。
+                              * 2026-10-13 由 40 提到 70：goal 仍受下面的 available
+                              * （=宽度/2 - 车身半宽投影 - 40mm 贴墙余量）压制，
+                              * 所以 40mm 的最小余量由算式保证，不靠这个常量保证。
+                              * 宽500/yaw≈0 时 available=80，取70 留10mm 余量，
+                              * 此时车心离墙 250-70-130=50mm。窄道会按 available 自动降。 */
 #define ACUTE_TAKEOVER_MM 700.0f /* 可见偏离位置到此范围便交还主弯，未标定真实转弯半径。 */
 #define ACUTE_FULL_PREP_MM 950.0f
 
@@ -1093,10 +1098,17 @@ static void acute_prepare(PathGeometry *state, const PathPoint *points, uint16_t
         }
         return;
     }
-    /* 普通直道/缓弯没有远处急弯线索，省去分区扫描；门槛只影响新分支。 */
-    if (out->model || (!state->acute_phase &&
-        !((out->far_fit[0].valid && fabsf(out->far_fit[0].a) > .30f) ||
-          (out->far_fit[1].valid && fabsf(out->far_fit[1].a) > .30f))))
+    /* 预滤波的唯一职责是"直道上省掉分区扫描"，不是决定有没有急弯——那是
+     * acute_wall() 的严格门限该做的事（种子≥8点、≥5个50mm分区、跨度≥200mm、
+     * RMS≤12mm、连续3个分区向内偏≥40mm、400mm内切线转过≥0.60rad）。
+     * 2026-10-13：原条件额外要求"某侧远段拟合有效且|a|>0.30"。但实车数据
+     * （10/12 T01~T07，fw=9b8c0a52；10/13 六组）里急弯分支 181 行只进过 1 行，
+     * 而进弯前那一刻 |近a| 中位数只有 0.09~0.11（近段本来就该是直的）、
+     * 远段窗口在弯口既不共线又关联不上，被 FIT_POINTS|FIT_SPAN 拒掉——
+     * 于是"要求远段"等于把证据链断在第一步。
+     * 改为只跳过"已确认的直道"：S弯(s_preview)与锥桶(avoid_state)在更前面已
+     * 优先返回，缓弯达不到 acute_wall() 的 40mm/0.60rad 门限，因此不会误激活。 */
+    if (out->model || (!state->acute_phase && out->straight))
     {
         acute_clear(state);
         return;
