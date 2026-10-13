@@ -1,0 +1,4 @@
+T05 mirror=1: target=298.48 model=2 pwm=1296
+T05 mirror=-1: target=-298.48 model=2 pwm=1593
+PASS 112 new/mirrored clouds; only T05 handoff changes; 16 stale/priority/geometry counterexamples
+

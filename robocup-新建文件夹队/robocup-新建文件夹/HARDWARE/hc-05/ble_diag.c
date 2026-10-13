@@ -38,6 +38,40 @@ typedef struct {
 static MotorSample motor_ring[64];
 static volatile uint32_t motor_head, motor_tail, motor_seq, motor_dropped;
 static uint32_t hold_count;
+/* 阶段事件在控制帧结束时入小队列，由主循环空闲发送；不等待蓝牙。
+ * 阶段/方向变化逐帧捕获，仅拒绝位变化最多每4控制帧采一次，避免抖动刷屏。 */
+typedef struct {
+    uint32_t control, input, ms, revision;
+    uint16_t checks;
+    uint8_t phase, reason, direction;
+} AcuteEvent;
+static AcuteEvent acute_events[8], acute_last;
+static uint32_t acute_head, acute_tail, acute_dropped;
+static uint8_t acute_seen;
+static void acute_event_reset(void)
+{
+    acute_head = acute_tail = acute_dropped = 0;
+    acute_seen = 0;
+}
+static void acute_event_capture(uint32_t ms)
+{
+    AcuteEvent next;
+    if (Diag_mode != 3 || !Diag_session) return;
+    next.control = control_seq; next.input = Diag_input_seq;
+    next.ms = ms; next.revision = Diag_revision;
+    next.phase = Steering_path.acute_phase;
+    next.reason = Steering_path.acute_reason;
+    next.direction = (uint8_t)(Steering_path.acute_direction + 1);
+    next.checks = Steering_path.acute_checks;
+    if (acute_seen && next.phase == acute_last.phase && next.direction == acute_last.direction &&
+        next.revision == acute_last.revision &&
+        ((next.reason == acute_last.reason && next.checks == acute_last.checks) ||
+         next.control - acute_last.control < 4u)) return;
+    acute_last = next;
+    acute_seen = 1;
+    if (acute_head - acute_tail == 8u) { ++acute_dropped; return; }
+    acute_events[acute_head++ & 7u] = next;
+}
 /* 首次事件4帧 + 最近4帧：早期异常冻结第一组后，第二组仍滚动记录。
  * cloud freeze冻结末段；cloud dump低速导出两组，正常循迹不发送整圈点云。 */
 typedef struct {
@@ -51,6 +85,7 @@ static uint8_t recent_next, recent_used, recent_frozen, recent_good, recent_bad;
 static uint32_t cloud_id, cloud_last_ms;
 static uint8_t cloud_state, cloud_next, cloud_used, cloud_post, cloud_good;
 static uint8_t cloud_sending, cloud_frame;
+static uint8_t cloud_acute_phase;
 static uint16_t cloud_offset;
 static void cloud_arm(void)
 {
@@ -58,6 +93,7 @@ static void cloud_arm(void)
     cloud_state = 1;
     cloud_next = cloud_used = cloud_post = cloud_good = cloud_sending = 0;
     recent_next = recent_used = recent_frozen = recent_good = recent_bad = 0;
+    cloud_acute_phase = ACUTE_OFF;
 }
 
 static uint8_t cloud_count(void)
@@ -94,7 +130,10 @@ void Diag_CloudCapture(const PathPoint *points, uint16_t count, uint32_t epoch)
              (Steering_command.computed && !Steering_command.applied ? 4u : 0u) |
              (Steering_command.reason == PATH_BAD_SCAN ? 16u : 0u) |
              ((Steering_path.identity_corrected || Steering_path.target_transition ||
-               Steering_command.transition_limited) ? 64u : 0u);
+               Steering_command.transition_limited) ? 64u : 0u) |
+             ((Steering_path.acute_phase == ACUTE_CONFIRM && cloud_acute_phase != ACUTE_CONFIRM &&
+               cloud_acute_phase != ACUTE_PREPARE) ? 128u : 0u);
+    cloud_acute_phase = Steering_path.acute_phase;
     s = &cloud_recent[recent_next];
     s->control = control_seq;
     s->revision = Diag_revision;
@@ -129,7 +168,7 @@ void Diag_CloudCapture(const PathPoint *points, uint16_t count, uint32_t epoch)
         cloud_state = 2;
         cloud_post = 0;
     }
-    else if (cloud_good >= 3 && (reason & 67u))
+    else if (cloud_good >= 3 && (reason & 195u))
         cloud_post = 1;
     if (Steering_path.valid && cloud_good < 3) ++cloud_good;
 }
@@ -335,6 +374,21 @@ void Diag_Finalize(uint8_t *p, uint16_t n)
         put16(p + n - 2, Diag_CRC(p + 2, n - 4));
     }
 }
+/* EVENT code=3，body为8个uint32；时间来自发生帧，不能使用排队后的发送时间。 */
+static void acute_event_poll(void)
+{
+    const AcuteEvent *s;
+    if (Diag_mode != 3 || !Diag_session || acute_head == acute_tail || !BLE_NormalSpace()) return;
+    s = &acute_events[acute_tail & 7u];
+    header(4, 60);
+    put32(frame + 14, s->ms); put32(frame + 18, s->revision);
+    put16(frame + 22, 3); put16(frame + 24, 32);
+    put32(frame + 26, 1); put32(frame + 30, s->control); put32(frame + 34, s->input);
+    put32(frame + 38, s->phase); put32(frame + 42, s->reason);
+    put32(frame + 46, s->direction); put32(frame + 50, s->checks);
+    put32(frame + 54, acute_dropped);
+    if (BLE_Queue(frame, 60, 0)) ++acute_tail;
+}
 static void motor_poll(void)
 {
     uint32_t tail = motor_tail, head = motor_head, seq, rev;
@@ -479,7 +533,7 @@ static void cloud_poll(uint32_t now)
         s=&cloud_recent[(recent_next+4-recent_used+cloud_frame-cloud_used)&3];
     n=s->count-cloud_offset;
     if (n>40) n=40;
-    u[0]=3; u[1]=cloud_id; u[2]=cloud_frame; u[3]=s->control; u[4]=s->revision;
+    u[0]=4; u[1]=cloud_id; u[2]=cloud_frame; u[3]=s->control; u[4]=s->revision;
     u[5]=s->input; u[6]=s->us; u[7]=s->epoch; u[8]=s->reason;
     u[9]=s->count; u[10]=cloud_offset; u[11]=n;
     header(9,(uint16_t)(64+4*n));
@@ -501,6 +555,7 @@ void Diag_Submit(uint16_t mode, uint16_t raw, uint16_t speed, uint8_t ok)
     uint8_t i, valid, clipped, action, motor;
     int16_t value;
     control_seq++;
+    acute_event_capture(ms); /* 不受CONTROL抽样rate影响，短暂阶段也能留下序号。 */
     last_ok = ok;
     if (have_control && (uint32_t)(ms - last_ms) < 4294967u) {
         dt = now - last_us;
@@ -646,7 +701,7 @@ static void config_poll(void)
             number = LEIDA_DATA_COUNTER;
             break;
         case 13:
-            text = "path=local+contour;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121;acute=entry25+identity";
+            text = "path=local+contour;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121;acute=entry50+gap+handoff";
             break;
         case 14:
             text = "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720";
@@ -774,6 +829,7 @@ uint8_t Diag_Command(char *line)
         }
         BLE_FlushPending();
         Diag_session = n;
+        acute_event_reset();
         cloud_arm();
         motor_reset();
         tx_seq = 0;
@@ -790,6 +846,7 @@ uint8_t Diag_Command(char *line)
         }
         BLE_FlushPending();
         Diag_mode = (uint8_t)n;
+        acute_event_reset();
         motor_reset();
         sample = 0;
         config_pending = 0;
@@ -845,6 +902,7 @@ void Diag_Poll(void)
     if (!Get_Bluetooth_ConnectFlag())
         return;
     config_poll();
+    acute_event_poll();
     motor_poll();
     m10p_health(now);
     cloud_poll(now);
