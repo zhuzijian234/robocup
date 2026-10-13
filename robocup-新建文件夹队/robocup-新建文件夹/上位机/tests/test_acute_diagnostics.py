@@ -147,7 +147,7 @@ class AcuteDiagnostics(unittest.TestCase):
                     if text == 'cloud dump':
                         self.attempts += 1
                         if self.attempts == 1:
-                            return  # 模拟首次dump命令未被设备接受。
+                            return len(command)  # 串口写入成功，模拟无线链路丢失命令。
                         # 即使sending=1确认丢失，也以实际点完整性为准。
                         payload = struct.pack('<12Ihh', 3, 7, 0, 1, 1, 1, 10, 1, 64, 1, 0, 1, 0, 500)
                         self.buffer += v2.packet(9, payload, self.seq, self.session)
@@ -161,6 +161,7 @@ class AcuteDiagnostics(unittest.TestCase):
                         frames = config_frames(session=self.session)
                         self.buffer += b''.join(frames)
                         self.seq = len(frames)
+                return len(command)
 
             def read(self, size):
                 if self.buffer:

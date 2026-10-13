@@ -1,0 +1,22 @@
+V2协商及配置完整，开始正式采集
+正式采集结束，正在导出冻结点云（最多24秒）
+已保存 D:\OneDrive\Desktop\robocup\tmp\bluetooth_ui_20261013\temp\tmphp721nvi\retry.bin
+V2协商及配置完整，开始正式采集
+正式采集结束，正在导出冻结点云（最多24秒）
+已保存 D:\OneDrive\Desktop\robocup\tmp\bluetooth_ui_20261013\temp\tmp9spw1es4\capture.bin
+V2协商及配置完整，开始正式采集
+已保存 D:\OneDrive\Desktop\robocup\tmp\bluetooth_ui_20261013\temp\tmpapdc2mjq\live.bin
+.........................E................
+======================================================================
+ERROR: test_gui_capture_resets_session (test_telemetry.TelemetryTests.test_gui_capture_resets_session)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\OneDrive\Desktop\robocup\robocup-新建文件夹队\robocup-新建文件夹\上位机\tests\test_telemetry.py", line 118, in test_gui_capture_resets_session
+    gui.App.start_capture(app)
+    ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: type object 'App' has no attribute 'start_capture'. Did you mean: 'stop_capture'?
+
+----------------------------------------------------------------------
+Ran 42 tests in 1.061s
+
+FAILED (errors=1)
