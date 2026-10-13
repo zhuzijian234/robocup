@@ -1,0 +1,276 @@
+{
+  "T01_222930_左弯_偏移略小略不及时": {
+    "capture": "v2_1012_222930_23745609000000",
+    "offset_A": 0.813,
+    "offset_B": 5.055,
+    "spread": 4.242,
+    "video_end_tele": 6.71,
+    "after_end_samples": 928,
+    "after_end_moving": 412,
+    "timeline": [
+      {
+        "phase": 0,
+        "t0": 0.81,
+        "t1": 15.27,
+        "n": 25,
+        "rsn": [
+          0,
+          6
+        ],
+        "dirs": [
+          1
+        ]
+      }
+    ],
+    "pos12": [
+      null,
+      null,
+      0
+    ],
+    "goal12": [
+      null,
+      null,
+      0
+    ],
+    "turn": null
+  },
+  "T02_223105_左弯_同上次": {
+    "capture": "v2_1012_223105_23840687000000",
+    "offset_A": 0.406,
+    "offset_B": 3.4,
+    "spread": 2.994,
+    "video_end_tele": 5.01,
+    "after_end_samples": 1072,
+    "after_end_moving": 267,
+    "timeline": [
+      {
+        "phase": 0,
+        "t0": 0.41,
+        "t1": 5.72,
+        "n": 13,
+        "rsn": [
+          0,
+          6
+        ],
+        "dirs": [
+          1
+        ]
+      },
+      {
+        "phase": 1,
+        "t0": 6.12,
+        "t1": 6.12,
+        "n": 1,
+        "rsn": [
+          1
+        ],
+        "dirs": [
+          0
+        ]
+      },
+      {
+        "phase": 0,
+        "t0": 6.48,
+        "t1": 15.72,
+        "n": 10,
+        "rsn": [
+          0,
+          6
+        ],
+        "dirs": [
+          1
+        ]
+      }
+    ],
+    "pos12": [
+      -35.36204528808594,
+      -35.36204528808594,
+      1
+    ],
+    "goal12": [
+      40.0,
+      40.0,
+      1
+    ],
+    "turn": null
+  },
+  "T03_223130_右弯_表现良好": {
+    "capture": "v2_1012_223130_23865359000000",
+    "offset_A": 0.406,
+    "offset_B": 3.751,
+    "spread": 3.345,
+    "video_end_tele": 4.64,
+    "after_end_samples": 1064,
+    "after_end_moving": 330,
+    "timeline": [
+      {
+        "phase": 0,
+        "t0": 0.41,
+        "t1": 15.22,
+        "n": 26,
+        "rsn": [
+          0,
+          3,
+          6
+        ],
+        "dirs": [
+          1,
+          2
+        ]
+      }
+    ],
+    "pos12": [
+      null,
+      null,
+      0
+    ],
+    "goal12": [
+      null,
+      null,
+      0
+    ],
+    "turn": null
+  },
+  "T04_223154_右弯_略微勉强": {
+    "capture": "v2_1012_223154_23889031000000",
+    "offset_A": 0.454,
+    "offset_B": 2.501,
+    "spread": 2.047,
+    "video_end_tele": 4.98,
+    "after_end_samples": 1160,
+    "after_end_moving": 223,
+    "timeline": [
+      {
+        "phase": 0,
+        "t0": 0.45,
+        "t1": 16.2,
+        "n": 31,
+        "rsn": [
+          0,
+          6
+        ],
+        "dirs": [
+          1
+        ]
+      }
+    ],
+    "pos12": [
+      null,
+      null,
+      0
+    ],
+    "goal12": [
+      null,
+      null,
+      0
+    ],
+    "turn": null
+  },
+  "T05_223226_右弯_反应太慢直接撞": {
+    "capture": "v2_1012_223226_23921656000000",
+    "offset_A": 0.407,
+    "offset_B": 2.104,
+    "spread": 1.697,
+    "video_end_tele": 4.27,
+    "after_end_samples": 1208,
+    "after_end_moving": 191,
+    "timeline": [
+      {
+        "phase": 0,
+        "t0": 0.41,
+        "t1": 15.31,
+        "n": 22,
+        "rsn": [
+          0,
+          6
+        ],
+        "dirs": [
+          1
+        ]
+      }
+    ],
+    "pos12": [
+      null,
+      null,
+      0
+    ],
+    "goal12": [
+      null,
+      null,
+      0
+    ],
+    "turn": null
+  },
+  "T06_223303_右弯_过弯勉强": {
+    "capture": "v2_1012_223303_23958609000000",
+    "offset_A": 0.422,
+    "offset_B": 2.551,
+    "spread": 2.129,
+    "video_end_tele": 4.62,
+    "after_end_samples": 1008,
+    "after_end_moving": 177,
+    "timeline": [
+      {
+        "phase": 0,
+        "t0": 0.42,
+        "t1": 14.7,
+        "n": 22,
+        "rsn": [
+          0,
+          5,
+          6
+        ],
+        "dirs": [
+          1
+        ]
+      }
+    ],
+    "pos12": [
+      null,
+      null,
+      0
+    ],
+    "goal12": [
+      null,
+      null,
+      0
+    ],
+    "turn": null
+  },
+  "T07_224402_左弯_略微刮蹭": {
+    "capture": "v2_1012_224402_24616921000000",
+    "offset_A": 0.406,
+    "offset_B": 2.938,
+    "spread": 2.532,
+    "video_end_tele": 4.9,
+    "after_end_samples": 1144,
+    "after_end_moving": 238,
+    "timeline": [
+      {
+        "phase": 0,
+        "t0": 0.98,
+        "t1": 15.8,
+        "n": 31,
+        "rsn": [
+          0,
+          5,
+          6
+        ],
+        "dirs": [
+          1
+        ]
+      }
+    ],
+    "pos12": [
+      null,
+      null,
+      0
+    ],
+    "goal12": [
+      null,
+      null,
+      0
+    ],
+    "turn": null
+  }
+}

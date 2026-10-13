@@ -1,0 +1,172 @@
+[
+  {
+    "tag": "T01_222930_左弯_偏移略小略不及时",
+    "capture": "v2_1012_222930_23745609000000",
+    "video": "左弯_v2_1012_222930_23745609000000_偏移量略小,略微不及时.mp4",
+    "frames": 178,
+    "video_duration": 5.898,
+    "capture_duration": 15.656,
+    "offset_A": 0.813,
+    "offset_B": 5.055,
+    "motion_runs": [
+      [
+        0.81,
+        10.56
+      ],
+      [
+        10.56,
+        10.95
+      ]
+    ],
+    "moving_frames": 178,
+    "ctl_rows": 183,
+    "path_rows": 168,
+    "race_rows": 25,
+    "end_reason": "user_stop",
+    "fw": null
+  },
+  {
+    "tag": "T02_223105_左弯_同上次",
+    "capture": "v2_1012_223105_23840687000000",
+    "video": "左弯_同上次_v2_1012_223105_23840687000000.mp4",
+    "frames": 139,
+    "video_duration": 4.6,
+    "capture_duration": 15.734,
+    "offset_A": 0.406,
+    "offset_B": 3.4,
+    "motion_runs": [
+      [
+        0.41,
+        7.62
+      ],
+      [
+        7.62,
+        8.0
+      ]
+    ],
+    "moving_frames": 139,
+    "ctl_rows": 189,
+    "path_rows": 173,
+    "race_rows": 24,
+    "end_reason": "user_stop",
+    "fw": null
+  },
+  {
+    "tag": "T03_223130_右弯_表现良好",
+    "capture": "v2_1012_223130_23865359000000",
+    "video": "右弯_表现良好v2_1012_223130_23865359000000.mp4",
+    "frames": 128,
+    "video_duration": 4.233,
+    "capture_duration": 15.234,
+    "offset_A": 0.406,
+    "offset_B": 3.751,
+    "motion_runs": [
+      [
+        0.41,
+        7.23
+      ],
+      [
+        7.23,
+        7.98
+      ]
+    ],
+    "moving_frames": 128,
+    "ctl_rows": 180,
+    "path_rows": 168,
+    "race_rows": 26,
+    "end_reason": "user_stop",
+    "fw": null
+  },
+  {
+    "tag": "T04_223154_右弯_略微勉强",
+    "capture": "v2_1012_223154_23889031000000",
+    "video": "右弯_略微勉强,偏移位置可调整v2_1012_223154_23889031000000.mp4",
+    "frames": 137,
+    "video_duration": 4.531,
+    "capture_duration": 16.219,
+    "offset_A": 0.454,
+    "offset_B": 2.501,
+    "motion_runs": [
+      [
+        0.45,
+        7.03
+      ]
+    ],
+    "moving_frames": 137,
+    "ctl_rows": 194,
+    "path_rows": 181,
+    "race_rows": 31,
+    "end_reason": "user_stop",
+    "fw": null
+  },
+  {
+    "tag": "T05_223226_右弯_反应太慢直接撞",
+    "capture": "v2_1012_223226_23921656000000",
+    "video": "右弯_重点排查,对弯道反应太慢,直接撞向赛道_v2_1012_223226_23921656000000.mp4",
+    "frames": 117,
+    "video_duration": 3.865,
+    "capture_duration": 16.141,
+    "offset_A": 0.407,
+    "offset_B": 2.104,
+    "motion_runs": [
+      [
+        0.41,
+        5.97
+      ]
+    ],
+    "moving_frames": 117,
+    "ctl_rows": 192,
+    "path_rows": 177,
+    "race_rows": 22,
+    "end_reason": "user_stop",
+    "fw": null
+  },
+  {
+    "tag": "T06_223303_右弯_过弯勉强",
+    "capture": "v2_1012_223303_23958609000000",
+    "video": "右弯_偏移位置可调整,过弯比较勉强_v2_1012_223303_23958609000000.mp4",
+    "frames": 127,
+    "video_duration": 4.199,
+    "capture_duration": 14.719,
+    "offset_A": 0.422,
+    "offset_B": 2.551,
+    "motion_runs": [
+      [
+        0.42,
+        6.75
+      ]
+    ],
+    "moving_frames": 127,
+    "ctl_rows": 174,
+    "path_rows": 165,
+    "race_rows": 22,
+    "end_reason": "user_stop",
+    "fw": null
+  },
+  {
+    "tag": "T07_224402_左弯_略微刮蹭",
+    "capture": "v2_1012_224402_24616921000000",
+    "video": "左弯_略微刮蹭赛道,偏移位置可调整,左弯整体表现不如右弯v2_1012_224402_24616921000000.mp4",
+    "frames": 136,
+    "video_duration": 4.499,
+    "capture_duration": 16.203,
+    "offset_A": 0.406,
+    "offset_B": 2.938,
+    "motion_runs": [
+      [
+        0.41,
+        7.06
+      ],
+      [
+        7.06,
+        7.44
+      ]
+    ],
+    "moving_frames": 134,
+    "ctl_rows": 192,
+    "path_rows": 177,
+    "race_rows": 31,
+    "end_reason": "user_stop",
+    "fw": null
+  }
+]

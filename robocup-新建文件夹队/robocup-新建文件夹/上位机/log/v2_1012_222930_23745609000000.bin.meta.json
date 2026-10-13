@@ -1,0 +1,125 @@
+{
+  "run_uuid": "ce95fff9-5080-4320-a0a9-e7e56e8356b0",
+  "started_utc": "2026-10-12T14:29:30.953545+00:00",
+  "host_version": "v2.1",
+  "host_sha256": "653c57fc822b9a60fe6780d9190f995c0497786b5c74a482e9444b84a0cf98c5",
+  "protocol": 2,
+  "port": "COM4",
+  "baud": 115200,
+  "requested_rate": 1,
+  "pre_roll_s": 1.2190000000009604,
+  "session": 2902103031,
+  "info": "INFO proto=1,2 layout=rc26-mask31-v2.1 fw=sha256-9b8c0a520fdcfee2 lidar=3 algorithm=4 input=1 atomic=0 detail=2 motor=1 extra=1 cloud=2 race=2",
+  "formal_end_s": 4.84400000000096,
+  "cloud_dump": "sent_check_csv_completeness",
+  "version": 1,
+  "clock": "host_monotonic",
+  "duration_s": 15.65599999999904,
+  "bytes": 158987,
+  "sha256": "dea9497a40629b52afbdca3ccac84e54400548df53bc2635f49e3bde82828299",
+  "ended_utc": "2026-10-12T14:29:46.601413+00:00",
+  "end_reason": "user_stop",
+  "error": null,
+  "commands": [
+    {
+      "t": 0.0,
+      "command": "info"
+    },
+    {
+      "t": 0.11000000000058208,
+      "command": "session 2902103031"
+    },
+    {
+      "t": 0.26599999999962165,
+      "command": "tele 3"
+    },
+    {
+      "t": 0.375,
+      "command": "rate 1"
+    },
+    {
+      "t": 0.8130000000019209,
+      "command": "getcfg"
+    },
+    {
+      "t": 4.84400000000096,
+      "command": "cloud freeze"
+    },
+    {
+      "t": 5.235000000000582,
+      "command": "cloud dump"
+    },
+    {
+      "t": 6.015999999999622,
+      "command": "cloud status"
+    },
+    {
+      "t": 7.172000000002299,
+      "command": "cloud status"
+    },
+    {
+      "t": 8.2970000000023,
+      "command": "cloud status"
+    },
+    {
+      "t": 9.46900000000096,
+      "command": "cloud status"
+    },
+    {
+      "t": 10.578000000001339,
+      "command": "cloud status"
+    },
+    {
+      "t": 11.735000000000582,
+      "command": "cloud status"
+    },
+    {
+      "t": 12.90599999999904,
+      "command": "cloud status"
+    },
+    {
+      "t": 14.078000000001339,
+      "command": "cloud status"
+    },
+    {
+      "t": 15.265999999999622,
+      "command": "cloud status"
+    }
+  ],
+  "configs": {
+    "2902103031:1": {
+      "layout": "rc26-mask31-v2.1",
+      "build": "sha256-9b8c0a520fdcfee2",
+      "lidar": 3,
+      "algorithm": 4,
+      "input_kind": 1,
+      "baud": 115200,
+      "rate": 1,
+      "timeout_ms": 0,
+      "health_ms": 1000,
+      "units": "mm;CCR;encoder_units;x=a*y+b;PD=ref700-cap1.5-Dcap150;exit=confirm-reduce;spd=curve-plan;max=108;bend=123;acc=124;dec=125",
+      "dma_bytes": 1024,
+      "point_capacity": 800,
+      "geometry": "path=local+contour;width=400..900mm;PWM=1170/1445/1720;near=100..750;far=550..1300;preview=CFG121;acute=entry25+identity",
+      "lidar_config": "M10P20K 512000 varlen22..512;slots=(L-20)/2;12Hz;raw_crc=none;input=scan;DMA1024/FIFO8192/raw2048x2/bin720",
+      "kp": 0.03500000014901161,
+      "kp2": 0.03999999910593033,
+      "kp3": 0.039500001817941666,
+      "kd": 0.03500000014901161,
+      "kd2": 0.02199999988079071,
+      "kd3": 0.019999999552965164,
+      "sp_kp": 8.5,
+      "sp_ki": 0.5049999952316284,
+      "spd": 17.0,
+      "angle": 90.0,
+      "cx": 10.0,
+      "eclamp": 200.0,
+      "dy": 200.0,
+      "preview": 700.0,
+      "width": 500.0,
+      "bendspd": 15.0,
+      "accel": 2.0,
+      "decel": 12.0
+    }
+  }
+}
