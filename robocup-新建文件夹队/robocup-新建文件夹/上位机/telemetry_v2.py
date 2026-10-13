@@ -39,6 +39,7 @@ RACE_ACUTE_F = "outer_offset target_delta bend_rad outer_clearance".split()
 RACE_ENTRY_U = "acute_phase acute_reason acute_direction_code".split()
 RACE_ENTRY_F = "acute_position_mm acute_goal_mm acute_feature_y_mm acute_heading_rad".split()
 CLOUD_U = "schema snapshot_id frame_index control_seq param_revision input_seq input_us epoch trigger_flags total_points offset count".split()
+ACUTE_EVENT_U = "schema control_seq input_seq acute_phase acute_reason acute_direction_code acute_checks acute_event_dropped".split()
 MOTOR_FIELDS = "sample_us encoder_raw motor_pwm speed_float target_float motor_integral motor_prelimit motor_flags".split()
 
 M10P_FIELDS = "schema packets bad_length bad_tail bad_angle bad_speed invalid_slots high_reflect discontinuities scans rejected scan_overflow ready_drop epoch rx_blocks rx_peak rx_late copy_max_cycles scan_seq front_age_us front_bins left_bins right_bins clearance_mm motor_permitted effective_target_milli".split()
@@ -170,12 +171,12 @@ class Decoder:
         elif kind==9:
             if len(payload) < 48: raise ValueError("CLOUD prefix")
             msg.update(zip(CLOUD_U, struct.unpack_from('<12I', payload)))
-            # schema 1：4帧；schema 2/3：最多8帧；schema 3增加位64的目标/身份突变事件。
-            if (msg['schema'] not in (1, 2, 3) or
+            # schema 4增加位128的急弯首次确认；保留旧快照的解析与严格位图检查。
+            if (msg['schema'] not in (1, 2, 3, 4) or
                 msg['frame_index'] > (3 if msg['schema'] == 1 else 7) or msg['total_points'] > 400 or
                     msg['count'] > 40 or msg['offset'] + msg['count'] > msg['total_points'] or
                     (msg['count'] == 0 and msg['total_points'] != 0) or
-                    msg['trigger_flags'] & ~({1:31, 2:63, 3:127}[msg['schema']]) or
+                    msg['trigger_flags'] & ~({1:31, 2:63, 3:127, 4:255}[msg['schema']]) or
                     len(payload) != 48 + 4 * msg['count']):
                 raise ValueError("CLOUD bounds")
             msg['points'] = list(struct.iter_unpack('<hh', payload[48:]))
@@ -232,6 +233,12 @@ class Decoder:
                 prior=self.configs.get((session,(rev-1)&0xffffffff))
                 if prior and key in KEYS:
                     cfg=dict(prior);cfg[KEYS[key]]=new;self.configs[(session,rev)]=cfg
+            elif code==3:
+                if len(body)!=32: raise ValueError("acute EVENT length")
+                msg.update(zip(ACUTE_EVENT_U, struct.unpack('<8I', body)))
+                if (msg['schema']!=1 or msg['acute_phase']>4 or msg['acute_reason']>7 or
+                        msg['acute_direction_code']>2 or msg['acute_checks'] & ~1023):
+                    raise ValueError("acute EVENT values")
             else: msg["body_hex"]=body.hex()
         else: msg["body_hex"]=payload.hex()
         prev=self.last_tx.get(session)
@@ -357,6 +364,8 @@ def write_extensions(parser,path):
         ('.m10p.csv',[m for m in parser.v2.messages if m['type']==7],['session','tx_seq','host_t']+M10P_FIELDS),
         ('.motor.csv',motors,['session','param_revision','sample_seq','host_t']+MOTOR_FIELDS+['encoder_signed']),
         ('.race.csv',[m for m in parser.v2.messages if m['type']==10],['session','tx_seq','host_t']+RACE_U+RACE_F+RACE_ACUTE_U+RACE_ACUTE_F+RACE_ENTRY_U+RACE_ENTRY_F),
+        ('.acute.csv',[m for m in parser.v2.messages if m['type']==4 and m.get('event_code')==3],
+         ['session','tx_seq','host_t','event_ms','param_revision']+ACUTE_EVENT_U),
         ('.path.csv',[m for m in parser.v2.messages if m['type']==8],['session','tx_seq','host_t']+PATH_EXTRA_U+PATH_EXTRA_F)]:
         with open(str(base)+suffix,'w',newline='',encoding='utf-8-sig') as f:
             writer=csv.DictWriter(f,fieldnames=names,extrasaction='ignore');writer.writeheader();writer.writerows(rows)

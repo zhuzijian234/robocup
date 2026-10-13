@@ -14,6 +14,38 @@ import telemetry_v2 as v2
 
 
 class AcuteDiagnostics(unittest.TestCase):
+    def test_stage_event_and_cloud_v4(self):
+        values=[1,5825,6000,2,2,2,64|128,3]
+        def event(body):
+            return v2.packet(4,struct.pack('<IIHH',1234,6,3,len(body))+body)
+        parser=core.StreamParser()
+        for byte in event(struct.pack('<8I',*values)):
+            parser.feed(bytes([byte]),0)
+        self.assertEqual(parser.bad_frames,0)
+        self.assertEqual(parser.v2.messages[0]['control_seq'],5825)
+        self.assertEqual(parser.v2.messages[0]['event_ms'],1234)
+        with tempfile.TemporaryDirectory() as directory:
+            file=Path(directory)/'entry.csv'
+            v2.write_extensions(parser,file)
+            with file.with_suffix('.acute.csv').open(encoding='utf-8-sig') as stream:
+                row=next(csv.DictReader(stream))
+            self.assertEqual(row['acute_checks'],'192')
+            self.assertEqual(row['acute_event_dropped'],'3')
+        for index,bad in ((0,2),(3,5),(4,8),(5,3),(6,1024)):
+            invalid=values.copy();invalid[index]=bad
+            with self.assertRaises(ValueError):
+                v2.Decoder().accept(event(struct.pack('<8I',*invalid)),[],[],0)
+        for size in (0,28,36):
+            with self.assertRaises(ValueError):
+                v2.Decoder().accept(event(bytes(size)),[],[],0)
+        for schema,flags,valid in ((3,128,False),(4,128,True),(4,256,False)):
+            packet=v2.packet(9,struct.pack('<12Ihh',schema,7,0,5,1,5,100,1,flags,1,0,1,0,500))
+            if valid:
+                decoder=v2.Decoder();decoder.accept(packet,[],[],0)
+                self.assertEqual(decoder.messages[0]['trigger_flags'],128)
+            else:
+                with self.assertRaises(ValueError):v2.Decoder().accept(packet,[],[],0)
+
     def test_entry_race_schema_and_missing_fields(self):
         parser = core.StreamParser()
         old = struct.pack('<19I14f', 2, *([0]*18), *([0.0]*14))
@@ -115,7 +147,7 @@ class AcuteDiagnostics(unittest.TestCase):
                     if text == 'cloud dump':
                         self.attempts += 1
                         if self.attempts == 1:
-                            return  # 模拟首次dump命令未被设备接受。
+                            return len(command)  # 串口写入成功，模拟无线链路丢失命令。
                         # 即使sending=1确认丢失，也以实际点完整性为准。
                         payload = struct.pack('<12Ihh', 3, 7, 0, 1, 1, 1, 10, 1, 64, 1, 0, 1, 0, 500)
                         self.buffer += v2.packet(9, payload, self.seq, self.session)
@@ -129,6 +161,7 @@ class AcuteDiagnostics(unittest.TestCase):
                         frames = config_frames(session=self.session)
                         self.buffer += b''.join(frames)
                         self.seq = len(frames)
+                return len(command)
 
             def read(self, size):
                 if self.buffer:

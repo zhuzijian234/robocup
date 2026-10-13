@@ -1,513 +1,329 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-robocup_gui.py — 诊断遥测上位机 图形界面(双击 启动上位机.bat 即可,不用手打指令)
-
-界面分区:
-    ① 连接条:串口下拉(可刷新) + 波特率 + 连接/断开
-    ② 操作条:采集时长 + 开始采集 / 停止 / ★一键诊断(全流程) + 生成报告 / 打开报告 / 打开文件夹
-    ③ 实时计数:帧数 / 丢帧率 / 当前模式 / err / pwm / 速度
-    ④ 实时波形:err · servo_pwm · pid_select · Speed 四条滚动曲线
-    ⑤ 日志:连接状态、蓝牙 ASCII 回复(参数变更)、判读结论摘要
-
-判读逻辑在 robocup_telemetry.py(与 CLI 共用),本文件只做界面与串口轮询(无线程,
-用 root.after 定时器,避免线程安全问题)。
-"""
-
+"""M10P简洁上位机：Tk负责界面，串口工作线程负责启停/采集，报告单独生成。"""
 import os
-import sys
-import time
-import threading
 import queue
 import subprocess
+import sys
+import threading
+import time
+import uuid
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import filedialog, messagebox, ttk
+from types import SimpleNamespace
 
-import matplotlib
-matplotlib.use("TkAgg")
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import robocup_telemetry as core   # noqa: E402
-
-core.setup_cjk_font()   # 必须在建 Figure 之前
+from bluetooth_session import BluetoothSession
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOG_DIR = os.path.join(HERE, "log")
-LIVE_WIN = 300            # 实时波形显示最近 N 帧(≈23 秒)
-POLL_MS = 100             # 串口轮询周期
 
 
 class App:
     def __init__(self, root):
         self.root = root
-        root.title("RoboCup 诊断遥测上位机 — LXY传承-副本")
-        root.geometry("1180x780")
-
-        self.v2_worker = None
-        self.v2_stop = None
-        self.worker_events = queue.Queue()
-        self.ser = None
-        self.parser = core.StreamParser()
-        self.raw = bytearray()
-        self.vofa_buf = bytearray()   # 老遥测(VOFA+ 8通道)实时显示用, 与 raw 记录无关
-        self.capturing = False
-        self.recording = False
-        self.t_stop = 0.0
-        self.t_start = 0.0
+        root.title("RoboCup · M10P 蓝牙上位机")
+        root.geometry("920x650")
+        root.minsize(800, 600)
+        self.events = queue.Queue()
+        self.session = None
+        self.connected = self.capturing = self.reporting = self.exiting = False
+        self.phase = "idle"
         self.last_report = None
-        self.last_bin = None
+        self.capture_failed = False
         os.makedirs(LOG_DIR, exist_ok=True)
-
         self._build_ui()
         self.refresh_ports()
-        self.root.after(POLL_MS, self._tick)
-        self.log("V2固件默认115200，先确认模块匹配；【一键诊断】自动协商会话和配置。旧固件仍可9600普通采集。")
+        self._buttons()
+        root.protocol("WM_DELETE_WINDOW", self.close)
+        root.bind("<F5>", lambda event: self.start_detection())
+        root.after(80, self._tick)
+        self.log("一键检测：协商成功后自动启动电机并采集，结束后自动生成报告。")
 
-    # ==================== 界面 ====================
     def _build_ui(self):
-        # ① 连接条
-        top = ttk.Frame(self.root, padding=(8, 6))
-        top.pack(fill="x")
-        ttk.Label(top, text="串口").pack(side="left")
-        self.cb_port = ttk.Combobox(top, width=26, state="readonly")
-        self.cb_port.pack(side="left", padx=(4, 2))
-        ttk.Button(top, text="刷新", width=6, command=self.refresh_ports).pack(side="left")
-        ttk.Label(top, text="波特率").pack(side="left", padx=(12, 0))
-        self.cb_baud = ttk.Combobox(top, width=8, state="readonly",
-                                    values=["115200", "9600", "230400", "57600", "38400"])
-        self.cb_baud.current(0)
-        self.cb_baud.pack(side="left", padx=4)
-        self.btn_conn = ttk.Button(top, text="连接", width=8, command=self.toggle_conn)
-        self.btn_conn.pack(side="left", padx=6)
-        self.lb_conn = ttk.Label(top, text="● 未连接", foreground="gray")
-        self.lb_conn.pack(side="left", padx=6)
+        style = ttk.Style(self.root)
+        style.configure("Title.TLabel", font=("Microsoft YaHei UI", 16, "bold"))
+        style.configure("Action.TButton", padding=(12, 9))
+        style.configure("Muted.TLabel", foreground="#666666")
+        page = ttk.Frame(self.root, padding=16)
+        page.pack(fill="both", expand=True)
+        ttk.Label(page, text="M10P 蓝牙调试", style="Title.TLabel").pack(anchor="w")
+        row = ttk.Frame(page, padding=(0, 12, 0, 10))
+        row.pack(fill="x")
+        ttk.Label(row, text="串口").pack(side="left")
+        self.port = ttk.Combobox(row, width=30, state="readonly")
+        self.port.pack(side="left", padx=(6, 4))
+        self.refresh_button = ttk.Button(row, text="刷新", width=6, command=self.refresh_ports)
+        self.refresh_button.pack(side="left")
+        ttk.Label(row, text="波特率").pack(side="left", padx=(12, 4))
+        self.baud = ttk.Combobox(row, width=8, state="readonly", values=("115200", "9600", "57600", "230400"))
+        self.baud.set("115200")
+        self.baud.pack(side="left")
+        self.connect_button = ttk.Button(row, text="连接", width=8, command=self.toggle_connection)
+        self.connect_button.pack(side="left", padx=8)
+        self.connection_text = tk.StringVar(value="未连接")
+        ttk.Label(row, textvariable=self.connection_text).pack(side="left")
 
-        # ② 操作条
-        bar = ttk.Frame(self.root, padding=(8, 0))
-        bar.pack(fill="x")
-        ttk.Label(bar, text="采集时长(秒)").pack(side="left")
-        self.sp_sec = ttk.Spinbox(bar, from_=5, to=600, increment=5, width=6)
-        self.sp_sec.set(30)
-        self.sp_sec.pack(side="left", padx=4)
+        motor = ttk.LabelFrame(page, text="电机控制", padding=12)
+        motor.pack(fill="x", pady=(0, 12))
+        row = ttk.Frame(motor)
+        row.pack(fill="x")
+        ttk.Label(row, text="启动速度").pack(side="left")
+        self.speed = ttk.Spinbox(row, from_=1, to=18, width=5)
+        self.speed.set("17")
+        self.speed.pack(side="left", padx=(6, 12))
+        self.motor_start = ttk.Button(row, text="启动电机", style="Action.TButton", command=self.start_motor)
+        self.motor_start.pack(side="left", padx=(0, 8))
+        self.motor_stop = tk.Button(row, text="关闭电机", command=self.stop_motor,
+                                   bg="#b42318", fg="white", activebackground="#912018",
+                                   activeforeground="white", relief="flat", padx=22, pady=9,
+                                   font=("Microsoft YaHei UI", 10, "bold"))
+        self.motor_stop.pack(side="left")
+        self.motor_text = tk.StringVar(value="电机状态未知")
+        ttk.Label(motor, textvariable=self.motor_text).pack(anchor="w", pady=(10, 0))
+        ttk.Label(motor, text="启动设置直道速度上限；弯道速度由车端控制。采集和导出时仍可关闭电机。",
+                  style="Muted.TLabel").pack(anchor="w", pady=(5, 0))
 
-        self.btn_start = ttk.Button(bar, text="开始采集(F5)", width=14, command=self.start_capture)
-        self.btn_start.pack(side="left", padx=(10, 3))
-        self.btn_stop = ttk.Button(bar, text="停止", width=8, state="disabled", command=self.stop_capture)
-        self.btn_stop.pack(side="left", padx=3)
-        self.btn_diag = ttk.Button(bar, text="★ 一键诊断(全流程)", width=20, command=self.one_click)
-        self.btn_diag.pack(side="left", padx=(12, 3))
-        ttk.Separator(bar, orient="vertical").pack(side="left", fill="y", padx=8)
-        ttk.Button(bar, text="生成报告", width=10, command=self.make_report).pack(side="left", padx=3)
-        ttk.Button(bar, text="打开报告", width=10, command=self.open_report).pack(side="left", padx=3)
-        ttk.Button(bar, text="打开文件夹", width=11, command=lambda: self.open_path(LOG_DIR)).pack(side="left", padx=3)
-        ttk.Button(bar, text="模拟数据看效果", width=15, command=self.demo).pack(side="left", padx=(12, 3))
+        capture = ttk.LabelFrame(page, text="遥测检测", padding=12)
+        capture.pack(fill="x")
+        row = ttk.Frame(capture)
+        row.pack(fill="x")
+        ttk.Label(row, text="采集时长（秒）").pack(side="left")
+        self.seconds = ttk.Spinbox(row, from_=1, to=600, increment=5, width=6)
+        self.seconds.set("30")
+        self.seconds.pack(side="left", padx=(6, 12))
+        self.detect_button = ttk.Button(row, text="一键检测并启动电机 · F5", style="Action.TButton", command=self.start_detection)
+        self.detect_button.pack(side="left", padx=(0, 8))
+        self.capture_stop = ttk.Button(row, text="停止采集", style="Action.TButton", command=self.stop_capture)
+        self.capture_stop.pack(side="left")
+        self.capture_text = tk.StringVar(value="等待检测")
+        self.progress_text = tk.StringVar(value="")
+        ttk.Label(capture, textvariable=self.capture_text).pack(anchor="w", pady=(10, 0))
+        ttk.Label(capture, textvariable=self.progress_text, style="Muted.TLabel").pack(anchor="w", pady=(4, 0))
+        ttk.Label(capture, text="停止采集只结束记录，随后自动导出点云和报告；需要停电机请点上方红色按钮。",
+                  style="Muted.TLabel").pack(anchor="w", pady=(5, 0))
+        files = ttk.Frame(page, padding=(0, 10))
+        files.pack(fill="x")
+        ttk.Button(files, text="打开报告", command=self.open_report).pack(side="left", padx=(0, 8))
+        ttk.Button(files, text="打开数据目录", command=lambda: self.open_path(LOG_DIR)).pack(side="left", padx=(0, 8))
+        self.report_button = ttk.Button(files, text="处理已有 BIN", command=self.process_file)
+        self.report_button.pack(side="left")
+        logs = ttk.LabelFrame(page, text="操作记录", padding=6)
+        logs.pack(fill="both", expand=True)
+        self.log_text = tk.Text(logs, height=7, wrap="word", state="disabled", font=("Microsoft YaHei UI", 9))
+        self.log_text.pack(side="left", fill="both", expand=True)
+        scroll = ttk.Scrollbar(logs, command=self.log_text.yview)
+        scroll.pack(side="right", fill="y")
+        self.log_text.configure(yscrollcommand=scroll.set)
 
-        # ③ 实时计数
-        info = ttk.Frame(self.root, padding=(10, 6))
-        info.pack(fill="x")
-        self.lb_count = ttk.Label(info, text="帧数 0", font=("Consolas", 11, "bold"))
-        self.lb_count.pack(side="left")
-        self.lb_stat = ttk.Label(info, text="", font=("Consolas", 11))
-        self.lb_stat.pack(side="left", padx=18)
-        self.lb_time = ttk.Label(info, text="", font=("Consolas", 11))
-        self.lb_time.pack(side="right")
-        self.lb_radar = ttk.Label(info, text="", font=("Consolas", 11), foreground="#0a6")
-        self.lb_radar.pack(side="right", padx=18)
+    def log(self, message):
+        self.log_text.configure(state="normal")
+        self.log_text.insert("end", time.strftime("[%H:%M:%S] ") + str(message).strip() + "\n")
+        if int(self.log_text.index("end-1c").split(".")[0]) > 500:
+            self.log_text.delete("1.0", "101.0")
+        self.log_text.see("end")
+        self.log_text.configure(state="disabled")
 
-        # ④ 波形
-        pf = ttk.Frame(self.root, padding=(8, 0))
-        pf.pack(fill="both", expand=True)
-        self.fig = Figure(figsize=(11.5, 4.6), dpi=100)
-        self.ax = self.fig.subplots(4, 1, sharex=True)
-        for a, t in zip(self.ax, ["err", "servo_pwm", "pid_select", "speed"]):
-            a.set_ylabel(t, fontsize=9)
-            a.grid(alpha=0.3, lw=0.5)
-        self.ax[2].set_yticks(range(10))
-        self.ax[3].set_xlabel("帧序号(最近 %d 帧)" % LIVE_WIN, fontsize=9)
-        self.fig.tight_layout()
-        self.canvas = FigureCanvasTkAgg(self.fig, master=pf)
-        self.canvas.get_tk_widget().pack(fill="both", expand=True)
-        self._last_draw = 0.0
+    @staticmethod
+    def open_path(path):
+        try:
+            os.startfile(path)
+        except OSError as exc:
+            messagebox.showerror("打开失败", str(exc))
 
-        # ⑤ 日志
-        lf = ttk.LabelFrame(self.root, text="日志", padding=4)
-        lf.pack(fill="both", padx=8, pady=6)
-        self.txt = tk.Text(lf, height=7, wrap="none", font=("Consolas", 9))
-        self.txt.pack(side="left", fill="both", expand=True)
-        sb = ttk.Scrollbar(lf, command=self.txt.yview)
-        sb.pack(side="right", fill="y")
-        self.txt["yscrollcommand"] = sb.set
-        self.root.bind("<F5>", lambda e: self.start_capture())
-
-    # ==================== 工具 ====================
-    def log(self, msg):
-        self.txt.insert("end", time.strftime("[%H:%M:%S] ") + msg + "\n")
-        self.txt.see("end")
-
-    def open_path(self, p):
-        if not os.path.exists(p):
-            messagebox.showwarning("提示", f"还没生成:{p}")
-            return
-        os.startfile(p)
-
-    def log_dir(self):
-        os.makedirs(LOG_DIR, exist_ok=True)
-        return LOG_DIR
-
-    # ==================== 串口 ====================
     def refresh_ports(self):
         try:
             from serial.tools import list_ports
+            selected = self.port.get()
+            values = [f"{p.device} | {p.description}" for p in list_ports.comports()]
+            self.port["values"] = values
+            self.port.set(selected if selected in values else next((p for p in values if "blue" in p.lower()), values[0] if values else ""))
+            if not values:
+                self.log("未发现串口，请先配对 HC-05 并选择传出 COM 口。")
         except ImportError:
-            self.cb_port["values"] = []
-            self.log("✗ 缺少 pyserial。请用【启动上位机.bat】启动(它会自动安装),"
-                     "或手动执行: python -m pip install pyserial")
-            return
-        ports = list(list_ports.comports())
-        vals = [f"{p.device} | {p.description}" for p in ports]
-        self.cb_port["values"] = vals
-        if vals:
-            self.cb_port.current(0)
-            for i, p in enumerate(ports):
-                if "blue" in (p.description or "").lower():
-                    self.cb_port.current(i)
-                    break
-            self.log(f"发现 {len(vals)} 个串口")
+            self.log("缺少 pyserial，请使用“启动上位机.bat”启动。")
+
+    def _buttons(self):
+        linked = self.connected and not self.exiting
+        busy = self.capturing or self.reporting
+        for button in (self.motor_start, self.motor_stop):
+            button.configure(state="normal" if linked else "disabled")
+        self.detect_button.configure(state="normal" if linked and not busy else "disabled")
+        can_stop = self.capturing and self.phase != "dump" and self.session and not self.session.capture_stop.is_set()
+        self.capture_stop.configure(state="normal" if can_stop and not self.exiting else "disabled")
+        self.report_button.configure(state="disabled" if busy or self.exiting else "normal")
+        self.connect_button.configure(text="断开" if self.connected else "连接",
+            state="disabled" if self.capturing or self.exiting or (self.session and not self.connected) else "normal")
+        self.refresh_button.configure(state="disabled" if self.session else "normal")
+        for box in (self.port, self.baud):
+            box.configure(state="disabled" if self.session else "readonly")
+
+    def toggle_connection(self):
+        if self.session:
+            self.connected = False
+            self.connection_text.set("正在断开")
+            self.session.closing.set()
         else:
-            self.log("未发现串口。请先在 Windows 设置里配对 HC-05,配对成功后会出现一个传出 COM 口。")
-
-    def _port(self):
-        v = self.cb_port.get()
-        return v.split("|")[0].strip() if v else ""
-
-    def toggle_conn(self):
-        if self.ser:
-            self.disconnect()
-        else:
-            self.connect()
-
-    def connect(self):
-        port = self._port()
-        if not port:
-            messagebox.showwarning("提示", "先选串口(点【刷新】)")
-            return
-        try:
-            import serial
-        except ImportError:
-            messagebox.showerror("缺少 pyserial", "请用【启动上位机.bat】启动,或执行:\n"
-                                                "python -m pip install pyserial")
-            return
-        try:
-            self.ser = serial.Serial(port, int(self.cb_baud.get()), timeout=0)
-        except Exception as e:
-            self.ser = None
-            messagebox.showerror("打开失败", f"{port} 打开失败:\n{e}\n\n"
-                                            f"常见原因:已被 Vofa+/串口助手占用;或被别的程序占着。")
-            return
-        self.parser = core.StreamParser()
-        self.raw = bytearray()
-        self.vofa_buf = bytearray()
-        self.btn_conn["text"] = "断开"
-        self.lb_conn["text"] = f"● 已连接 {port}"
-        self.lb_conn["foreground"] = "green"
-        self.log(f"已打开 {port} @ {self.cb_baud.get()}")
-
-    def disconnect(self):
-        if self.capturing:
-            self.stop_capture()
-        try:
-            if self.ser:
-                self.ser.close()
-        except Exception:
-            pass
-        self.ser = None
-        self.btn_conn["text"] = "连接"
-        self.lb_conn["text"] = "● 未连接"
-        self.lb_conn["foreground"] = "gray"
-        self.log("已断开")
-
-    def send(self, cmd):
-        if not self.ser:
-            return False
-        try:
-            self.ser.write(cmd.encode("ascii"))
-            self.log(f"→ {cmd.strip()}")
-            return True
-        except Exception as e:
-            self.log(f"✗ 发送失败:{e}")
-            return False
-
-    # ==================== 采集 ====================
-    def start_capture(self, send_tele=False):
-        if send_tele:
-            return self.start_v2_capture()
-        if not self.ser:
-            messagebox.showwarning("提示", "先点【连接】")
-            return
-        if self.capturing:
-            return
-        self.parser = core.StreamParser()
-        self.raw = bytearray()
-        self.rx_events = []
-        self.vofa_buf = bytearray()
-        self.diag_pending = send_tele
-        if send_tele and not self.send("tele 2\n"):
-            return
-        self.capturing = True
-        self.t_start = time.monotonic()
-        self.t_stop = self.t_start + float(self.sp_sec.get())
-        self.btn_start["state"] = "disabled"
-        self.btn_diag["state"] = "disabled"
-        self.btn_stop["state"] = "normal"
-        self.log(f"开始采集 {self.sp_sec.get()} 秒 …(记录到 {LOG_DIR})")
-
-    def stop_capture(self, quiet=False):
-        if getattr(self,"v2_worker",None) is not None:
-            with open(self.v2_stop,"w") as f:f.write("stop")
-            self.log("已请求结束采集；新固件会继续导出点云（双快照固件最多24秒），然后保存文件。")
-            return None
-        self.capturing = False
-        self.diag_pending = False
-        self.btn_start["state"] = "normal"
-        self.btn_diag["state"] = "normal"
-        self.btn_stop["state"] = "disabled"
-        n = self.parser.total_frames
-        dur = max(0.0, time.monotonic() - self.t_start)
-        if n == 0 and not self.raw:
-            self.log("⚠ 本次没有收到任何数据 — 检查串口是否选对、蓝牙是否已连接")
-            return None
-        name = time.strftime("run_%m%d_%H%M%S") + f"_{time.monotonic_ns()}"
-        binp = os.path.join(self.log_dir(), name + ".bin")
-        core.save_capture(binp, self.raw, self.rx_events, dur)
-        self.parser.capture_duration = dur
-        self.last_bin = binp
-        if n == 0:
-            self.log(f"停止采集:未解析到57字节诊断帧,但原始数据已存 {len(self.raw)} 字节"
-                     f"(时长 {dur:.1f}s) → {os.path.basename(binp)}")
-            self.log(f"  若是老遥测(VOFA+ 8通道), 解码看雷达转速:")
-            self.log(f"  python robocup_telemetry.py vofa \"{binp}\" --sec {dur:.1f}")
-        else:
-            self.log(f"停止采集:{n} 帧,{len(self.raw)} 字节,时长 {dur:.1f}s "
-                     f"→ {os.path.basename(binp)}")
-        return binp
-
-    def start_v2_capture(self):
-        if self.capturing or self.v2_worker is not None:return
-        if not self.ser:
-            messagebox.showwarning("提示","先连接串口")
-            return
-        port=self.ser.port;baud=int(self.cb_baud.get());seconds=float(self.sp_sec.get())
-        self.disconnect()  # subprocess is the sole serial owner during this run
-        stamp=time.strftime("v2_%m%d_%H%M%S")+f"_{time.monotonic_ns()}"
-        binp=os.path.join(self.log_dir(),stamp+".bin")
-        self.last_report=None;self.last_bin=None
-        self.v2_stop=binp+".stop"
-        self.capturing=True
-        self.btn_start["state"]="disabled";self.btn_diag["state"]="disabled";self.btn_stop["state"]="normal"
-        self.btn_conn["state"]="disabled"
-        def work():
-            flags=getattr(subprocess,"CREATE_NO_WINDOW",0)
-            command=[sys.executable,"-B",os.path.join(HERE,"robocup_telemetry.py"),"capture-v2",
-                     "--port",port,"--baud",str(baud),"--sec",str(seconds),"--out",binp,"--stop-file",self.v2_stop]
-            try:
-                result=subprocess.run(command,capture_output=True,text=True,encoding="utf-8",errors="replace",
-                                      env=dict(os.environ,PYTHONIOENCODING="utf-8"),creationflags=flags)
-                self.worker_events.put(("log",result.stdout+result.stderr))
-                if os.path.exists(binp+".meta.json"):
-                    report=subprocess.run([sys.executable,"-B",os.path.join(HERE,"robocup_telemetry.py"),"report",binp],
-                         capture_output=True,text=True,encoding="utf-8",errors="replace",creationflags=flags,
-                         env=dict(os.environ,PYTHONIOENCODING="utf-8"))
-                    self.worker_events.put(("log",report.stdout+report.stderr))
-                self.worker_events.put(("done",binp))
-            except Exception as exc:
-                self.worker_events.put(("log",str(exc)));self.worker_events.put(("done",None))
-        self.v2_worker=threading.Thread(target=work,daemon=True);self.v2_worker.start()
-        self.log("V2后台独占串口：协商→采集→保存→报告；完成前可点停止。过程中不显示实时曲线。")
-
-    def one_click(self):
-        """★ 全流程:切诊断流 → 采集 → 停止 → 出报告 → 打开"""
-        if not self.ser:
-            messagebox.showwarning("提示", "先点【连接】")
-            return
-        self.log("=== 一键诊断开始 ===")
-        self.start_capture(send_tele=True)
-
-    def _finish_auto(self):
-        binp = self.stop_capture()
-        if binp and self.parser.total_frames:      # 老遥测流出不了57字节帧报告
-            self.make_report(binp)
-            self.open_report()
-
-    # ==================== 报告 ====================
-    def make_report(self, binp=None):
-        if self.capturing:
-            self.log("请结束采集后生成报告；V2一键诊断会自动生成。")
-            return
-        binp = binp or self.last_bin
-        if not binp:
-            b = filedialog.askopenfilename(initialdir=self.log_dir(),
-                                           filetypes=[("遥测数据", "*.bin"), ("全部", "*.*")])
-            if not b:
+            port = self.port.get().split("|")[0].strip()
+            if not port:
+                messagebox.showwarning("请选择串口", "刷新后选择 HC-05 传出 COM 口。")
                 return
-            binp = b
-        try:
-            p = core.parse_file(binp)
-            res = core.analyze(p)
-            base = os.path.splitext(binp)[0]
-            core.write_csv(p, base + ".csv")
-            core.write_report(res, base + "_report.md", os.path.basename(binp))
-            try:
-                core.write_plot(p, res, base + ".png")
-            except Exception as e:
-                self.log(f"(图生成跳过:{e})")
-            self.last_report = base + "_report.md"
-            self.log(f"报告已生成:{os.path.basename(self.last_report)}")
-            self._summarize(res)
-        except Exception as e:
-            self.log(f"✗ 报告生成失败:{e}")
+            self.connection_text.set("正在连接")
+            self.session = BluetoothSession(port, int(self.baud.get()), self.events)
+            self.session.start()
+        self._buttons()
 
-    def _summarize(self, res):
-        if res["n_frames"] == 0:
-            self.log("判读:无有效帧")
+    def _start_speed(self):
+        try:
+            speed = int(self.speed.get())
+            if not 1 <= speed <= 18:
+                raise ValueError
+            return speed
+        except ValueError:
+            messagebox.showwarning("速度输入错误", "启动速度应为1～18的整数，当前默认17。")
+            return None
+
+    def start_motor(self):
+        if self.connected:
+            speed = self._start_speed()
+            if speed is not None:
+                self.session.request_motor(speed)
+                self.log(f"请求启动电机，速度上限 {speed}；等待车端确认。")
+
+    def stop_motor(self):
+        # 关闭不读速度输入框：输入有误也不妨碍关闭；手动关闭取消待执行的自动启动。
+        if self.connected:
+            self.session.request_motor(0)
+            self.log("请求关闭电机，等待车端确认。")
+
+    def start_detection(self):
+        if not self.connected or self.capturing or self.reporting:
             return
-        if res.get("v2"):
-            self.log(f"V2判读：{res['n_frames']}条CONTROL，未知配置{res['unknown_config']}条")
+        speed = self._start_speed()
+        if speed is None:
             return
-        L = res["link"]
-        self.log(f"判读:接收帧率 {L['fps']:.1f}/s（nan=无时间记录）,丢帧 {L['drop_rate']:.2f}%,"
-                 f"饱和 {res['err_sat']['overall_pct']:.1f}%,"
-                 f"方向异常 {res['dir_anomaly']['runs_ge3']} 段,"
-                 f"强制打满 {res['carry']['frames']} 帧,"
-                 f"PWM 猛甩(>250) {res['pwm_jumps']['gt250']} 帧,"
-                 f"出弯反踢 {res['exit_kick']['kicks']} 次")
-        for s in res["segments"][:3]:
-            self.log(f"  可疑片段:帧 {s['start']}~{s['end']-1} "
-                     f"({s['t0']:.1f}s,评分{s['score']:.0f},|err|峰 {s['max_abs_err']:.0f})")
+        try:
+            seconds = float(self.seconds.get())
+            if not 0 < seconds <= 600:
+                raise ValueError
+        except ValueError:
+            messagebox.showwarning("时长输入错误", "采集时长应大于0且不超过600秒。")
+            return
+        name = time.strftime("v2_%m%d_%H%M%S") + f"_{time.monotonic_ns()}_{uuid.uuid4().hex[:8]}.bin"
+        args = SimpleNamespace(port=self.session.port, baud=self.session.baud, sec=seconds,
+                               rate=1, out=os.path.join(LOG_DIR, name), stop_file=None)
+        self.capturing = True
+        self.phase = "negotiating"
+        self.last_report = None
+        self.capture_text.set("正在协商；成功后自动启动电机")
+        self.progress_text.set("")
+        self.session.request_capture(args, speed)
+        self.log(f"一键检测 {seconds:g} 秒，启动速度 {speed}。协商失败时不自动启动。")
+        self._buttons()
+
+    def stop_capture(self):
+        if self.capturing and self.session:
+            self.session.capture_stop.set()
+            self.capture_text.set("已请求结束采集，正在保存和导出")
+            self.log("已请求停止采集；电机启停独立控制，数据处理会自动完成。")
+            self._buttons()
 
     def open_report(self):
-        if self.last_report and os.path.exists(self.last_report):
-            self.open_path(self.last_report)
-        else:
-            self.open_path(LOG_DIR)
+        self.open_path(self.last_report if self.last_report and os.path.isfile(self.last_report) else LOG_DIR)
 
-    def demo(self):
-        """无车也能看效果:生成模拟数据 → 出报告 → 打开"""
-        binp = os.path.join(self.log_dir(), "demo.bin")
-        core.make_demo_bin(binp, seconds=60.0)
-        self.log("已生成模拟数据 demo.bin(含注入的典型病症)")
-        self.make_report(binp)
-
-    # ==================== 定时轮询 ====================
-    def _tick(self):
-        while not self.worker_events.empty():
-            kind,value=self.worker_events.get_nowait()
-            if kind=="log":self.log(value)
-            else:
-                self.v2_worker=None;self.capturing=False
-                self.btn_start["state"]="normal";self.btn_diag["state"]="normal";self.btn_stop["state"]="disabled";self.btn_conn["state"]="normal"
-                if value:
-                    self.last_bin=value;report=os.path.splitext(value)[0]+"_report.md"
-                    if os.path.exists(report):self.last_report=report
-                self.log("V2任务结束，串口已关闭；下一次采集请重新连接。")
-        if self.v2_worker is not None:
-            self.lb_time["text"]="V2后台采集/生成报告中"
-            self.root.after(POLL_MS,self._tick)
+    def process_file(self):
+        if self.capturing or self.reporting:
             return
-        try:
-            if self.ser:
-                n = 0
-                try:
-                    n = self.ser.in_waiting
-                except Exception:
-                    n = 0
-                if n:
-                    chunk = self.ser.read(min(n, 8192))
-                    if chunk:
-                        if self.capturing:
-                            elapsed = time.monotonic() - self.t_start
-                            self.rx_events.append({"offset": len(self.raw), "length": len(chunk), "t": elapsed})
-                            self.parser.feed(chunk, elapsed)
-                        self.vofa_buf += chunk
-                        if len(self.vofa_buf) > 16384:
-                            del self.vofa_buf[:-8192]
-                        if self.capturing:
-                            self.raw += chunk
-        except Exception as e:
-            self.log(f"✗ 串口异常,已断开:{e}")
-            self.disconnect()
+        path = filedialog.askopenfilename(initialdir=LOG_DIR, filetypes=[("遥测原始数据", "*.bin")])
+        if path:
+            self._report(path)
 
-        if self.capturing and self.diag_pending:
-            if self.parser.total_frames:
-                self.diag_pending = False
-                self.log("已收到有效V1诊断帧，诊断流确认")
-            elif time.monotonic() - self.t_start >= 3:
-                self.log("诊断切换未确认：无有效V1帧。现役固件不支持tele 2；保留原始回复，请用普通采集。")
-                self.stop_capture()
+    def _report(self, path, capture_failed=False):
+        self.reporting = True
+        self.capture_failed = capture_failed
+        self.capture_text.set("正在生成报告；电机按钮仍可使用")
+        self._buttons()
+        def work():
+            report = os.path.splitext(path)[0] + "_report.md"
+            try:
+                result = subprocess.run([sys.executable, "-B", os.path.join(HERE, "robocup_telemetry.py"), "report", path],
+                    capture_output=True, text=True, encoding="utf-8", errors="replace",
+                    env=dict(os.environ, PYTHONIOENCODING="utf-8"),
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                self.events.put(("log", result.stdout + result.stderr))
+                self.events.put(("reported", report if result.returncode == 0 and os.path.isfile(report) else None))
+            except Exception as exc:
+                self.events.put(("log", f"报告生成失败：{exc}"))
+                self.events.put(("reported", None))
+        threading.Thread(target=work, name="telemetry-report", daemon=True).start()
 
-        # 自动停止
-        if self.capturing and time.monotonic() >= self.t_stop:
-            self._finish_auto()
-
-        self._update_labels()
-        if time.monotonic() - self._last_draw > 0.2:
-            self._update_plot()
-            self._last_draw = time.monotonic()
-        self.root.after(POLL_MS, self._tick)
-
-    def _update_labels(self):
-        p = self.parser
-        self.lb_count["text"] = f"帧数 {p.total_frames}"
-        if p.total_frames:
-            total = p.total_frames + p.dropped
-            r = p.records[-1]
-            mode = int(r["pid_select"]) if core.math.isfinite(r["pid_select"]) else -1
-            self.lb_stat["text"] = (f"丢帧 {100.0*p.dropped/total:.1f}%  坏帧 {p.bad_frames}   "
-                                    f"模式 {mode}({core.mode_name(mode,r.get('algorithm_id',0))})   "
-                                    f"err {r['err']:+.0f}   pwm {r['servo_pwm']:.0f}   "
-                                    f"速度 {r['Speed_now']:.1f}/{r['Speed_mubiao']:.0f}")
-        if self.capturing:
-            left = max(0.0, self.t_stop - time.monotonic())
-            self.lb_time["text"] = f"采集中… 剩余 {left:.0f} s"
-        elif p.total_frames:
-            self.lb_time["text"] = (f"采集时长 {p.capture_duration:.1f} s" if p.capture_duration is not None else "采集中")
-
-        # 老遥测(VOFA+ 8通道)实时读数: 第8通道 = 雷达转速(度/秒)
-        # 要求至少3帧且间距正常, 免得把诊断流(57字节帧)里的巧合字节当成帧
-        txt = ""
-        if len(self.vofa_buf) >= core.VOFA_LEN * 3:
-            rows, _bad = core.parse_vofa_bytes(bytes(self.vofa_buf))
-            if len(rows) >= 3:
-                dps = rows[-1][7]
-                txt = f"雷达 {dps:.0f}°/s = {dps/360:.2f} Hz"
-        self.lb_radar["text"] = txt
-
-    def _update_plot(self):
-        recs = self.parser.records[-LIVE_WIN:]
-        n = len(recs)
-        x = list(range(n))
-        for i, key in enumerate(["err", "servo_pwm", "pid_select", "Speed_now"]):
-            y = [r[key] for r in recs]
-            a = self.ax[i]
-            if a.lines:
-                a.lines[0].set_data(x, y)
+    def _event(self, kind, value):
+        if kind == "log":
+            if value:
+                self.log(value)
+        elif kind == "connected":
+            self.connected = True
+            self.connection_text.set(f"已连接 {value}")
+            self.log(f"已连接 {value}；连接本身不改变电机目标。")
+        elif kind == "disconnected":
+            self.session = None
+            self.connected = self.capturing = False
+            self.connection_text.set("未连接")
+            self.log("串口已关闭。断开蓝牙不代表电机已停止。")
+        elif kind == "motor":
+            self.motor_text.set(value)
+        elif kind == "phase":
+            self.phase = value
+            text = {"negotiating": "正在协商；成功后自动启动电机", "capture": "正在采集，可随时关闭电机或结束记录",
+                    "dump": "正在导出冻结点云，电机按钮仍可使用"}.get(value)
+            if text:
+                self.capture_text.set(text)
+        elif kind == "progress":
+            speed = "—" if value["speed"] is None else f'{value["speed"]:.1f}'
+            self.progress_text.set(f'已收 {value["frames"]} 帧 · {value["bytes"]:,} 字节 · 采样车速 {speed}')
+        elif kind == "captured":
+            self.capturing = False
+            if os.path.isfile(value["path"] + ".meta.json"):
+                self._report(value["path"], capture_failed=value["result"] != 0)
             else:
-                a.plot(x, y, lw=1.0)
-            if n:
-                a.set_xlim(0, max(LIVE_WIN, n))
-                finite = [v for v in y if core.math.isfinite(v)]
-                lo, hi = (min(finite), max(finite)) if finite else (0, 1)
-                pad = (hi - lo) * 0.15 + 1.0
-                a.set_ylim(lo - pad, hi + pad)
-        self.canvas.draw_idle()
+                self.capture_text.set("未生成采集文件，请查看操作记录")
+        elif kind == "reported":
+            self.reporting = False
+            self.last_report = value
+            if not value:
+                self.capture_text.set("报告处理失败，原始数据保留")
+            elif self.capture_failed:
+                self.capture_text.set("采集未完整完成，已整理现有数据；原因见操作记录")
+            else:
+                self.capture_text.set("数据处理完成")
+            if value:
+                self.log("报告已生成，可直接再次检测或单独控制电机。")
+        self._buttons()
+
+    def _tick(self):
+        for _ in range(100):
+            try:
+                self._event(*self.events.get_nowait())
+            except queue.Empty:
+                break
+        if self.exiting and self.session is None and not self.reporting:
+            self.root.destroy()
+            return
+        self.root.after(80, self._tick)
+
+    def close(self):
+        self.exiting = True
+        if self.session:
+            self.session.capture_stop.set()
+            self.session.closing.set()
+        self.capture_text.set("正在保存已收数据并关闭连接")
+        self._buttons()
 
 
 def main():
     root = tk.Tk()
     try:
-        ttk.Style().theme_use("vista")
-    except Exception:
+        ttk.Style(root).theme_use("vista")
+    except tk.TclError:
         pass
     App(root)
     root.mainloop()
